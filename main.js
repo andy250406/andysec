@@ -6,15 +6,16 @@ const TODAY = new Date('2026-06-21'); // Simulated today's date
 
 // State Store
 let appState = {
-  posts: [], // Study notes and News loaded from JSON
-  projects: [], // Projects loaded from LocalStorage / JSON
-  projectNotes: [], // Project-specific notes written by user
+  posts: [], // Study notes and News (category: Cert, CertAnalysis, News)
+  projects: [], // Projects
+  projectNotes: [], // Project-specific notes
   currentTab: 'dashboard',
   searchQuery: '',
   studyFilter: 'all',
   newsFilter: 'all',
-  activePostId: null,
-  activeProjectId: null // ID of project currently viewed in details
+  activePostId: null,      // ID of post currently viewed in detail (posts or projectNotes)
+  activePostType: null,    // 'general' or 'projectNote'
+  activeProjectId: null    // ID of project currently viewed in details
 };
 
 // DOM Elements
@@ -33,6 +34,7 @@ const elements = {
   // Study Tab
   studyPostsGrid: document.getElementById('study-posts-grid'),
   studyFilterBtns: document.querySelectorAll('#tab-study .filter-btn'),
+  btnOpenAddStudy: document.getElementById('btn-open-add-study-modal'),
   
   // Projects Tab
   projectsListView: document.getElementById('projects-list-view'),
@@ -46,14 +48,31 @@ const elements = {
   detailProjectPercent: document.getElementById('detail-project-percent'),
   detailProjectProgressBar: document.getElementById('detail-project-progress-bar'),
   projectNotesGrid: document.getElementById('project-notes-grid'),
+  btnEditProject: document.getElementById('btn-edit-project-details'),
+  btnDeleteProject: document.getElementById('btn-delete-project-details'),
   
   // Modals
   addProjectModal: document.getElementById('add-project-modal'),
   addNoteModal: document.getElementById('add-note-modal'),
+  addStudyModal: document.getElementById('add-study-modal'),
+  
+  // Modal Titles & Hidden inputs
+  projectModalTitle: document.getElementById('project-modal-title'),
+  projectEditId: document.getElementById('project-edit-id'),
+  btnSubmitProject: document.getElementById('btn-submit-project'),
+  
+  noteModalTitle: document.getElementById('note-modal-title'),
+  noteEditId: document.getElementById('note-edit-id'),
+  btnSubmitNote: document.getElementById('btn-submit-note'),
+  
+  studyModalTitle: document.getElementById('study-modal-title'),
+  studyEditId: document.getElementById('study-edit-id'),
+  btnSubmitStudy: document.getElementById('btn-submit-study'),
   
   // Forms
   addProjectForm: document.getElementById('add-project-form'),
   addNoteForm: document.getElementById('add-note-form'),
+  addStudyForm: document.getElementById('add-study-form'),
   
   // Buttons
   btnOpenAddProject: document.getElementById('btn-open-add-project-modal'),
@@ -63,6 +82,8 @@ const elements = {
   btnOpenAddNote: document.getElementById('btn-open-add-note-modal'),
   btnCloseNoteModal: document.getElementById('btn-close-note-modal'),
   btnCancelNote: document.getElementById('btn-cancel-note'),
+  btnCloseStudyModal: document.getElementById('btn-close-study-modal'),
+  btnCancelStudy: document.getElementById('btn-cancel-study'),
   
   // News Tab
   fullNewsTable: document.getElementById('full-news-table'),
@@ -71,6 +92,8 @@ const elements = {
   // Article Pane
   articlePane: document.getElementById('article-detail-pane'),
   btnBackToList: document.getElementById('btn-back-to-list'),
+  btnEditArticle: document.getElementById('btn-edit-article'),
+  btnDeleteArticle: document.getElementById('btn-delete-article'),
   articleTitle: document.getElementById('article-title'),
   articleDate: document.getElementById('article-date'),
   articleCategory: document.getElementById('article-category'),
@@ -163,17 +186,40 @@ function initRouter() {
 // Load All Data (JSON + LocalStorage)
 async function loadData() {
   try {
-    // 1. Fetch posts (Study notes & News)
-    const response = await fetch('./public/posts/posts.json');
-    if (!response.ok) throw new Error('Failed to load posts index');
-    const allPosts = await response.json();
+    // 1. Load posts (Study notes & News) from LocalStorage or fallback to JSON
+    const savedPosts = localStorage.getItem('posts');
+    if (savedPosts) {
+      appState.posts = JSON.parse(savedPosts);
+    } else {
+      const response = await fetch('./public/posts/posts.json');
+      if (!response.ok) throw new Error('Failed to load posts index');
+      const allPosts = await response.json();
+      
+      // Filter out 'Project' categories, keep Cert, CertAnalysis, News
+      const postsToStore = allPosts.filter(p => p.category !== 'Project');
+      
+      // Seed details from files if possible, or we save content directly.
+      // To make them editable, we load the content from markdown files now and store them directly in the post object!
+      // This is a brilliant strategy for a fully editable local experience.
+      for (let post of postsToStore) {
+        try {
+          const res = await fetch(`./public/${post.filePath}`);
+          if (res.ok) {
+            post.content = await res.text();
+          }
+        } catch (e) {
+          post.content = `# ${post.title}\n내용이 아직 등록되지 않았습니다.`;
+        }
+      }
+      
+      appState.posts = postsToStore;
+      localStorage.setItem('posts', JSON.stringify(postsToStore));
+    }
     
-    // Sort study notes and news
-    appState.posts = allPosts.filter(p => p.category !== 'Project');
     appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
     
     // 2. Initialize projects from localStorage or seed defaults
-    initProjects(allPosts.filter(p => p.category === 'Project'));
+    initProjects();
     
     // 3. Load project internal notes
     appState.projectNotes = JSON.parse(localStorage.getItem('projectNotes')) || [];
@@ -185,13 +231,12 @@ async function loadData() {
   }
 }
 
-// Seed default projects if none exist in localStorage
-function initProjects(defaultProjects) {
+// Seed default projects
+function initProjects() {
   const savedProjects = localStorage.getItem('projects');
   if (savedProjects) {
     appState.projects = JSON.parse(savedProjects);
   } else {
-    // Add additional fields for projects
     const seeded = [
       {
         id: 'project-cons-audit',
@@ -226,8 +271,29 @@ function initProjects(defaultProjects) {
         details: '고객사의 AWS 클라우드 아키텍처 대상 IAM 권한 정책, VPC 네트워크 통제 및 데이터 암호화 설정 점검 컨설팅.'
       }
     ];
+    
+    // Check if posts.json contains content for them
+    // Let's seed pre-existing project notes inside localStorage projectNotes
+    const seededNotes = [
+      {
+        id: 'note-seeded-1',
+        projectId: 'project-cons-audit',
+        title: '수탁사 점검 체크리스트 수립 일지',
+        content: '수탁사 개인정보 처리 현황 점검을 위한 체크리스트 설계 완료. 위수탁계약서 상의 필수 조항(법 제26조) 이행 여부 점검 예정.',
+        date: '2026-03-10'
+      },
+      {
+        id: 'note-seeded-2',
+        projectId: 'project-web-vuln',
+        title: 'Flask 연동 진단 엔진 모듈 설계 자료',
+        content: '웹 스캐너 백엔드 설계를 위한 Flask API 연동 규격 설계. REST API 형태로 스캔 상태값 리턴 구성.',
+        date: '2026-01-15'
+      }
+    ];
+    
     appState.projects = seeded;
     localStorage.setItem('projects', JSON.stringify(seeded));
+    localStorage.setItem('projectNotes', JSON.stringify(seededNotes));
   }
 }
 
@@ -254,6 +320,7 @@ function switchTab(tabId) {
   
   appState.currentTab = tabId;
   appState.activePostId = null;
+  appState.activePostType = null;
   appState.activeProjectId = null;
   
   // Hide details and modals
@@ -293,12 +360,11 @@ function renderAll() {
 
 // Render Active Project on Dashboard
 function renderActiveProject() {
-  // Find project that is currently in progress
   const activeProject = appState.projects.find(p => {
     const start = new Date(p.startDate);
     const end = new Date(p.endDate);
     return TODAY >= start && TODAY <= end;
-  }) || appState.projects[0]; // Fallback to first project if none is active
+  }) || appState.projects[0];
   
   if (!elements.dashboardActiveProjectWrapper) return;
   
@@ -350,7 +416,6 @@ function renderActiveProject() {
 
 // Render Dashboard (Recent Study list + Sidebar News list)
 function renderDashboard() {
-  // 1. Recent study notes (exclude News/Projects)
   const studyPosts = appState.posts.filter(p => p.category !== 'News' && matchSearch(p));
   elements.recentStudyList.innerHTML = '';
   
@@ -374,7 +439,6 @@ function renderDashboard() {
     });
   }
   
-  // 2. Sidebar Recent News (4 items, simplified text list)
   const newsPosts = appState.posts.filter(p => p.category === 'News' && matchSearch(p));
   elements.dashboardRecentNewsList.innerHTML = '';
   
@@ -518,7 +582,6 @@ function showProjectDetail(projectId) {
 function renderProjectNotes(projectId) {
   elements.projectNotesGrid.innerHTML = '';
   
-  // Filter notes that belong to this project
   const notes = appState.projectNotes.filter(n => n.projectId === projectId);
   
   if (notes.length === 0) {
@@ -538,8 +601,6 @@ function renderProjectNotes(projectId) {
       </div>
     `;
     card.addEventListener('click', () => {
-      // Show detail inline or as article detail
-      // Let's reuse standard article view but adapt it for localStorage notes
       showLocalNoteDetail(note);
     });
     elements.projectNotesGrid.appendChild(card);
@@ -548,6 +609,9 @@ function renderProjectNotes(projectId) {
 
 // Show Local Note Detail in the Article Pane
 function showLocalNoteDetail(note) {
+  appState.activePostId = note.id;
+  appState.activePostType = 'projectNote';
+  
   elements.articlePane.style.display = 'block';
   elements.tabPanes.forEach(pane => pane.classList.remove('active'));
   
@@ -560,6 +624,39 @@ function showLocalNoteDetail(note) {
   
   // Parse content using marked
   elements.articleContent.innerHTML = marked.parse(note.content);
+}
+
+// Show Post Detail View from posts
+function showArticleDetail(postId) {
+  const post = appState.posts.find(p => p.id === postId);
+  if (!post) {
+    elements.articleTitle.textContent = '글을 찾을 수 없습니다.';
+    elements.articleContent.innerHTML = '<p class="text-muted">해당 글이 인덱스에 존재하지 않거나 경로 오류입니다.</p>';
+    elements.articlePane.style.display = 'block';
+    elements.tabPanes.forEach(pane => pane.classList.remove('active'));
+    return;
+  }
+  
+  appState.activePostId = postId;
+  appState.activePostType = 'general';
+  
+  elements.articleTitle.textContent = post.title;
+  elements.articleDate.innerHTML = `<i class="fa-regular fa-calendar"></i> ${post.date}`;
+  elements.articleCategory.className = `meta-item badge ${post.category.toLowerCase()}`;
+  elements.articleCategory.textContent = getCategoryName(post.category);
+  
+  if (post.type) {
+    elements.articleType.style.display = 'inline-block';
+    elements.articleType.textContent = post.type;
+  } else {
+    elements.articleType.style.display = 'none';
+  }
+  
+  elements.articleTags.innerHTML = post.tags ? post.tags.map(t => `<span class="badge">#${t}</span>`).join('') : '';
+  elements.articleContent.innerHTML = marked.parse(post.content || `# ${post.title}\n\n내용이 비어 있습니다.`);
+  
+  elements.articlePane.style.display = 'block';
+  elements.tabPanes.forEach(pane => pane.classList.remove('active'));
 }
 
 // Render Security News Tab List
@@ -594,48 +691,6 @@ function renderSecurityNews() {
   });
 }
 
-// Show Post Detail View from posts.json
-async function showArticleDetail(postId) {
-  const post = appState.posts.find(p => p.id === postId);
-  if (!post) {
-    elements.articleTitle.textContent = '글을 찾을 수 없습니다.';
-    elements.articleContent.innerHTML = '<p class="text-muted">해당 글이 인덱스에 존재하지 않거나 경로 오류입니다.</p>';
-    elements.articlePane.style.display = 'block';
-    elements.tabPanes.forEach(pane => pane.classList.remove('active'));
-    return;
-  }
-  
-  appState.activePostId = postId;
-  
-  elements.articleTitle.textContent = post.title;
-  elements.articleDate.innerHTML = `<i class="fa-regular fa-calendar"></i> ${post.date}`;
-  elements.articleCategory.className = `meta-item badge ${post.category.toLowerCase()}`;
-  elements.articleCategory.textContent = getCategoryName(post.category);
-  
-  if (post.type) {
-    elements.articleType.style.display = 'inline-block';
-    elements.articleType.textContent = post.type;
-  } else {
-    elements.articleType.style.display = 'none';
-  }
-  
-  elements.articleTags.innerHTML = post.tags.map(t => `<span class="badge">#${t}</span>`).join('');
-  elements.articleContent.innerHTML = '<p class="text-muted"><i class="fa-solid fa-spinner fa-spin"></i> 로딩 중...</p>';
-  
-  elements.articlePane.style.display = 'block';
-  elements.tabPanes.forEach(pane => pane.classList.remove('active'));
-  
-  try {
-    const response = await fetch(`./public/${post.filePath}`);
-    if (!response.ok) throw new Error('Markdown file load failed');
-    const mdText = await response.text();
-    elements.articleContent.innerHTML = marked.parse(mdText);
-  } catch (error) {
-    console.error(error);
-    elements.articleContent.innerHTML = `<p class="error-msg">본문을 불러오는 데 실패했습니다: ${error.message}</p>`;
-  }
-}
-
 // Helpers
 function getCategoryName(category) {
   const mapping = {
@@ -668,19 +723,16 @@ function setupEventListeners() {
   
   // Back to list button inside Article Pane
   elements.btnBackToList.addEventListener('click', () => {
-    if (appState.activePostId) {
+    if (appState.activePostType === 'projectNote') {
+      window.location.hash = `#/project/${appState.activeProjectId}`;
+    } else if (appState.activePostType === 'general') {
       const post = appState.posts.find(p => p.id === appState.activePostId);
       if (post) {
         window.location.hash = post.category === 'News' ? '#/tab/news' : '#/tab/study';
-        return;
       }
+    } else {
+      window.location.hash = `#/tab/${elements.currentTab}`;
     }
-    // If it's a project internal note
-    if (appState.activeProjectId) {
-      window.location.hash = `#/project/${appState.activeProjectId}`;
-      return;
-    }
-    window.location.hash = `#/tab/${appState.currentTab}`;
   });
   
   // Theme Toggle Click
@@ -716,8 +768,14 @@ function setupEventListeners() {
     });
   });
   
-  // Projects Add Project Modal handlers
+  // Modals visibility handlers
+  
+  // Project Modal
   elements.btnOpenAddProject.addEventListener('click', () => {
+    elements.projectModalTitle.innerHTML = '<i class="fa-solid fa-diagram-project"></i> 새로운 프로젝트 등록';
+    elements.projectEditId.value = '';
+    elements.addProjectForm.reset();
+    elements.btnSubmitProject.textContent = '등록하기';
     elements.addProjectModal.style.display = 'flex';
   });
   elements.btnCloseProjectModal.addEventListener('click', () => {
@@ -727,13 +785,43 @@ function setupEventListeners() {
     elements.addProjectModal.style.display = 'none';
   });
   
+  // Project Detail edit / delete
+  elements.btnEditProject.addEventListener('click', () => {
+    const project = appState.projects.find(p => p.id === appState.activeProjectId);
+    if (!project) return;
+    
+    elements.projectModalTitle.innerHTML = '<i class="fa-solid fa-diagram-project"></i> 프로젝트 정보 수정';
+    elements.projectEditId.value = project.id;
+    document.getElementById('project-name').value = project.name;
+    document.getElementById('project-client').value = project.client;
+    document.getElementById('project-start').value = project.startDate;
+    document.getElementById('project-end').value = project.endDate;
+    document.getElementById('project-details').value = project.details;
+    elements.btnSubmitProject.textContent = '수정하기';
+    elements.addProjectModal.style.display = 'flex';
+  });
+  
+  elements.btnDeleteProject.addEventListener('click', () => {
+    if (confirm('정말로 이 프로젝트를 삭제하시겠습니까?\n프로젝트 내의 게시판 글도 함께 삭제됩니다.')) {
+      appState.projects = appState.projects.filter(p => p.id !== appState.activeProjectId);
+      appState.projectNotes = appState.projectNotes.filter(n => n.projectId !== appState.activeProjectId);
+      localStorage.setItem('projects', JSON.stringify(appState.projects));
+      localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
+      window.location.hash = '#/tab/projects';
+    }
+  });
+  
   // Project detail back button
   elements.btnBackToProjectsList.addEventListener('click', () => {
     window.location.hash = '#/tab/projects';
   });
   
-  // Project Internal Note Modal handlers
+  // Note Modal (Project Notes)
   elements.btnOpenAddNote?.addEventListener('click', () => {
+    elements.noteModalTitle.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> 새 기록 작성';
+    elements.noteEditId.value = '';
+    elements.addNoteForm.reset();
+    elements.btnSubmitNote.textContent = '기록 추가';
     elements.addNoteModal.style.display = 'flex';
   });
   elements.btnCloseNoteModal?.addEventListener('click', () => {
@@ -743,11 +831,69 @@ function setupEventListeners() {
     elements.addNoteModal.style.display = 'none';
   });
   
-  // Form Submit: Add Project
+  // Study Modal (General Study Notes)
+  elements.btnOpenAddStudy?.addEventListener('click', () => {
+    elements.studyModalTitle.innerHTML = '<i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성';
+    elements.studyEditId.value = '';
+    elements.addStudyForm.reset();
+    elements.btnSubmitStudy.textContent = '등록하기';
+    elements.addStudyModal.style.display = 'flex';
+  });
+  elements.btnCloseStudyModal?.addEventListener('click', () => {
+    elements.addStudyModal.style.display = 'none';
+  });
+  elements.btnCancelStudy?.addEventListener('click', () => {
+    elements.addStudyModal.style.display = 'none';
+  });
+  
+  // Article detail Edit & Delete buttons
+  elements.btnEditArticle.addEventListener('click', () => {
+    if (appState.activePostType === 'projectNote') {
+      const note = appState.projectNotes.find(n => n.id === appState.activePostId);
+      if (!note) return;
+      
+      elements.noteModalTitle.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> 기록 수정';
+      elements.noteEditId.value = note.id;
+      document.getElementById('note-title').value = note.title;
+      document.getElementById('note-content').value = note.content;
+      elements.btnSubmitNote.textContent = '수정하기';
+      elements.addNoteModal.style.display = 'flex';
+    } else {
+      const post = appState.posts.find(p => p.id === appState.activePostId);
+      if (!post) return;
+      
+      elements.studyModalTitle.innerHTML = '<i class="fa-solid fa-pen-nib"></i> 스터디 노트 수정';
+      elements.studyEditId.value = post.id;
+      document.getElementById('study-title').value = post.title;
+      document.getElementById('study-category').value = post.category;
+      document.getElementById('study-type').value = post.type;
+      document.getElementById('study-tags').value = post.tags ? post.tags.join(', ') : '';
+      document.getElementById('study-content').value = post.content || '';
+      elements.btnSubmitStudy.textContent = '수정하기';
+      elements.addStudyModal.style.display = 'flex';
+    }
+  });
+  
+  elements.btnDeleteArticle.addEventListener('click', () => {
+    if (!confirm('정말로 이 글을 삭제하시겠습니까?')) return;
+    
+    if (appState.activePostType === 'projectNote') {
+      appState.projectNotes = appState.projectNotes.filter(n => n.id !== appState.activePostId);
+      localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
+      window.location.hash = `#/project/${appState.activeProjectId}`;
+    } else {
+      appState.posts = appState.posts.filter(p => p.id !== appState.activePostId);
+      localStorage.setItem('posts', JSON.stringify(appState.posts));
+      window.location.hash = '#/tab/study';
+    }
+  });
+  
+  // Form Submit: Add/Edit Project
   elements.addProjectForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const newProj = {
-      id: 'project-' + Date.now(),
+    const editId = elements.projectEditId.value;
+    
+    const projData = {
       name: document.getElementById('project-name').value,
       client: document.getElementById('project-client').value,
       startDate: document.getElementById('project-start').value,
@@ -755,34 +901,110 @@ function setupEventListeners() {
       details: document.getElementById('project-details').value
     };
     
-    appState.projects.unshift(newProj);
-    localStorage.setItem('projects', JSON.stringify(appState.projects));
+    if (editId) {
+      // Edit
+      const index = appState.projects.findIndex(p => p.id === editId);
+      if (index !== -1) {
+        appState.projects[index] = { ...appState.projects[index], ...projData };
+      }
+    } else {
+      // Add
+      const newProj = {
+        id: 'project-' + Date.now(),
+        ...projData
+      };
+      appState.projects.unshift(newProj);
+    }
     
+    localStorage.setItem('projects', JSON.stringify(appState.projects));
     elements.addProjectForm.reset();
     elements.addProjectModal.style.display = 'none';
     
     renderAll();
+    
+    if (editId) {
+      showProjectDetail(editId);
+    }
   });
   
-  // Form Submit: Add Project Note
+  // Form Submit: Add/Edit Project Note
   elements.addNoteForm?.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (!appState.activeProjectId) return;
+    const editId = elements.noteEditId.value;
     
-    const newNote = {
-      id: 'note-' + Date.now(),
-      projectId: appState.activeProjectId,
+    const noteData = {
       title: document.getElementById('note-title').value,
       content: document.getElementById('note-content').value,
-      date: new Date().toISOString().split('T')[0]
     };
     
-    appState.projectNotes.unshift(newNote);
-    localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
+    if (editId) {
+      const index = appState.projectNotes.findIndex(n => n.id === editId);
+      if (index !== -1) {
+        appState.projectNotes[index] = { ...appState.projectNotes[index], ...noteData };
+        
+        // If currently viewing details, update detail pane content
+        if (appState.activePostId === editId) {
+          showLocalNoteDetail(appState.projectNotes[index]);
+        }
+      }
+    } else {
+      if (!appState.activeProjectId) return;
+      const newNote = {
+        id: 'note-' + Date.now(),
+        projectId: appState.activeProjectId,
+        date: new Date().toISOString().split('T')[0],
+        ...noteData
+      };
+      appState.projectNotes.unshift(newNote);
+    }
     
+    localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
     elements.addNoteForm.reset();
     elements.addNoteModal.style.display = 'none';
     
     renderProjectNotes(appState.activeProjectId);
+  });
+  
+  // Form Submit: Add/Edit Study Note
+  elements.addStudyForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const editId = elements.studyEditId.value;
+    
+    const tagsString = document.getElementById('study-tags').value;
+    const tags = tagsString.split(',').map(t => t.trim()).filter(t => t.length > 0);
+    
+    const studyData = {
+      title: document.getElementById('study-title').value,
+      category: document.getElementById('study-category').value,
+      type: document.getElementById('study-type').value,
+      tags: tags,
+      content: document.getElementById('study-content').value
+    };
+    
+    if (editId) {
+      const index = appState.posts.findIndex(p => p.id === editId);
+      if (index !== -1) {
+        appState.posts[index] = { ...appState.posts[index], ...studyData };
+        
+        // If currently viewing, update detail pane
+        if (appState.activePostId === editId) {
+          showArticleDetail(editId);
+        }
+      }
+    } else {
+      const newPost = {
+        id: 'study-' + Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        filePath: '', // Custom user posts don't have filepath, content is stored in object directly
+        ...studyData
+      };
+      appState.posts.unshift(newPost);
+    }
+    
+    localStorage.setItem('posts', JSON.stringify(appState.posts));
+    elements.addStudyForm.reset();
+    elements.addStudyModal.style.display = 'none';
+    
+    renderAll();
   });
 }

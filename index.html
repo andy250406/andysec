@@ -97,7 +97,6 @@
             
             <!-- Active Project Wide Display -->
             <div class="active-project-card card" id="dashboard-active-project-wrapper">
-              <!-- Rendered Dynamically -->
               <div class="card-header">
                 <h3><i class="fa-solid fa-spinner fa-spin"></i> 현재 진행 중인 프로젝트 로드 중...</h3>
               </div>
@@ -125,7 +124,7 @@
                   <button class="btn-more" data-target-tab="news">전체보기</button>
                 </div>
                 <div class="card-body recent-news-sidebar" id="dashboard-recent-news-list">
-                  <!-- Dynamic Loading (4 items max) -->
+                  <!-- Dynamic Loading -->
                 </div>
               </div>
             </div>
@@ -135,10 +134,15 @@
         
         <!-- STUDY NOTES TAB -->
         <div class="tab-pane" id="tab-study">
-          <div class="filter-bar">
-            <button class="filter-btn active" data-filter="all">전체</button>
-            <button class="filter-btn" data-filter="Cert">자격증 공부</button>
-            <button class="filter-btn" data-filter="CertAnalysis">보안인증 분석</button>
+          <div class="filter-bar-wrapper">
+            <div class="filter-bar">
+              <button class="filter-btn active" data-filter="all">전체</button>
+              <button class="filter-btn" data-filter="Cert">자격증 공부</button>
+              <button class="filter-btn" data-filter="CertAnalysis">보안인증 분석</button>
+            </div>
+            <button class="btn-primary" id="btn-open-add-study-modal">
+              <i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성
+            </button>
           </div>
           <div class="posts-grid" id="study-posts-grid">
             <!-- Dynamic Posts Grid -->
@@ -176,7 +180,7 @@
             </div>
           </div>
           
-          <!-- Projects Internal Board View (Hidden by default) -->
+          <!-- Projects Internal Board View -->
           <div id="project-detail-view" style="display: none;">
             <div class="detail-back-bar">
               <button class="btn-back" id="btn-back-to-projects-list">
@@ -190,6 +194,10 @@
                 <span class="client-badge" id="detail-project-client">고객사</span>
                 <h1 id="detail-project-name">프로젝트 이름</h1>
                 <p id="detail-project-desc">프로젝트 상세 설명</p>
+                <div class="meta-actions" style="margin-top: 15px;">
+                  <button class="btn-secondary btn-sm" id="btn-edit-project-details"><i class="fa-regular fa-pen-to-square"></i> 프로젝트 수정</button>
+                  <button class="btn-danger btn-sm" id="btn-delete-project-details"><i class="fa-regular fa-trash-can"></i> 삭제</button>
+                </div>
               </div>
               <div class="project-header-right">
                 <div class="project-dates">
@@ -216,7 +224,7 @@
               </div>
               
               <div class="notes-grid" id="project-notes-grid">
-                <!-- Dynamic loading of notes related to this project -->
+                <!-- Dynamic loading -->
               </div>
             </div>
           </div>
@@ -419,9 +427,15 @@
         <!-- ARTICLE DETAIL PANE (HIDDEN BY DEFAULT) -->
         <div class="article-detail-pane" id="article-detail-pane">
           <div class="article-header">
-            <button id="btn-back-to-list" class="btn-back">
-              <i class="fa-solid fa-arrow-left"></i> 목록으로 돌아가기
-            </button>
+            <div class="article-header-top">
+              <button id="btn-back-to-list" class="btn-back" style="margin-bottom:0">
+                <i class="fa-solid fa-arrow-left"></i> 목록으로 돌아가기
+              </button>
+              <div class="article-actions" id="article-detail-actions">
+                <button class="btn-secondary btn-sm" id="btn-edit-article"><i class="fa-regular fa-pen-to-square"></i> 수정</button>
+                <button class="btn-danger btn-sm" id="btn-delete-article"><i class="fa-regular fa-trash-can"></i> 삭제</button>
+              </div>
+            </div>
             <div class="article-meta">
               <span id="article-date" class="meta-item"></span>
               <span id="article-category" class="meta-item badge"></span>
@@ -441,14 +455,15 @@
     
   </div>
 
-  <!-- ADD PROJECT MODAL -->
+  <!-- ADD/EDIT PROJECT MODAL -->
   <div class="modal" id="add-project-modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3><i class="fa-solid fa-diagram-project"></i> 새로운 프로젝트 등록</h3>
+        <h3 id="project-modal-title"><i class="fa-solid fa-diagram-project"></i> 새로운 프로젝트 등록</h3>
         <button class="close-btn" id="btn-close-project-modal">&times;</button>
       </div>
       <form id="add-project-form">
+        <input type="hidden" id="project-edit-id">
         <div class="form-group">
           <label for="project-name">프로젝트 명 *</label>
           <input type="text" id="project-name" required placeholder="예: 2026년 하반기 개인정보 실태 점검">
@@ -473,20 +488,21 @@
         </div>
         <div class="form-actions">
           <button type="button" class="btn-secondary" id="btn-cancel-project">취소</button>
-          <button type="submit" class="btn-primary">등록하기</button>
+          <button type="submit" class="btn-primary" id="btn-submit-project">등록하기</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ADD PROJECT NOTE MODAL -->
+  <!-- ADD/EDIT PROJECT NOTE MODAL -->
   <div class="modal" id="add-note-modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3><i class="fa-solid fa-pen-to-square"></i> 새 기록 작성</h3>
+        <h3 id="note-modal-title"><i class="fa-solid fa-pen-to-square"></i> 새 기록 작성</h3>
         <button class="close-btn" id="btn-close-note-modal">&times;</button>
       </div>
       <form id="add-note-form">
+        <input type="hidden" id="note-edit-id">
         <div class="form-group">
           <label for="note-title">제목 *</label>
           <input type="text" id="note-title" required placeholder="기록할 제목 입력">
@@ -497,7 +513,49 @@
         </div>
         <div class="form-actions">
           <button type="button" class="btn-secondary" id="btn-cancel-note">취소</button>
-          <button type="submit" class="btn-primary">기록 추가</button>
+          <button type="submit" class="btn-primary" id="btn-submit-note">기록 추가</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD/EDIT STUDY NOTE MODAL -->
+  <div class="modal" id="add-study-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="study-modal-title"><i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성</h3>
+        <button class="close-btn" id="btn-close-study-modal">&times;</button>
+      </div>
+      <form id="add-study-form">
+        <input type="hidden" id="study-edit-id">
+        <div class="form-group">
+          <label for="study-title">제목 *</label>
+          <input type="text" id="study-title" required placeholder="글 제목 입력">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="study-category">분류 *</label>
+            <select id="study-category" required class="custom-select" style="width:100%; height:38px;">
+              <option value="Cert">자격증 공부</option>
+              <option value="CertAnalysis">보안인증 분석</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="study-type">유형 *</label>
+            <input type="text" id="study-type" required placeholder="예: CPPG, ISMS-P">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="study-tags">태그 (쉼표로 구분) *</label>
+          <input type="text" id="study-tags" required placeholder="예: 개인정보, 자격증, 법률">
+        </div>
+        <div class="form-group">
+          <label for="study-content">내용 (Markdown 작성 가능) *</label>
+          <textarea id="study-content" rows="8" required placeholder="공부한 핵심 요약을 마크다운을 곁들여 작성해 보세요."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" id="btn-cancel-study">취소</button>
+          <button type="submit" class="btn-primary" id="btn-submit-study">등록하기</button>
         </div>
       </form>
     </div>

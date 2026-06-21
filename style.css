@@ -659,6 +659,14 @@ a:hover {
   gap: 0.5rem;
 }
 
+/* Filter Bar wrapper */
+.filter-bar-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
 /* Buttons */
 .btn-primary {
   background: var(--primary-gradient);
@@ -694,6 +702,27 @@ a:hover {
 }
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+.btn-danger {
+  background: #ef4444;
+  border: none;
+  color: #fff;
+  font-family: var(--font-header);
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.btn-danger:hover {
+  background: #dc2626;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
 }
 
 /* Modals */
@@ -945,7 +974,6 @@ a:hover {
 .filter-bar {
   display: flex;
   gap: 0.75rem;
-  margin-bottom: 1.5rem;
 }
 .filter-btn {
   background: rgba(255, 255, 255, 0.03);
@@ -1182,6 +1210,13 @@ a:hover {
   box-shadow: var(--shadow-sm);
 }
 
+.article-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
 .btn-back {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
@@ -1195,11 +1230,15 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
 }
 .btn-back:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: var(--border-focus);
+}
+
+.article-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .article-header {
@@ -1343,6 +1382,11 @@ a:hover {
   .topbar-actions {
     width: 100%;
     justify-content: space-between;
+  }
+  .filter-bar-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
   }
   .filter-bar {
     overflow-x: auto;
