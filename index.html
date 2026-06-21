@@ -72,17 +72,17 @@
         </button>
       </nav>
 
-      <!-- Sidebar Settings Button -->
+      <!-- Sidebar Settings Button (Simplified for no cutoffs) -->
       <div class="sidebar-settings-wrapper">
         <button class="settings-btn" id="btn-open-settings" title="깃허브 동기화 설정">
-          <i class="fa-solid fa-gear"></i> <span>깃허브 동기화 설정</span>
-          <span class="sync-status-indicator offline" id="sync-indicator">오프라인</span>
+          <i class="fa-solid fa-gear"></i> <span>깃허브 동기화</span>
+          <span class="sync-status-indicator offline" id="sync-indicator">OFF</span>
         </button>
       </div>
 
       <div class="sidebar-footer">
         <p>&copy; 2026 andysec</p>
-        <span class="version">v1.1.0 (Cloud Sync)</span>
+        <span class="version">v1.2.0 (Sync Pro)</span>
       </div>
     </aside>
     
@@ -119,29 +119,31 @@
               </div>
             </div>
             
-            <!-- Dashboard Main Row -->
+            <!-- Dashboard Main Row (Stretched heights) -->
             <div class="dashboard-row">
               <!-- Recent Study Notes -->
-              <div class="card flex-2">
+              <div class="card flex-2 dashboard-main-card">
                 <div class="card-header">
                   <h3><i class="fa-solid fa-fire-flame-curved"></i> 최근 스터디 노트</h3>
                   <button class="btn-more" data-target-tab="study">전체보기</button>
                 </div>
-                <div class="card-body">
-                  <div class="recent-list" id="recent-study-list">
+                <div class="card-body stretched-card-body">
+                  <div class="recent-list stretched-list" id="recent-study-list">
                     <!-- Dynamic Loading -->
                   </div>
                 </div>
               </div>
               
               <!-- Recent Security News Sidebar -->
-              <div class="card flex-1">
+              <div class="card flex-1 dashboard-main-card">
                 <div class="card-header">
                   <h3><i class="fa-solid fa-shield-halved"></i> 최근 보안 뉴스</h3>
                   <button class="btn-more" data-target-tab="news">전체보기</button>
                 </div>
-                <div class="card-body recent-news-sidebar" id="dashboard-recent-news-list">
-                  <!-- Dynamic Loading -->
+                <div class="card-body stretched-card-body">
+                  <div class="recent-news-sidebar stretched-list" id="dashboard-recent-news-list">
+                    <!-- Dynamic Loading -->
+                  </div>
                 </div>
               </div>
             </div>
@@ -472,7 +474,7 @@
     
   </div>
 
-  <!-- ADD/EDIT PROJECT MODAL (Smaller size, normal popup) -->
+  <!-- ADD/EDIT PROJECT MODAL -->
   <div class="modal" id="add-project-modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -511,7 +513,7 @@
     </div>
   </div>
 
-  <!-- ADD/EDIT PROJECT NOTE MODAL (Wide split editor with Markdown help) -->
+  <!-- ADD/EDIT PROJECT NOTE MODAL -->
   <div class="modal" id="add-note-modal">
     <div class="modal-content modal-lg">
       <div class="modal-header">
@@ -579,7 +581,7 @@ print("Hello Security")
     </div>
   </div>
 
-  <!-- ADD/EDIT STUDY NOTE MODAL (Wide split editor with Markdown help) -->
+  <!-- ADD/EDIT STUDY NOTE MODAL -->
   <div class="modal" id="add-study-modal">
     <div class="modal-content modal-lg">
       <div class="modal-header">

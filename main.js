@@ -182,10 +182,10 @@ function loadSyncSettings() {
 function updateSyncIndicator() {
   if (!elements.syncIndicator) return;
   if (appState.syncEnabled && appState.githubPat) {
-    elements.syncIndicator.textContent = '동기화 중';
+    elements.syncIndicator.textContent = 'ON';
     elements.syncIndicator.className = 'sync-status-indicator online';
   } else {
-    elements.syncIndicator.textContent = '오프라인';
+    elements.syncIndicator.textContent = 'OFF';
     elements.syncIndicator.className = 'sync-status-indicator offline';
   }
 }
@@ -216,59 +216,82 @@ function initRouter() {
   handleRouting();
 }
 
-// Load All Data (JSON + LocalStorage)
+// Load All Data (JSON + LocalStorage Merged)
 async function loadData() {
   try {
-    // 1. Load posts (Study notes & News)
-    const savedPosts = localStorage.getItem('posts');
-    if (savedPosts) {
-      appState.posts = JSON.parse(savedPosts);
-    } else {
-      const response = await fetch('./public/posts/posts.json');
-      if (!response.ok) throw new Error('Failed to load posts index');
-      const allPosts = await response.json();
-      
-      const postsToStore = allPosts.filter(p => p.category !== 'Project');
-      
-      // Load markdown contents to make them editable locally
-      for (let post of postsToStore) {
+    // 1. Fetch posts index from server (using path without 'public/' prefix for built/dev site resolution)
+    let serverPosts = [];
+    try {
+      const response = await fetch('./posts/posts.json');
+      if (response.ok) {
+        serverPosts = await response.json();
+        serverPosts = serverPosts.filter(p => p.category !== 'Project');
+      }
+    } catch (e) {
+      console.warn('Could not load posts.json from server, falling back to local storage.');
+    }
+    
+    // Load local posts
+    const localPosts = JSON.parse(localStorage.getItem('posts')) || [];
+    
+    // Merge them: combine server and local, keeping local custom/edited posts as priority
+    const mergedPosts = [...serverPosts];
+    localPosts.forEach(localP => {
+      const exists = mergedPosts.some(serverP => serverP.id === localP.id);
+      if (!exists) {
+        mergedPosts.push(localP);
+      } else {
+        const idx = mergedPosts.findIndex(serverP => serverP.id === localP.id);
+        mergedPosts[idx] = { ...mergedPosts[idx], ...localP }; // Local overrides/complements server details
+      }
+    });
+    
+    // Fill content fields for posts
+    for (let post of mergedPosts) {
+      if (!post.content) {
         try {
-          const res = await fetch(`./public/${post.filePath}`);
+          const res = await fetch(`./${post.filePath}`);
           if (res.ok) {
             post.content = await res.text();
           }
         } catch (e) {
-          post.content = `# ${post.title}\n\n내용을 등록해 보세요.`;
+          post.content = `# ${post.title}\n\n내용이 아직 등록되지 않았습니다.`;
         }
       }
-      
-      appState.posts = postsToStore;
-      localStorage.setItem('posts', JSON.stringify(postsToStore));
     }
     
+    appState.posts = mergedPosts;
+    localStorage.setItem('posts', JSON.stringify(mergedPosts));
     appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
     
     // 2. Initialize projects
-    initProjects();
+    await initProjects();
     
-    // 3. Load project internal notes from localStorage or fetch seeded JSON if exists
-    const savedNotes = localStorage.getItem('projectNotes');
-    if (savedNotes) {
-      appState.projectNotes = JSON.parse(savedNotes);
-    } else {
-      // Try to load projectNotes.json, fallback to empty array
-      try {
-        const res = await fetch('./public/posts/projectNotes.json');
-        if (res.ok) {
-          appState.projectNotes = await res.json();
-        } else {
-          appState.projectNotes = [];
-        }
-      } catch (e) {
-        appState.projectNotes = [];
+    // 3. Load project internal notes (merged with server if available)
+    let serverNotes = [];
+    try {
+      const res = await fetch('./posts/projectNotes.json');
+      if (res.ok) {
+        serverNotes = await res.json();
       }
-      localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
+    } catch (e) {
+      console.warn('Could not load projectNotes.json from server.');
     }
+    
+    const localNotes = JSON.parse(localStorage.getItem('projectNotes')) || [];
+    const mergedNotes = [...serverNotes];
+    localNotes.forEach(localN => {
+      const exists = mergedNotes.some(serverN => serverN.id === localN.id);
+      if (!exists) {
+        mergedNotes.push(localN);
+      } else {
+        const idx = mergedNotes.findIndex(serverN => serverN.id === localN.id);
+        mergedNotes[idx] = { ...mergedNotes[idx], ...localN };
+      }
+    });
+    
+    appState.projectNotes = mergedNotes;
+    localStorage.setItem('projectNotes', JSON.stringify(mergedNotes));
     
     renderAll();
   } catch (error) {
@@ -277,13 +300,22 @@ async function loadData() {
   }
 }
 
-// Seed default projects
-function initProjects() {
-  const savedProjects = localStorage.getItem('projects');
-  if (savedProjects) {
-    appState.projects = JSON.parse(savedProjects);
-  } else {
-    // If not in localStorage, fetch from public/posts/projects.json if available
+// Seed default projects (merged with server if exists)
+async function initProjects() {
+  let serverProjects = [];
+  try {
+    const res = await fetch('./posts/projects.json');
+    if (res.ok) {
+      serverProjects = await res.json();
+    }
+  } catch (e) {
+    console.warn('Could not load projects.json from server.');
+  }
+  
+  const localProjects = JSON.parse(localStorage.getItem('projects')) || [];
+  
+  if (serverProjects.length === 0 && localProjects.length === 0) {
+    // Seed default projects
     const seeded = [
       {
         id: 'project-cons-audit',
@@ -318,24 +350,33 @@ function initProjects() {
         details: '고객사의 AWS 클라우드 아키텍처 대상 IAM 권한 정책, VPC 네트워크 통제 및 데이터 암호화 설정 점검 컨설팅.'
       }
     ];
-    
     appState.projects = seeded;
     localStorage.setItem('projects', JSON.stringify(seeded));
+  } else {
+    const merged = [...serverProjects];
+    localProjects.forEach(localP => {
+      const exists = merged.some(serverP => serverP.id === localP.id);
+      if (!exists) {
+        merged.push(localP);
+      } else {
+        const idx = merged.findIndex(serverP => serverP.id === localP.id);
+        merged[idx] = { ...merged[idx], ...localP };
+      }
+    });
+    appState.projects = merged;
+    localStorage.setItem('projects', JSON.stringify(merged));
   }
 }
 
-// Calculate Project Progress Percentage
-function calculateProgress(startStr, endStr) {
-  const start = new Date(startStr);
-  const end = new Date(endStr);
+// Calculate D-Day
+function calculateDDay(endDateStr) {
+  const end = new Date(endDateStr);
+  const diffTime = end - TODAY;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
-  if (TODAY < start) return 0;
-  if (TODAY > end) return 100;
-  
-  const total = end - start;
-  const current = TODAY - start;
-  
-  return Math.min(100, Math.max(0, Math.round((current / total) * 100)));
+  if (diffDays > 0) return `D-${diffDays}`;
+  if (diffDays === 0) return 'D-Day';
+  return '종료됨';
 }
 
 // Tab Switching
@@ -382,7 +423,7 @@ function renderAll() {
   renderSecurityNews();
 }
 
-// Render Active Project on Dashboard
+// Render Active Project on Dashboard (Slim & D-day configured)
 function renderActiveProject() {
   const activeProject = appState.projects.find(p => {
     const start = new Date(p.startDate);
@@ -402,32 +443,24 @@ function renderActiveProject() {
   }
   
   const progressPercent = calculateProgress(activeProject.startDate, activeProject.endDate);
+  const dday = calculateDDay(activeProject.endDate);
   
   elements.dashboardActiveProjectWrapper.innerHTML = `
-    <div class="card-header">
-      <h3><i class="fa-solid fa-bolt"></i> 현재 진행 중인 프로젝트</h3>
-      <span class="client-badge">${activeProject.client}</span>
-    </div>
-    <div class="active-project-body">
-      <div class="active-proj-left">
-        <h4 class="active-proj-title">${activeProject.name}</h4>
-        <p class="active-proj-desc">${activeProject.details}</p>
+    <div class="active-project-bar">
+      <div class="active-proj-info">
+        <span class="dday-badge ${dday === '종료됨' ? 'ended' : ''}">${dday}</span>
+        <span class="client-badge" style="margin-bottom: 0;">${activeProject.client}</span>
+        <h4 class="active-proj-title" title="${activeProject.name}">${activeProject.name}</h4>
       </div>
-      <div class="active-proj-right">
-        <div class="active-proj-dates">
-          <span>시작일: <span>${activeProject.startDate}</span></span>
-          <span>종료일: <span>${activeProject.endDate}</span></span>
-        </div>
-        <div class="project-progress-wrapper">
-          <div class="progress-lbl-row">
-            <span>진행률 (기준일: 2026.06.21)</span>
+      <div class="active-proj-progress-section">
+        <div class="project-progress-wrapper" style="margin-bottom: 0;">
+          <div class="progress-lbl-row" style="font-size: 0.78rem; margin-bottom: 0.2rem;">
+            <span>진행률</span>
             <span>${progressPercent}%</span>
           </div>
-          <div class="progress-bar"><div class="progress" style="width: ${progressPercent}%;"></div></div>
+          <div class="progress-bar" style="height: 5px;"><div class="progress" style="width: ${progressPercent}%;"></div></div>
         </div>
-        <div style="text-align: right; margin-top: 5px;">
-          <button class="btn-more" id="btn-goto-active-proj" data-id="${activeProject.id}">상세 기록 게시판 이동</button>
-        </div>
+        <button class="btn-more btn-sm" id="btn-goto-active-proj" data-id="${activeProject.id}">이동</button>
       </div>
     </div>
   `;
@@ -438,15 +471,19 @@ function renderActiveProject() {
   });
 }
 
-// Render Dashboard
+// Render Dashboard (Stretched Lists with Empty Placeholders)
 function renderDashboard() {
   const studyPosts = appState.posts.filter(p => p.category !== 'News' && matchSearch(p));
   elements.recentStudyList.innerHTML = '';
   
   if (studyPosts.length === 0) {
-    elements.recentStudyList.innerHTML = '<p class="text-muted">등록된 스터디 노트가 없습니다.</p>';
+    elements.recentStudyList.innerHTML = `
+      <div class="list-empty-placeholder">
+        <span>등록된 스터디 노트가 없습니다.</span>
+      </div>
+    `;
   } else {
-    studyPosts.slice(0, 4).forEach(post => {
+    studyPosts.slice(0, 6).forEach(post => {
       const item = document.createElement('div');
       item.className = 'recent-item';
       item.innerHTML = `
@@ -461,15 +498,32 @@ function renderDashboard() {
       });
       elements.recentStudyList.appendChild(item);
     });
+    
+    // Pad to fill vertical space if count is less than 6
+    if (studyPosts.length < 6) {
+      for (let i = studyPosts.length; i < 6; i++) {
+        const dummy = document.createElement('div');
+        dummy.className = 'recent-item';
+        dummy.style.opacity = '0.2';
+        dummy.style.cursor = 'default';
+        dummy.style.borderStyle = 'dashed';
+        dummy.innerHTML = `<div class="recent-item-title" style="color:transparent">Empty Record Slot</div>`;
+        elements.recentStudyList.appendChild(dummy);
+      }
+    }
   }
   
   const newsPosts = appState.posts.filter(p => p.category === 'News' && matchSearch(p));
   elements.dashboardRecentNewsList.innerHTML = '';
   
   if (newsPosts.length === 0) {
-    elements.dashboardRecentNewsList.innerHTML = '<p class="text-muted text-center">등록된 뉴스가 없습니다.</p>';
+    elements.dashboardRecentNewsList.innerHTML = `
+      <div class="list-empty-placeholder">
+        <span>등록된 보안 뉴스가 없습니다.</span>
+      </div>
+    `;
   } else {
-    newsPosts.slice(0, 4).forEach(news => {
+    newsPosts.slice(0, 6).forEach(news => {
       const item = document.createElement('div');
       item.className = 'news-sidebar-item';
       item.innerHTML = `
@@ -485,6 +539,22 @@ function renderDashboard() {
       });
       elements.dashboardRecentNewsList.appendChild(item);
     });
+    
+    // Pad to fill vertical space if count is less than 6
+    if (newsPosts.length < 6) {
+      for (let i = newsPosts.length; i < 6; i++) {
+        const dummy = document.createElement('div');
+        dummy.className = 'news-sidebar-item';
+        dummy.style.opacity = '0.15';
+        dummy.style.cursor = 'default';
+        dummy.style.borderBottom = '1px dashed var(--border-color)';
+        dummy.innerHTML = `
+          <div class="news-sidebar-title" style="color:transparent">Empty Slot</div>
+          <div class="news-sidebar-desc" style="color:transparent">Empty Description</div>
+        `;
+        elements.dashboardRecentNewsList.appendChild(dummy);
+      }
+    }
   }
 }
 
@@ -1021,7 +1091,6 @@ function setupEventListeners() {
       localStorage.setItem('posts', JSON.stringify(appState.posts));
       
       if (appState.syncEnabled && postToDelete) {
-        // Build posts.json formatted without content field (to keep index clean)
         const cleanPosts = appState.posts.map(p => {
           const { content, ...rest } = p;
           return {
@@ -1031,7 +1100,6 @@ function setupEventListeners() {
         });
         
         await commitToGitHub('public/posts/posts.json', JSON.stringify(cleanPosts, null, 2), 'chore: remove study note from index via web CMS');
-        // Delete file is not directly needed, but we clean references
       }
       
       window.location.hash = '#/tab/study';
@@ -1066,17 +1134,18 @@ function setupEventListeners() {
       appState.projects.unshift(newProj);
     }
     
+    // Save locally first
     localStorage.setItem('projects', JSON.stringify(appState.projects));
     
+    renderAll();
+    elements.addProjectForm.reset();
+    elements.addProjectModal.style.display = 'none';
+    showProjectDetail(targetId);
+    
+    // Sync to GitHub in the background
     if (appState.syncEnabled) {
       await commitToGitHub('public/posts/projects.json', JSON.stringify(appState.projects, null, 2), `feat: update project metadata for ${projData.name}`);
     }
-    
-    elements.addProjectForm.reset();
-    elements.addProjectModal.style.display = 'none';
-    
-    renderAll();
-    showProjectDetail(targetId);
   });
   
   // Form Submit: Add/Edit Project Note
@@ -1110,17 +1179,17 @@ function setupEventListeners() {
       appState.projectNotes.unshift(noteToSync);
     }
     
+    // Save locally first
     localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
     
-    if (appState.syncEnabled) {
-      // 1. Commit note list index
-      await commitToGitHub('public/posts/projectNotes.json', JSON.stringify(appState.projectNotes, null, 2), `feat: update project note index for ${noteData.title}`);
-    }
-    
+    renderProjectNotes(appState.activeProjectId);
     elements.addNoteForm.reset();
     elements.addNoteModal.style.display = 'none';
     
-    renderProjectNotes(appState.activeProjectId);
+    // Sync in background
+    if (appState.syncEnabled) {
+      await commitToGitHub('public/posts/projectNotes.json', JSON.stringify(appState.projectNotes, null, 2), `feat: update project note index for ${noteData.title}`);
+    }
   });
   
   // Form Submit: Add/Edit Study Note
@@ -1156,31 +1225,31 @@ function setupEventListeners() {
       appState.posts.unshift(newPost);
     }
     
+    // Save locally FIRST
     localStorage.setItem('posts', JSON.stringify(appState.posts));
     
-    if (appState.syncEnabled) {
-      // 1. Commit the markdown content
-      const filePath = `public/posts/${targetPostId}.md`;
-      await commitToGitHub(filePath, studyData.content, `feat: publish post content for ${studyData.title}`);
-      
-      // 2. Commit the updated posts.json index (without content values)
-      const cleanPosts = appState.posts.map(p => {
-        const { content, ...rest } = p;
-        return {
-          ...rest,
-          filePath: p.filePath || `posts/${p.id}.md`
-        };
-      });
-      await commitToGitHub('public/posts/posts.json', JSON.stringify(cleanPosts, null, 2), `feat: update posts index for ${studyData.title}`);
-    }
-    
+    renderAll();
     elements.addStudyForm.reset();
     elements.addStudyModal.style.display = 'none';
-    
-    renderAll();
-    
     if (editId) {
       showArticleDetail(editId);
+    }
+    
+    // Sync to GitHub in background
+    if (appState.syncEnabled) {
+      const filePath = `public/posts/${targetPostId}.md`;
+      const isContentSyncSuccess = await commitToGitHub(filePath, studyData.content, `feat: publish post content for ${studyData.title}`);
+      
+      if (isContentSyncSuccess) {
+        const cleanPosts = appState.posts.map(p => {
+          const { content, ...rest } = p;
+          return {
+            ...rest,
+            filePath: p.filePath || `posts/${p.id}.md`
+          };
+        });
+        await commitToGitHub('public/posts/posts.json', JSON.stringify(cleanPosts, null, 2), `feat: update posts index for ${studyData.title}`);
+      }
     }
   });
 }
