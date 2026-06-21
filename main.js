@@ -281,21 +281,6 @@ async function loadData() {
         }
       }
     });
-    
-    // Fill content fields for posts
-    for (let post of mergedPosts) {
-      if (!post.content) {
-        try {
-          const res = await fetch(`./${post.filePath}`);
-          if (res.ok) {
-            post.content = await res.text();
-          }
-        } catch (e) {
-          post.content = `# ${post.title}\n\n내용이 아직 등록되지 않았습니다.`;
-        }
-      }
-    }
-    
     appState.posts = mergedPosts;
     localStorage.setItem('posts', JSON.stringify(mergedPosts));
     appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -825,7 +810,7 @@ function showLocalNoteDetail(note) {
 }
 
 // Show Post Detail View
-function showArticleDetail(postId) {
+async function showArticleDetail(postId) {
   const post = appState.posts.find(p => p.id === postId);
   if (!post) {
     elements.articleTitle.textContent = '글을 찾을 수 없습니다.';
@@ -851,7 +836,22 @@ function showArticleDetail(postId) {
   }
   
   elements.articleTags.innerHTML = post.tags ? post.tags.map(t => `<span class="badge">#${t}</span>`).join('') : '';
-  elements.articleContent.innerHTML = marked.parse(post.content || `# ${post.title}\n\n내용이 비어 있습니다.`);
+  
+  if (!post.content) {
+    elements.articleContent.innerHTML = '<p class="text-center text-muted" style="padding: 2rem;"><i class="fa-solid fa-spinner fa-spin"></i> 내용을 불러오는 중...</p>';
+    try {
+      const res = await fetch(`./${post.filePath}`);
+      if (res.ok) {
+        post.content = await res.text();
+      } else {
+        post.content = `# ${post.title}\n\n내용을 불러오지 못했습니다. (HTTP ${res.status})`;
+      }
+    } catch (e) {
+      post.content = `# ${post.title}\n\n내용을 불러오는 중 오류가 발생했습니다.`;
+    }
+  }
+  
+  elements.articleContent.innerHTML = marked.parse(post.content);
   
   elements.articlePane.style.display = 'block';
   elements.tabPanes.forEach(pane => pane.classList.remove('active'));
