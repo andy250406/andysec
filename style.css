@@ -298,16 +298,20 @@ a:hover {
   border: 1px solid var(--border-color);
 }
 
-.sidebar-footer {
-  text-align: center;
+.main-footer {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 0.75rem;
   color: var(--text-muted);
-  border-top: 1px solid var(--border-color);
-  padding-top: 1.25rem;
 }
-.sidebar-footer .version {
-  display: block;
-  margin-top: 0.25rem;
+.main-footer p {
+  margin: 0;
+}
+.main-footer .version {
   opacity: 0.6;
 }
 
