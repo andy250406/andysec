@@ -188,6 +188,30 @@ function updateSyncIndicator() {
     elements.syncIndicator.textContent = 'OFF';
     elements.syncIndicator.className = 'sync-status-indicator offline';
   }
+  applySyncPermissions();
+}
+
+// Dynamically toggles write/edit/delete actions for external visitors (when sync is OFF)
+function applySyncPermissions() {
+  const isSync = appState.syncEnabled && appState.githubPat;
+  
+  if (elements.btnOpenAddStudy) elements.btnOpenAddStudy.style.display = isSync ? 'block' : 'none';
+  if (elements.btnOpenAddProject) elements.btnOpenAddProject.style.display = isSync ? 'block' : 'none';
+  if (elements.btnEditProject) elements.btnEditProject.style.display = isSync ? 'inline-block' : 'none';
+  if (elements.btnDeleteProject) elements.btnDeleteProject.style.display = isSync ? 'inline-block' : 'none';
+  if (elements.btnOpenAddNote) elements.btnOpenAddNote.style.display = isSync ? 'block' : 'none';
+  if (elements.btnEditArticle) elements.btnEditArticle.style.display = isSync ? 'inline-block' : 'none';
+  if (elements.btnDeleteArticle) elements.btnDeleteArticle.style.display = isSync ? 'inline-block' : 'none';
+  
+  // Hide details view metadata action buttons if not synced
+  const projectMetaActions = document.querySelector('.project-info-header .meta-actions');
+  if (projectMetaActions) {
+    projectMetaActions.style.display = isSync ? 'block' : 'none';
+  }
+  const articleActions = document.getElementById('article-detail-actions');
+  if (articleActions) {
+    articleActions.style.display = isSync ? 'block' : 'none';
+  }
 }
 
 // Router using Hash
@@ -484,6 +508,7 @@ function renderAll() {
   renderStudyNotes();
   renderProjectsList();
   renderSecurityNews();
+  applySyncPermissions();
 }
 
 // Render Active Project on Dashboard (Slim & D-day configured)
@@ -736,6 +761,20 @@ function showProjectDetail(projectId) {
 function renderProjectNotes(projectId) {
   elements.projectNotesGrid.innerHTML = '';
   
+  const isSync = appState.syncEnabled && appState.githubPat;
+  if (!isSync) {
+    elements.projectNotesGrid.innerHTML = `
+      <div class="lock-placeholder" style="grid-column: 1/-1; text-align: center; padding: 3rem 2rem; background: rgba(220, 38, 38, 0.04); border: 1px dashed rgba(220, 38, 38, 0.2); border-radius: 8px;">
+        <i class="fa-solid fa-lock" style="font-size: 2rem; color: #ef4444; margin-bottom: 1rem; display: block;"></i>
+        <h4 style="font-family: var(--font-header); font-size: 1.1rem; color: var(--text-highlight); margin-bottom: 0.5rem;">프로젝트 기록판 비활성화</h4>
+        <p class="text-muted" style="font-size: 0.85rem; max-width: 460px; margin: 0 auto; line-height: 1.5;">
+          본 프로젝트의 상세 스터디 및 진단 기록은 보안상 비공개 상태입니다. 접근 권한을 획득하려면 관리자 계정으로 <strong>깃허브 동기화</strong>를 인증하십시오.
+        </p>
+      </div>
+    `;
+    return;
+  }
+  
   const notes = appState.projectNotes.filter(n => n.projectId === projectId);
   
   if (notes.length === 0) {
@@ -763,6 +802,12 @@ function renderProjectNotes(projectId) {
 
 // Show Local Note Detail
 function showLocalNoteDetail(note) {
+  const isSync = appState.syncEnabled && appState.githubPat;
+  if (!isSync) {
+    alert('보안상 비공개 상태인 프로젝트 게시글입니다. 접근 권한이 없습니다.');
+    window.location.hash = '#/tab/projects';
+    return;
+  }
   appState.activePostId = note.id;
   appState.activePostType = 'projectNote';
   
