@@ -79,6 +79,7 @@ const elements = {
   
   studyModalTitle: document.getElementById('study-modal-title'),
   studyEditId: document.getElementById('study-edit-id'),
+  studyCategory: document.getElementById('study-category'),
   btnSubmitStudy: document.getElementById('btn-submit-study'),
   
   // Forms
@@ -103,6 +104,11 @@ const elements = {
   // News Tab
   fullNewsTable: document.getElementById('full-news-table'),
   newsImportanceFilter: document.getElementById('news-importance-filter'),
+  btnNewsDeleteMode: document.getElementById('btn-news-delete-mode'),
+  newsDeleteActions: document.getElementById('news-delete-actions'),
+  btnNewsDeleteConfirm: document.getElementById('btn-news-delete-confirm'),
+  btnNewsDeleteCancel: document.getElementById('btn-news-delete-cancel'),
+  newsSelectAll: document.getElementById('news-select-all'),
   
   // Article Pane
   articlePane: document.getElementById('article-detail-pane'),
@@ -212,6 +218,16 @@ function applySyncPermissions() {
   if (articleActions) {
     articleActions.style.display = isSync ? 'block' : 'none';
   }
+
+  if (elements.btnNewsDeleteMode) {
+    if (!isSync) {
+      elements.btnNewsDeleteMode.style.display = 'none';
+      if (elements.newsDeleteActions) elements.newsDeleteActions.style.display = 'none';
+    } else {
+      elements.btnNewsDeleteMode.style.display = appState.newsDeleteMode ? 'none' : 'inline-block';
+      if (elements.newsDeleteActions) elements.newsDeleteActions.style.display = appState.newsDeleteMode ? 'flex' : 'none';
+    }
+  }
 }
 
 // Router using Hash
@@ -268,9 +284,13 @@ async function loadData() {
     if (!Array.isArray(localPosts)) localPosts = [];
     
     // Merge them: combine server and local, keeping local custom/edited posts as priority
-    const mergedPosts = [...serverPosts];
+    const deletedIds = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
+    const deletedSet = new Set(deletedIds);
+    const serverPostsFiltered = serverPosts.filter(p => p && p.id && !deletedSet.has(p.id));
+    
+    const mergedPosts = [...serverPostsFiltered];
     localPosts.forEach(localP => {
-      if (!localP || !localP.id) return; // Guard against corrupted items
+      if (!localP || !localP.id || deletedSet.has(localP.id)) return; // Guard against corrupted or deleted items
       const exists = mergedPosts.some(serverP => serverP && serverP.id === localP.id);
       if (!exists) {
         mergedPosts.push(localP);
@@ -862,6 +882,18 @@ function renderSecurityNews() {
   if (!elements.fullNewsTable) return;
   elements.fullNewsTable.innerHTML = '';
   
+  const isDeleteMode = appState.newsDeleteMode;
+  
+  // Show or hide header checkbox column
+  const deleteHeaders = document.querySelectorAll('.news-delete-col');
+  deleteHeaders.forEach(el => {
+    el.style.display = isDeleteMode ? 'table-cell' : 'none';
+  });
+
+  if (elements.newsSelectAll) {
+    elements.newsSelectAll.checked = false;
+  }
+  
   const newsList = appState.posts.filter(p => {
     if (p.category !== 'News') return false;
     if (appState.newsFilter !== 'all' && p.importance !== appState.newsFilter) return false;
@@ -869,13 +901,16 @@ function renderSecurityNews() {
   }).filter(matchSearch);
   
   if (newsList.length === 0) {
-    elements.fullNewsTable.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding: 2rem;">해당 조건의 보안 뉴스가 존재하지 않습니다.</td></tr>';
+    elements.fullNewsTable.innerHTML = `<tr><td colspan="${isDeleteMode ? 6 : 5}" class="text-center text-muted" style="padding: 2rem;">해당 조건의 보안 뉴스가 존재하지 않습니다.</td></tr>`;
     return;
   }
   
   newsList.forEach(news => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td class="news-delete-col" style="${isDeleteMode ? '' : 'display: none;'} text-align: center;">
+        <input type="checkbox" class="news-item-checkbox" data-id="${news.id}">
+      </td>
       <td><span style="color:#fb923c">${news.importance}</span></td>
       <td><strong class="news-link-btn" style="cursor:pointer">${news.title}</strong></td>
       <td><span class="badge">${news.source}</span></td>
@@ -962,6 +997,57 @@ async function commitToGitHub(filePath, fileContent, commitMessage) {
   } catch (error) {
     console.error('GitHub API error:', error);
     alert(`깃허브 동기화 실패: ${error.message}\n(로컬 저장소에는 기록되었으나 클라우드 배포는 지연됩니다.)`);
+    return false;
+  } finally {
+    hideLoader();
+  }
+}
+
+// GitHub REST API Delete Helper
+async function deleteFromGitHub(filePath) {
+  if (!appState.syncEnabled || !appState.githubPat) {
+    return true; // Sync disabled
+  }
+  
+  showLoader('깃허브 연동 중...', '저장소에서 파일을 삭제하고 있습니다.');
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`;
+  const headers = {
+    'Authorization': `token ${appState.githubPat}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json'
+  };
+  
+  try {
+    // 1. Get current file SHA
+    let sha = null;
+    const getRes = await fetch(url, { headers });
+    if (getRes.status === 200) {
+      const getJson = await getRes.json();
+      sha = getJson.sha;
+    }
+    
+    if (!sha) return true; // Already deleted or doesn't exist
+    
+    // 2. Delete file
+    const body = {
+      message: `chore: delete ${filePath} via web CMS`,
+      sha: sha
+    };
+    
+    const delRes = await fetch(url, {
+      method: 'DELETE',
+      headers,
+      body: JSON.stringify(body)
+    });
+    
+    if (!delRes.ok) {
+      const errJson = await delRes.json();
+      throw new Error(errJson.message || 'DELETE request failed');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('GitHub API error during deletion:', error);
     return false;
   } finally {
     hideLoader();
@@ -1205,13 +1291,26 @@ function setupEventListeners() {
       const post = appState.posts.find(p => p.id === appState.activePostId);
       if (!post) return;
       
-      elements.studyModalTitle.innerHTML = '<i class="fa-solid fa-pen-nib"></i> 스터디 노트 수정';
+      const isNews = post.category === 'News';
+      elements.studyModalTitle.innerHTML = isNews ? '<i class="fa-solid fa-newspaper"></i> 보안 뉴스 수정' : '<i class="fa-solid fa-pen-nib"></i> 스터디 노트 수정';
       elements.studyEditId.value = post.id;
       document.getElementById('study-title').value = post.title;
       document.getElementById('study-category').value = post.category;
-      document.getElementById('study-type').value = post.type;
+      document.getElementById('study-type').value = post.type || '';
       document.getElementById('study-tags').value = post.tags ? post.tags.join(', ') : '';
       document.getElementById('study-content').value = post.content || '';
+      
+      const newsFields = document.getElementById('news-fields-group');
+      if (newsFields) {
+        newsFields.style.display = isNews ? 'block' : 'none';
+        if (isNews) {
+          document.getElementById('news-importance').value = post.importance || '⭐⭐⭐';
+          document.getElementById('news-source').value = post.source || '';
+          document.getElementById('news-date').value = post.date || '';
+          document.getElementById('news-link').value = post.newsLink || '';
+        }
+      }
+      
       elements.btnSubmitStudy.textContent = '수정하기';
       elements.addStudyModal.style.display = 'flex';
     }
@@ -1233,6 +1332,12 @@ function setupEventListeners() {
       const postToDelete = appState.posts.find(p => p.id === appState.activePostId);
       appState.posts = appState.posts.filter(p => p.id !== appState.activePostId);
       localStorage.setItem('posts', JSON.stringify(appState.posts));
+      
+      const deletedIds = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
+      if (postToDelete && !deletedIds.includes(postToDelete.id)) {
+        deletedIds.push(postToDelete.id);
+        localStorage.setItem('deletedPosts', JSON.stringify(deletedIds));
+      }
       
       if (appState.syncEnabled && postToDelete) {
         const cleanPosts = appState.posts.map(p => {
@@ -1356,13 +1461,23 @@ function setupEventListeners() {
       const tagsString = document.getElementById('study-tags').value;
       const tags = tagsString.split(',').map(t => t.trim()).filter(t => t.length > 0);
       
+      const category = document.getElementById('study-category').value;
+      const isNews = category === 'News';
+      
       const studyData = {
         title: document.getElementById('study-title').value,
-        category: document.getElementById('study-category').value,
+        category: category,
         type: document.getElementById('study-type').value,
         tags: tags,
         content: document.getElementById('study-content').value
       };
+      
+      if (isNews) {
+        studyData.importance = document.getElementById('news-importance').value;
+        studyData.source = document.getElementById('news-source').value;
+        studyData.date = document.getElementById('news-date').value || new Date().toISOString().split('T')[0];
+        studyData.newsLink = document.getElementById('news-link').value;
+      }
       
       let targetPostId = editId;
       if (editId) {
@@ -1371,10 +1486,10 @@ function setupEventListeners() {
           appState.posts[index] = { ...appState.posts[index], ...studyData };
         }
       } else {
-        targetPostId = 'study-' + Date.now();
+        targetPostId = isNews ? 'news-' + Date.now() : 'study-' + Date.now();
         const newPost = {
           id: targetPostId,
-          date: new Date().toISOString().split('T')[0],
+          date: studyData.date || new Date().toISOString().split('T')[0],
           filePath: `posts/${targetPostId}.md`,
           ...studyData
         };
@@ -1410,6 +1525,90 @@ function setupEventListeners() {
     } catch (err) {
       console.error('Error submitting study form:', err);
       alert('스터디 노트 저장 실패: ' + err.message);
+    }
+  });
+  elements.studyCategory?.addEventListener('change', (e) => {
+    const isNews = e.target.value === 'News';
+    const newsFields = document.getElementById('news-fields-group');
+    if (newsFields) {
+      newsFields.style.display = isNews ? 'block' : 'none';
+    }
+  });
+
+  // News delete mode buttons
+  elements.btnNewsDeleteMode?.addEventListener('click', () => {
+    appState.newsDeleteMode = true;
+    applySyncPermissions();
+    renderSecurityNews();
+  });
+
+  elements.btnNewsDeleteCancel?.addEventListener('click', () => {
+    appState.newsDeleteMode = false;
+    applySyncPermissions();
+    renderSecurityNews();
+  });
+
+  elements.newsSelectAll?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    const checkboxes = elements.fullNewsTable.querySelectorAll('.news-item-checkbox');
+    checkboxes.forEach(cb => cb.checked = checked);
+  });
+
+  elements.btnNewsDeleteConfirm?.addEventListener('click', async () => {
+    const checkboxes = elements.fullNewsTable.querySelectorAll('.news-item-checkbox:checked');
+    const checkedIds = Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
+    
+    if (checkedIds.length === 0) {
+      alert('선택된 보안 뉴스가 없습니다.');
+      return;
+    }
+    
+    if (!confirm(`정말로 선택한 ${checkedIds.length}개의 보안 뉴스를 삭제하시겠습니까?`)) {
+      return;
+    }
+    
+    try {
+      const postsToDelete = appState.posts.filter(p => checkedIds.includes(p.id));
+      appState.posts = appState.posts.filter(p => !checkedIds.includes(p.id));
+      
+      localStorage.setItem('posts', JSON.stringify(appState.posts));
+      
+      const deletedIds = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
+      let addedToDeleted = false;
+      postsToDelete.forEach(p => {
+        if (!deletedIds.includes(p.id)) {
+          deletedIds.push(p.id);
+          addedToDeleted = true;
+        }
+      });
+      if (addedToDeleted) {
+        localStorage.setItem('deletedPosts', JSON.stringify(deletedIds));
+      }
+      
+      appState.newsDeleteMode = false;
+      applySyncPermissions();
+      renderAll();
+      
+      if (appState.syncEnabled) {
+        for (const post of postsToDelete) {
+          const filePath = `public/${post.filePath || `posts/${post.id}.md`}`;
+          await deleteFromGitHub(filePath);
+        }
+        
+        const cleanPosts = appState.posts.map(p => {
+          const { content, ...rest } = p;
+          return {
+            ...rest,
+            filePath: p.filePath || `posts/${p.id}.md`
+          };
+        });
+        await commitToGitHub('public/posts/posts.json', JSON.stringify(cleanPosts, null, 2), `chore: batch delete ${checkedIds.length} news articles via web CMS`);
+      }
+      
+      alert('선택한 보안 뉴스가 정상적으로 삭제되었습니다.');
+    } catch (err) {
+      console.error('Error during batch deletion:', err);
+      alert('삭제 중 오류가 발생했습니다: ' + err.message);
     }
   });
 }
