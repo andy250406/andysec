@@ -1,16 +1,5 @@
 [
   {
-    "id": "study-1782023016350",
-    "date": "2026-06-21",
-    "filePath": "posts/study-1782023016350.md",
-    "title": "test",
-    "category": "Cert",
-    "type": "test",
-    "tags": [
-      "test"
-    ]
-  },
-  {
     "id": "cert-analysis-isms-p",
     "title": "ISMS-P 인증 기준 및 주요 결함 사례 완벽 분석",
     "date": "2026-05-02",
