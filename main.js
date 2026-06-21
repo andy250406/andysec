@@ -416,6 +416,32 @@ function calculateDDay(endDateStr) {
   return '종료됨';
 }
 
+// Calculate Progress Percentage
+function calculateProgress(startStr, endStr) {
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  
+  if (TODAY < start) return 0;
+  if (TODAY > end) return 100;
+  
+  const total = end - start;
+  const current = TODAY - start;
+  
+  return Math.min(100, Math.max(0, Math.round((current / total) * 100)));
+}
+
+// Strip Markdown syntax from a string for safe text excerpts
+function stripMarkdown(mdString) {
+  if (!mdString) return '';
+  return mdString
+    .replace(/[#*`~_\-+=|>]/g, '')            // Remove headers, bold, list markers, quotes
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove links, keep anchor text
+    .replace(/!\[[^\]]*\]\([^\)]+\)/g, '')   // Remove images
+    .replace(/<\/?[^>]+(>|$)/g, '')          // Strip HTML tags
+    .replace(/\s+/g, ' ')                    // Normalize whitespace
+    .trim();
+}
+
 // Tab Switching
 function switchTab(tabId) {
   const validTabs = ['dashboard', 'study', 'projects', 'news', 'portfolio'];
@@ -722,7 +748,7 @@ function renderProjectNotes(projectId) {
     card.className = 'note-card';
     card.innerHTML = `
       <h4 class="note-card-title">${note.title}</h4>
-      <p class="note-card-excerpt">${note.content.substring(0, 120)}${note.content.length > 120 ? '...' : ''}</p>
+      <p class="note-card-excerpt">${stripMarkdown(note.content).substring(0, 120)}${stripMarkdown(note.content).length > 120 ? '...' : ''}</p>
       <div class="note-card-footer">
         <span><i class="fa-regular fa-clock"></i> ${note.date}</span>
         <span style="color:var(--accent-color)">상세보기 <i class="fa-solid fa-chevron-right"></i></span>
