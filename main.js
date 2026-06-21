@@ -981,10 +981,46 @@ function setupEventListeners() {
   });
   
   // Save Settings Form
-  elements.settingsForm.addEventListener('submit', (e) => {
+  elements.settingsForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const enabled = document.getElementById('sync-toggle').checked;
     const pat = document.getElementById('github-pat').value.trim();
+    
+    if (enabled) {
+      if (!pat) {
+        alert('동기화를 활성화하려면 GitHub 토큰(PAT)을 입력해야 합니다.');
+        return;
+      }
+      
+      showLoader('토큰 검증 중...', 'GitHub 저장소 권한을 확인하고 있습니다.');
+      try {
+        const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`, {
+          headers: {
+            'Authorization': `token ${pat}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('유효하지 않은 토큰이거나 권한이 없습니다.');
+        } else if (res.status === 404) {
+          throw new Error('저장소를 찾을 수 없습니다. (토큰 권한 혹은 리포지토리 이름 확인 필요)');
+        } else if (!res.ok) {
+          throw new Error(`검증 실패 (상태 코드: ${res.status})`);
+        }
+        
+        // Check scopes if possible (optional, x-oauth-scopes header)
+        const scopes = res.headers.get('x-oauth-scopes');
+        if (scopes && !scopes.includes('repo')) {
+          console.warn('Token scopes might be insufficient:', scopes);
+        }
+      } catch (err) {
+        alert('깃허브 연동 검증 실패: ' + err.message + '\n토큰 값과 repo 권한 설정을 다시 확인해 주세요.');
+        return;
+      } finally {
+        hideLoader();
+      }
+    }
     
     appState.syncEnabled = enabled;
     appState.githubPat = pat;
@@ -995,7 +1031,7 @@ function setupEventListeners() {
     updateSyncIndicator();
     elements.settingsModal.style.display = 'none';
     
-    alert('깃허브 동기화 설정이 저장되었습니다!');
+    alert('깃허브 동기화 설정이 성공적으로 저장 및 연동되었습니다!');
   });
   
   // Project Modal Handlers
