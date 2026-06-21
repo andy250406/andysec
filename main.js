@@ -231,18 +231,30 @@ async function loadData() {
       console.warn('Could not load posts.json from server, falling back to local storage.');
     }
     
-    // Load local posts
-    const localPosts = JSON.parse(localStorage.getItem('posts')) || [];
+    // Load local posts safely
+    let localPosts = [];
+    try {
+      const stored = localStorage.getItem('posts');
+      if (stored && stored !== 'undefined') {
+        localPosts = JSON.parse(stored) || [];
+      }
+    } catch (e) {
+      console.error('Failed to parse local posts:', e);
+    }
+    if (!Array.isArray(localPosts)) localPosts = [];
     
     // Merge them: combine server and local, keeping local custom/edited posts as priority
     const mergedPosts = [...serverPosts];
     localPosts.forEach(localP => {
-      const exists = mergedPosts.some(serverP => serverP.id === localP.id);
+      if (!localP || !localP.id) return; // Guard against corrupted items
+      const exists = mergedPosts.some(serverP => serverP && serverP.id === localP.id);
       if (!exists) {
         mergedPosts.push(localP);
       } else {
-        const idx = mergedPosts.findIndex(serverP => serverP.id === localP.id);
-        mergedPosts[idx] = { ...mergedPosts[idx], ...localP }; // Local overrides/complements server details
+        const idx = mergedPosts.findIndex(serverP => serverP && serverP.id === localP.id);
+        if (idx !== -1) {
+          mergedPosts[idx] = { ...mergedPosts[idx], ...localP }; // Local overrides/complements server details
+        }
       }
     });
     
@@ -278,15 +290,28 @@ async function loadData() {
       console.warn('Could not load projectNotes.json from server.');
     }
     
-    const localNotes = JSON.parse(localStorage.getItem('projectNotes')) || [];
+    let localNotes = [];
+    try {
+      const stored = localStorage.getItem('projectNotes');
+      if (stored && stored !== 'undefined') {
+        localNotes = JSON.parse(stored) || [];
+      }
+    } catch (e) {
+      console.error('Failed to parse local project notes:', e);
+    }
+    if (!Array.isArray(localNotes)) localNotes = [];
+
     const mergedNotes = [...serverNotes];
     localNotes.forEach(localN => {
-      const exists = mergedNotes.some(serverN => serverN.id === localN.id);
+      if (!localN || !localN.id) return;
+      const exists = mergedNotes.some(serverN => serverN && serverN.id === localN.id);
       if (!exists) {
         mergedNotes.push(localN);
       } else {
-        const idx = mergedNotes.findIndex(serverN => serverN.id === localN.id);
-        mergedNotes[idx] = { ...mergedNotes[idx], ...localN };
+        const idx = mergedNotes.findIndex(serverN => serverN && serverN.id === localN.id);
+        if (idx !== -1) {
+          mergedNotes[idx] = { ...mergedNotes[idx], ...localN };
+        }
       }
     });
     
@@ -312,7 +337,16 @@ async function initProjects() {
     console.warn('Could not load projects.json from server.');
   }
   
-  const localProjects = JSON.parse(localStorage.getItem('projects')) || [];
+  let localProjects = [];
+  try {
+    const stored = localStorage.getItem('projects');
+    if (stored && stored !== 'undefined') {
+      localProjects = JSON.parse(stored) || [];
+    }
+  } catch (e) {
+    console.error('Failed to parse local projects:', e);
+  }
+  if (!Array.isArray(localProjects)) localProjects = [];
   
   if (serverProjects.length === 0 && localProjects.length === 0) {
     // Seed default projects
@@ -355,12 +389,15 @@ async function initProjects() {
   } else {
     const merged = [...serverProjects];
     localProjects.forEach(localP => {
-      const exists = merged.some(serverP => serverP.id === localP.id);
+      if (!localP || !localP.id) return;
+      const exists = merged.some(serverP => serverP && serverP.id === localP.id);
       if (!exists) {
         merged.push(localP);
       } else {
-        const idx = merged.findIndex(serverP => serverP.id === localP.id);
-        merged[idx] = { ...merged[idx], ...localP };
+        const idx = merged.findIndex(serverP => serverP && serverP.id === localP.id);
+        if (idx !== -1) {
+          merged[idx] = { ...merged[idx], ...localP };
+        }
       }
     });
     appState.projects = merged;
@@ -1107,149 +1144,166 @@ function setupEventListeners() {
   });
   
   // Form Submit: Add/Edit Project
+  // Form Submit: Add/Edit Project
   elements.addProjectForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const editId = elements.projectEditId.value;
-    
-    const projData = {
-      name: document.getElementById('project-name').value,
-      client: document.getElementById('project-client').value,
-      startDate: document.getElementById('project-start').value,
-      endDate: document.getElementById('project-end').value,
-      details: document.getElementById('project-details').value
-    };
-    
-    let targetId = editId;
-    if (editId) {
-      const index = appState.projects.findIndex(p => p.id === editId);
-      if (index !== -1) {
-        appState.projects[index] = { ...appState.projects[index], ...projData };
-      }
-    } else {
-      targetId = 'project-' + Date.now();
-      const newProj = {
-        id: targetId,
-        ...projData
+    try {
+      e.preventDefault();
+      const editId = elements.projectEditId.value;
+      
+      const projData = {
+        name: document.getElementById('project-name').value,
+        client: document.getElementById('project-client').value,
+        startDate: document.getElementById('project-start').value,
+        endDate: document.getElementById('project-end').value,
+        details: document.getElementById('project-details').value
       };
-      appState.projects.unshift(newProj);
-    }
-    
-    // Save locally first
-    localStorage.setItem('projects', JSON.stringify(appState.projects));
-    
-    renderAll();
-    elements.addProjectForm.reset();
-    elements.addProjectModal.style.display = 'none';
-    showProjectDetail(targetId);
-    
-    // Sync to GitHub in the background
-    if (appState.syncEnabled) {
-      await commitToGitHub('public/posts/projects.json', JSON.stringify(appState.projects, null, 2), `feat: update project metadata for ${projData.name}`);
+      
+      let targetId = editId;
+      if (editId) {
+        const index = appState.projects.findIndex(p => p.id === editId);
+        if (index !== -1) {
+          appState.projects[index] = { ...appState.projects[index], ...projData };
+        }
+      } else {
+        targetId = 'project-' + Date.now();
+        const newProj = {
+          id: targetId,
+          ...projData
+        };
+        appState.projects.unshift(newProj);
+      }
+      
+      // Save locally first
+      localStorage.setItem('projects', JSON.stringify(appState.projects));
+      
+      renderAll();
+      elements.addProjectForm.reset();
+      elements.addProjectModal.style.display = 'none';
+      showProjectDetail(targetId);
+      
+      // Sync to GitHub in the background
+      if (appState.syncEnabled) {
+        await commitToGitHub('public/posts/projects.json', JSON.stringify(appState.projects, null, 2), `feat: update project metadata for ${projData.name}`);
+      }
+    } catch (err) {
+      console.error('Error submitting project form:', err);
+      alert('프로젝트 저장 실패: ' + err.message);
     }
   });
   
   // Form Submit: Add/Edit Project Note
   elements.addNoteForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const editId = elements.noteEditId.value;
-    
-    const noteData = {
-      title: document.getElementById('note-title').value,
-      content: document.getElementById('note-content').value,
-    };
-    
-    let noteToSync = null;
-    if (editId) {
-      const index = appState.projectNotes.findIndex(n => n.id === editId);
-      if (index !== -1) {
-        appState.projectNotes[index] = { ...appState.projectNotes[index], ...noteData };
-        noteToSync = appState.projectNotes[index];
-        if (appState.activePostId === editId) {
-          showLocalNoteDetail(appState.projectNotes[index]);
-        }
-      }
-    } else {
-      if (!appState.activeProjectId) return;
-      noteToSync = {
-        id: 'note-' + Date.now(),
-        projectId: appState.activeProjectId,
-        date: new Date().toISOString().split('T')[0],
-        ...noteData
+    try {
+      e.preventDefault();
+      const editId = elements.noteEditId.value;
+      
+      const noteData = {
+        title: document.getElementById('note-title').value,
+        content: document.getElementById('note-content').value,
       };
-      appState.projectNotes.unshift(noteToSync);
-    }
-    
-    // Save locally first
-    localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
-    
-    renderProjectNotes(appState.activeProjectId);
-    elements.addNoteForm.reset();
-    elements.addNoteModal.style.display = 'none';
-    
-    // Sync in background
-    if (appState.syncEnabled) {
-      await commitToGitHub('public/posts/projectNotes.json', JSON.stringify(appState.projectNotes, null, 2), `feat: update project note index for ${noteData.title}`);
+      
+      let noteToSync = null;
+      if (editId) {
+        const index = appState.projectNotes.findIndex(n => n.id === editId);
+        if (index !== -1) {
+          appState.projectNotes[index] = { ...appState.projectNotes[index], ...noteData };
+          noteToSync = appState.projectNotes[index];
+          if (appState.activePostId === editId) {
+            showLocalNoteDetail(appState.projectNotes[index]);
+          }
+        }
+      } else {
+        if (!appState.activeProjectId) return;
+        noteToSync = {
+          id: 'note-' + Date.now(),
+          projectId: appState.activeProjectId,
+          date: new Date().toISOString().split('T')[0],
+          ...noteData
+        };
+        appState.projectNotes.unshift(noteToSync);
+      }
+      
+      // Save locally first
+      localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
+      
+      renderProjectNotes(appState.activeProjectId);
+      elements.addNoteForm.reset();
+      elements.addNoteModal.style.display = 'none';
+      
+      // Sync in background
+      if (appState.syncEnabled) {
+        await commitToGitHub('public/posts/projectNotes.json', JSON.stringify(appState.projectNotes, null, 2), `feat: update project note index for ${noteData.title}`);
+      }
+    } catch (err) {
+      console.error('Error submitting note form:', err);
+      alert('기록 저장 실패: ' + err.message);
     }
   });
   
   // Form Submit: Add/Edit Study Note
   elements.addStudyForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const editId = elements.studyEditId.value;
-    
-    const tagsString = document.getElementById('study-tags').value;
-    const tags = tagsString.split(',').map(t => t.trim()).filter(t => t.length > 0);
-    
-    const studyData = {
-      title: document.getElementById('study-title').value,
-      category: document.getElementById('study-category').value,
-      type: document.getElementById('study-type').value,
-      tags: tags,
-      content: document.getElementById('study-content').value
-    };
-    
-    let targetPostId = editId;
-    if (editId) {
-      const index = appState.posts.findIndex(p => p.id === editId);
-      if (index !== -1) {
-        appState.posts[index] = { ...appState.posts[index], ...studyData };
-      }
-    } else {
-      targetPostId = 'study-' + Date.now();
-      const newPost = {
-        id: targetPostId,
-        date: new Date().toISOString().split('T')[0],
-        filePath: `posts/${targetPostId}.md`,
-        ...studyData
-      };
-      appState.posts.unshift(newPost);
-    }
-    
-    // Save locally FIRST
-    localStorage.setItem('posts', JSON.stringify(appState.posts));
-    
-    renderAll();
-    elements.addStudyForm.reset();
-    elements.addStudyModal.style.display = 'none';
-    if (editId) {
-      showArticleDetail(editId);
-    }
-    
-    // Sync to GitHub in background
-    if (appState.syncEnabled) {
-      const filePath = `public/posts/${targetPostId}.md`;
-      const isContentSyncSuccess = await commitToGitHub(filePath, studyData.content, `feat: publish post content for ${studyData.title}`);
+    try {
+      e.preventDefault();
+      const editId = elements.studyEditId.value;
       
-      if (isContentSyncSuccess) {
-        const cleanPosts = appState.posts.map(p => {
-          const { content, ...rest } = p;
-          return {
-            ...rest,
-            filePath: p.filePath || `posts/${p.id}.md`
-          };
-        });
-        await commitToGitHub('public/posts/posts.json', JSON.stringify(cleanPosts, null, 2), `feat: update posts index for ${studyData.title}`);
+      const tagsString = document.getElementById('study-tags').value;
+      const tags = tagsString.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      
+      const studyData = {
+        title: document.getElementById('study-title').value,
+        category: document.getElementById('study-category').value,
+        type: document.getElementById('study-type').value,
+        tags: tags,
+        content: document.getElementById('study-content').value
+      };
+      
+      let targetPostId = editId;
+      if (editId) {
+        const index = appState.posts.findIndex(p => p.id === editId);
+        if (index !== -1) {
+          appState.posts[index] = { ...appState.posts[index], ...studyData };
+        }
+      } else {
+        targetPostId = 'study-' + Date.now();
+        const newPost = {
+          id: targetPostId,
+          date: new Date().toISOString().split('T')[0],
+          filePath: `posts/${targetPostId}.md`,
+          ...studyData
+        };
+        appState.posts.unshift(newPost);
       }
+      
+      // Save locally FIRST
+      localStorage.setItem('posts', JSON.stringify(appState.posts));
+      
+      renderAll();
+      elements.addStudyForm.reset();
+      elements.addStudyModal.style.display = 'none';
+      if (editId) {
+        showArticleDetail(editId);
+      }
+      
+      // Sync to GitHub in background
+      if (appState.syncEnabled) {
+        const filePath = `public/posts/${targetPostId}.md`;
+        const isContentSyncSuccess = await commitToGitHub(filePath, studyData.content, `feat: publish post content for ${studyData.title}`);
+        
+        if (isContentSyncSuccess) {
+          const cleanPosts = appState.posts.map(p => {
+            const { content, ...rest } = p;
+            return {
+              ...rest,
+              filePath: p.filePath || `posts/${p.id}.md`
+            };
+          });
+          await commitToGitHub('public/posts/posts.json', JSON.stringify(cleanPosts, null, 2), `feat: update posts index for ${studyData.title}`);
+        }
+      }
+    } catch (err) {
+      console.error('Error submitting study form:', err);
+      alert('스터디 노트 저장 실패: ' + err.message);
     }
   });
 }
+
