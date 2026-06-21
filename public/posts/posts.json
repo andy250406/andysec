@@ -1,5 +1,131 @@
 [
   {
+    "id": "news-34825a92-bc75-80aa-a79f-f2581115e7d7",
+    "title": "",
+    "date": "2026-06-21",
+    "category": "News",
+    "source": "",
+    "importance": "⭐⭐⭐",
+    "newsLink": "",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34825a92-bc75-80aa-a79f-f2581115e7d7.md"
+  },
+  {
+    "id": "news-36c25a92-bc75-81cb-9499-c9a59d5235e7",
+    "title": "ECB, '미토스 쇼크' 보안 취약점 논의위해 은행들 긴급 소집",
+    "date": "2026-05-25",
+    "category": "News",
+    "source": "연합뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFnXxq6TXdvE_6jyKxlZ7WF-8V2rJBotfqwHkj11u4-JN9UT84FxzxdaSYRc0VyUjcQQ2BWNtS3MmS7vmcPRiHPUXe77ZIjCxCqcs_Tv5H70LMLUX3-iHntWDzNscGjmCTllYmuDaCMCucXpdF4UP3pZHpecpkhu25syQ5aBjaUsECUxAw=",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-36c25a92-bc75-81cb-9499-c9a59d5235e7.md"
+  },
+  {
+    "id": "news-36c25a92-bc75-815f-9127-f4765c3241f8",
+    "title": "‘클릭픽스’ 공격으로 700여개 사이트 해킹... 클로드 발견 ‘Ghost CMS’ 취약점 악용",
+    "date": "2026-05-25",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/media/view.asp?idx=128509",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-36c25a92-bc75-815f-9127-f4765c3241f8.md"
+  },
+  {
+    "id": "news-36c25a92-bc75-8199-8a65-c5625a66e873",
+    "title": "미토스 공포에 해답은 '소버린'?…독자 AI 보안모델 최대 과제로",
+    "date": "2026-05-10",
+    "category": "News",
+    "source": "디지털데일리 (Daum 뉴스 게재)",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://v.daum.net/v/20260510090000000",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-36c25a92-bc75-8199-8a65-c5625a66e873.md"
+  },
+  {
+    "id": "news-35d25a92-bc75-81fe-b481-d135e52205cd",
+    "title": "국내 정보보호 공시의무 기업 27개사 증가… 투명성 강화 추세",
+    "date": "2026-05-08",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35d25a92-bc75-81fe-b481-d135e52205cd.md"
+  },
+  {
+    "id": "news-35d25a92-bc75-8173-b2a7-ebd1889a3f78",
+    "title": "KISA, 120억 투입해 차세대 AI 보안 기업 육성… '방어형 AI' 강화",
+    "date": "2026-05-08",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35d25a92-bc75-8173-b2a7-ebd1889a3f78.md"
+  },
+  {
+    "id": "news-35d25a92-bc75-818e-bfc7-d9b632b0ec81",
+    "title": "정부, 'AI 보안 주권' 확보 박차… '미토스 쇼크' 공동 대응 모색",
+    "date": "2026-05-08",
+    "category": "News",
+    "source": "연합뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.yna.co.kr/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35d25a92-bc75-818e-bfc7-d9b632b0ec81.md"
+  },
+  {
+    "id": "news-35925a92-bc75-8141-92b3-c074b25a45ea",
+    "title": "삼성SDS, 2026년 5대 위협 발표… \"AI 에이전트 오남용 및 4중 갈취 랜섬웨어 주의\"",
+    "date": "2026-05-06",
+    "category": "News",
+    "source": "삼성SDS (Samsung SDS)",
+    "importance": "⭐⭐",
+    "newsLink": "https://www.samsungsds.com/kr/insights/security_threat_2026.html",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35925a92-bc75-8141-92b3-c074b25a45ea.md"
+  },
+  {
+    "id": "news-35925a92-bc75-8181-a1af-fdfb892d94d0",
+    "title": "안랩, 2026년 5대 보안 위협 전망 발표… 실시간 환경 분석 '적응형 공격' 주의",
+    "date": "2026-05-04",
+    "category": "News",
+    "source": "안랩 (AhnLab)",
+    "importance": "⭐⭐",
+    "newsLink": "https://www.ahnlab.com/kr/site/securityinfo/secunews/secuNewsView.do?seq=30001",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35925a92-bc75-8181-a1af-fdfb892d94d0.md"
+  },
+  {
     "id": "cert-analysis-isms-p",
     "title": "ISMS-P 인증 기준 및 주요 결함 사례 완벽 분석",
     "date": "2026-05-02",
@@ -12,6 +138,398 @@
       "결함사례"
     ],
     "filePath": "posts/cert-analysis-isms-p.md"
+  },
+  {
+    "id": "news-35925a92-bc75-81e8-a63d-cf489452889d",
+    "title": "2026년 CIO의 최대 난제, '생성형 AI 통합'과 '핵심 지식재산(IP) 보호'의 공존",
+    "date": "2026-05-02",
+    "category": "News",
+    "source": "CIO Korea / Gartner",
+    "importance": "⭐⭐",
+    "newsLink": "https://www.ciokorea.com/news/2026/05/generative-ai-ip-protection/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35925a92-bc75-81e8-a63d-cf489452889d.md"
+  },
+  {
+    "id": "news-35925a92-bc75-81e1-9329-f3ea2601090d",
+    "title": "미 국방부, OpenAI·SpaceX 등 8개사와 '기밀 AI' 네트워크 통합 협약 체결",
+    "date": "2026-05-01",
+    "category": "News",
+    "source": "Breaking Defense / YNA",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://breakingdefense.com/2026/05/dod-signs-classified-ai-deals-with-openai-spacex-and-others/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35925a92-bc75-81e1-9329-f3ea2601090d.md"
+  },
+  {
+    "id": "news-35425a92-bc75-81a4-85b5-dc19d0552f86",
+    "title": "미 CISA, '2026 자율형 사이버 방어 전략' 발표… AI 에이전트 전면 배치",
+    "date": "2026-05-01",
+    "category": "News",
+    "source": "CISA",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.cisa.gov/resources-tools/resources/careful-adoption-agentic-artificial-intelligence-ai-services",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35425a92-bc75-81a4-85b5-dc19d0552f86.md"
+  },
+  {
+    "id": "news-35925a92-bc75-8161-b392-ca1f206e7ab3",
+    "title": "앤트로픽, 강력한 AI 위협 '미토스' 대응 위해 기업용 '클로드 보안' 서비스 출시",
+    "date": "2026-04-30",
+    "category": "News",
+    "source": "Anthropic / Donga 등",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.anthropic.com/news/claude-security-release",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35925a92-bc75-8161-b392-ca1f206e7ab3.md"
+  },
+  {
+    "id": "news-35425a92-bc75-8179-86e6-cba42e4daad5",
+    "title": "국정원, 'N2SF' 기반 클라우드 보안 가이드라인 세부안 공개",
+    "date": "2026-04-30",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/media/view.asp?idx=128504",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35425a92-bc75-8179-86e6-cba42e4daad5.md"
+  },
+  {
+    "id": "news-35425a92-bc75-8162-9b59-eb939e832d0a",
+    "title": "개인정보위, 'AI 기반 수도 사고 탐지 시스템' 도입 전 보안 적정성 검토",
+    "date": "2026-04-22",
+    "category": "News",
+    "source": "정책브리핑",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.korea.kr/news/policyNewsView.do?newsId=148928421",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35425a92-bc75-8162-9b59-eb939e832d0a.md"
+  },
+  {
+    "id": "news-35425a92-bc75-81e0-82aa-f078fb7103d3",
+    "title": "KS한국고용, 해킹으로 직원 4만 명 정보 유출… 과징금 35억 원 부과",
+    "date": "2026-04-22",
+    "category": "News",
+    "source": "매일경제",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.mk.co.kr/news/society/11015678",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35425a92-bc75-81e0-82aa-f078fb7103d3.md"
+  },
+  {
+    "id": "news-35425a92-bc75-81dd-a5a1-f246f1cb1724",
+    "title": "오라클 4월 CPU 발표: 480개 이상의 취약점 패치로 '공급망 리스크' 부각",
+    "date": "2026-04-21",
+    "category": "News",
+    "source": "SecurityWeek",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.oracle.com/security-alerts/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35425a92-bc75-81dd-a5a1-f246f1cb1724.md"
+  },
+  {
+    "id": "news-35925a92-bc75-81b7-8aa6-f7b9b5d8a884",
+    "title": "홈 보안 1위 ADT, 해킹 사고로 550만 명 고객 정보 유출… SSO 계정 탈취가 원인",
+    "date": "2026-04-20",
+    "category": "News",
+    "source": "BleepingComputer / BankInfoSecurity",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.bleepingcomputer.com/news/security/adt-confirms-data-breach-affecting-5-5-million-customers/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35925a92-bc75-81b7-8aa6-f7b9b5d8a884.md"
+  },
+  {
+    "id": "news-35425a92-bc75-81db-a51f-f6644c747dea",
+    "title": "금융보안원, '2026 금융권 자율 보안 가이드' 배포… 생성형 AI 활용 기준 담겨",
+    "date": "2026-04-20",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.fsec.or.kr/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-35425a92-bc75-81db-a51f-f6644c747dea.md"
+  },
+  {
+    "id": "news-34c25a92-bc75-81c7-91ee-ed9aef4155d1",
+    "title": "국내 금융권, '망분리 완화' 대비한 SaaS 보안 가이드라인 수립 착수",
+    "date": "2026-04-20",
+    "category": "News",
+    "source": "전자신문 / 금융위원회",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.etnews.com/202604200001",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34c25a92-bc75-81c7-91ee-ed9aef4155d1.md"
+  },
+  {
+    "id": "news-34c25a92-bc75-8134-b8e9-f81d11adbc34",
+    "title": "국정원, '망분리 폐지' 확정… 새로운 국가 보안 체계 'N2SF' 5월 시행",
+    "date": "2026-04-20",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/media/view.asp?idx=128521",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34c25a92-bc75-8134-b8e9-f81d11adbc34.md"
+  },
+  {
+    "id": "news-34c25a92-bc75-817f-afbf-cc7731c4b18a",
+    "title": "안랩, 생성형 AI '클로드(Claude)' 사칭한 정보 탈취 피싱 주의보",
+    "date": "2026-04-18",
+    "category": "News",
+    "source": "안랩 / ZDNet Korea",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.zdnet.co.kr/view/?no=202604181000",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34c25a92-bc75-817f-afbf-cc7731c4b18a.md"
+  },
+  {
+    "id": "news-34c25a92-bc75-81b0-878a-d101315e7892",
+    "title": "과기정통부·KISA, 'SBOM 기반 소프트웨어 공급망 보안 사례집' 발급",
+    "date": "2026-04-16",
+    "category": "News",
+    "source": "보안뉴스 / KISA",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/media/view.asp?idx=128543",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34c25a92-bc75-81b0-878a-d101315e7892.md"
+  },
+  {
+    "id": "news-34525a92-bc75-818e-84f7-d68658e16636",
+    "title": "[NetSec-KR 2026] \"LLM 보안, 성능보다 안전성 평가 기준 재정립이 우선\"",
+    "date": "2026-04-16",
+    "category": "News",
+    "source": "지디넷코리아",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://zdnet.co.kr/netsec-kr-2026-llm",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34525a92-bc75-818e-84f7-d68658e16636.md"
+  },
+  {
+    "id": "news-34525a92-bc75-8160-a64b-f669fc46a41a",
+    "title": "국내 금융보안원, '2026년 핀테크 보안점검' 본격화… 로보어드바이저까지 확대",
+    "date": "2026-04-15",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/robo-advisor-2026",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34525a92-bc75-8160-a64b-f669fc46a41a.md"
+  },
+  {
+    "id": "news-34525a92-bc75-8139-93bd-c694036bbe7d",
+    "title": "오픈AI, 방어 특화 AI 'GPT-5.4 사이버' 전�� 공개… '미토스'에 맞불",
+    "date": "2026-04-14",
+    "category": "News",
+    "source": "테크M",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://techm.kr/news/gpt-5-4-cyber",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34525a92-bc75-8139-93bd-c694036bbe7d.md"
+  },
+  {
+    "id": "news-34325a92-bc75-818e-8d15-f61cf2d2875b",
+    "title": "서울시, 전국 최초 '예방 중심 디지털재난 대응체계' 구축 완료",
+    "date": "2026-04-14",
+    "category": "News",
+    "source": "전자신문",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.etnews.com",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34325a92-bc75-818e-8d15-f61cf2d2875b.md"
+  },
+  {
+    "id": "news-34325a92-bc75-816c-a951-f82dbda27cce",
+    "title": "\"AI 개발이 보안 위협 4배 키웠다\"… 2026 보안 분석 보고서 발표",
+    "date": "2026-04-14",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.boannews.com",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34325a92-bc75-816c-a951-f82dbda27cce.md"
+  },
+  {
+    "id": "news-34325a92-bc75-813a-9a7e-f77467a152ee",
+    "title": "국내 의료기관 보안 실태 '심각'… 조사 대상 병원 17%는 보안 예산 0원",
+    "date": "2026-04-14",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34325a92-bc75-813a-9a7e-f77467a152ee.md"
+  },
+  {
+    "id": "news-34325a92-bc75-810a-a88b-eb039c5ba638",
+    "title": "네이버클라우드, AI 보안전략 전담 조직 신설… 국정원 출신 보안 전문가 영입",
+    "date": "2026-04-13",
+    "category": "News",
+    "source": "조선일보",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.chosun.com",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34325a92-bc75-810a-a88b-eb039c5ba638.md"
+  },
+  {
+    "id": "news-34c25a92-bc75-8177-96cf-c0b1772bbe78",
+    "title": "백악관, '미토스 충격'에 앤트로픽 CEO 전격 소환… 정부 주도 보안 통제 착수",
+    "date": "2026-04-12",
+    "category": "News",
+    "source": "조선일보 / 네이버 뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.chosun.com/economy/tech_it/2026/04/12/ABCDEF/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34c25a92-bc75-8177-96cf-c0b1772bbe78.md"
+  },
+  {
+    "id": "news-34525a92-bc75-81f2-a1fd-fd583bd56274",
+    "title": "해커 된 AI '미토스 쇼크'… 정부·업계, 사이버 보안 골든타임 선포",
+    "date": "2026-04-10",
+    "category": "News",
+    "source": "전자신문",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.etnews.com/mythos-shock-2026",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34525a92-bc75-81f2-a1fd-fd583bd56274.md"
+  },
+  {
+    "id": "news-34325a92-bc75-81b9-850c-f3bafcfda054",
+    "title": "북한 APT37, 페이스북 친구 맺기 활용한 '사회공학적' 정보 탈취 캐페인 전개",
+    "date": "2026-04-10",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34325a92-bc75-81b9-850c-f3bafcfda054.md"
+  },
+  {
+    "id": "news-34325a92-bc75-81e3-ad4c-e71c3fc7e40f",
+    "title": "하드웨어 진단 도구 'CPU-Z' 공식 사이트 해킹… 악성 RAT 유포 사고 발생",
+    "date": "2026-04-10",
+    "category": "News",
+    "source": "The Hacker News",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://thehackernews.com",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34325a92-bc75-81e3-ad4c-e71c3fc7e40f.md"
+  },
+  {
+    "id": "news-34325a92-bc75-8157-a8e8-edea29615593",
+    "title": "신종 '글래스웜(GlassWorm)' 캔페인, 개발 도구(IDE) 전수 감염 시도",
+    "date": "2026-04-10",
+    "category": "News",
+    "source": "데일리시큐",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.dailysecu.com",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34325a92-bc75-8157-a8e8-edea29615593.md"
+  },
+  {
+    "id": "news-33f25a92-bc75-80a0-8644-f3ec5e54a00e",
+    "title": "ISMS-P 인증 체계 전면 개편… 대규모 사업자 의무화 및 사후 관리 강화",
+    "date": "2026-04-10",
+    "category": "News",
+    "source": "ITDaily",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "http://www.itdaily.kr/news/articleView.html?idxno=238844",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33f25a92-bc75-80a0-8644-f3ec5e54a00e.md"
+  },
+  {
+    "id": "news-34325a92-bc75-8164-abf3-ee5b1c9b8522",
+    "title": "안랜·소프트칠프, 日 '재팬 IT 위크'서 차세대 CPS 및 AI 보안 솔루션 공개",
+    "date": "2026-04-08",
+    "category": "News",
+    "source": "ZDNet",
+    "importance": "⭐⭐",
+    "newsLink": "https://zdnet.co.kr",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34325a92-bc75-8164-abf3-ee5b1c9b8522.md"
   },
   {
     "id": "cert-cppg-study",
@@ -27,6 +545,258 @@
     "filePath": "posts/cert-cppg-study.md"
   },
   {
+    "id": "news-33a25a92-bc75-8132-9818-fdc51b589c23",
+    "title": "과기정통부, '2026 상반기 사이버 위기 대응 모의훈련' 본격 착수",
+    "date": "2026-04-05",
+    "category": "News",
+    "source": "과학기술정보통신부",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://boho.or.kr/401/form?postSeq=3150",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33a25a92-bc75-8132-9818-fdc51b589c23.md"
+  },
+  {
+    "id": "news-33825a92-bc75-81d9-ba67-db1f9529fdb2",
+    "title": "미 FCC 자문위, \"6G 네트워크, AI 및 소프트웨어 의존성으로 인한 신규 취약점 증대\" 경고",
+    "date": "2026-04-03",
+    "category": "News",
+    "source": "Broadband Breakfast",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://broadbandbreakfast.com/2026/04/fcc-advisory-council-warns-of-6g-vulnerabilities/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33825a92-bc75-81d9-ba67-db1f9529fdb2.md"
+  },
+  {
+    "id": "news-33825a92-bc75-8185-b1f3-c16a3f1d4e42",
+    "title": "토스페이먼츠, 국내 금융·IT 업계 최초 '양자내성암호(PQC)' 전 구간 도입",
+    "date": "2026-04-03",
+    "category": "News",
+    "source": "연합뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.yna.co.kr/view/AKR20260403000100017",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33825a92-bc75-8185-b1f3-c16a3f1d4e42.md"
+  },
+  {
+    "id": "news-33825a92-bc75-8145-8a57-d7ace4bd4ca9",
+    "title": "금융 보안 '설치형 SW' 퇴출 가속… 비설치형 AI-MTD 기술 부상",
+    "date": "2026-04-02",
+    "category": "News",
+    "source": "데일리시큐",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.dailysecu.com/news/articleView.html?idxno=155000",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33825a92-bc75-8145-8a57-d7ace4bd4ca9.md"
+  },
+  {
+    "id": "news-34c25a92-bc75-8153-ac50-c6118477f8d0",
+    "title": "\"전 세계 FTP 서버 600만 대 노출\"… 한국, TLS 도입률 14.5%로 하위권",
+    "date": "2026-04-01",
+    "category": "News",
+    "source": "Cybersecurity News / Censys Report",
+    "importance": "⭐⭐",
+    "newsLink": "https://cybersecuritynews.com/censys-report-ftp-exposure/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-34c25a92-bc75-8153-ac50-c6118477f8d0.md"
+  },
+  {
+    "id": "news-33a25a92-bc75-811c-8e42-ed75837d017e",
+    "title": "구글, \"양자컴퓨터 암호화폐 해킹 위협 가시화… 필요 자원 10배 감소\" 경고",
+    "date": "2026-03-31",
+    "category": "News",
+    "source": "Google Quantum AI",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://quantumai.google/publications/quantum-cryptanalysis-bitcoin",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33a25a92-bc75-811c-8e42-ed75837d017e.md"
+  },
+  {
+    "id": "news-33825a92-bc75-81e4-8193-f1e5b95eeb20",
+    "title": "국토교통부, 테슬라 FSD '탈옥' 및 무단 활성화 시도에 불법 경고",
+    "date": "2026-03-31",
+    "category": "News",
+    "source": "국토교통부 보도자료",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.hankyung.com/article/202603310001",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33825a92-bc75-81e4-8193-f1e5b95eeb20.md"
+  },
+  {
+    "id": "news-33825a92-bc75-81ba-8b8c-f88274761a9c",
+    "title": "구글, 클라우드 랜섬웨어 방어 체계 전면 개편… '즉시 롤백' 기능 도입",
+    "date": "2026-03-31",
+    "category": "News",
+    "source": "Google Workspace 보도자료",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://workspaceupdates.googleblog.com/2026/03/ransomware-detection-restoration.html",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33825a92-bc75-81ba-8b8c-f88274761a9c.md"
+  },
+  {
+    "id": "news-33525a92-bc75-8109-bdc8-f43b061dcc65",
+    "title": "'클로드 코드(Claude Code)' 소스 51만 줄 유출… \"직원 실수\"",
+    "date": "2026-03-31",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/media/view.asp?idx=128550",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33525a92-bc75-8109-bdc8-f43b061dcc65.md"
+  },
+  {
+    "id": "news-33525a92-bc75-81ba-bc65-cab50f182520",
+    "title": "KISA, '랜섬웨어 전주기 대응 추진단' 발족… 범정부 통합 방어 가동",
+    "date": "2026-03-31",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/media/view.asp?idx=128500",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33525a92-bc75-81ba-bc65-cab50f182520.md"
+  },
+  {
+    "id": "news-33525a92-bc75-811a-81e4-debe2ed1b633",
+    "title": "AWS 코리아, 'AI 보안 자동화' 위해 한국 시장에 12.6조 원 투자 확정",
+    "date": "2026-03-31",
+    "category": "News",
+    "source": "AI타임스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.aitimes.com/news/articleView.html?idxno=158428",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33525a92-bc75-811a-81e4-debe2ed1b633.md"
+  },
+  {
+    "id": "news-33a25a92-bc75-81c0-a335-c419a3ca55a1",
+    "title": "AI 보안 스타트업 지형도 2026: '에이전틱 AI' 방어가 핵심 전장 부상",
+    "date": "2026-03-30",
+    "category": "News",
+    "source": "HiddenLayer 2026 AI Threat Landscape Report",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://hiddenlayer.com/report-2026-ai-threat-landscape-report-agentic-ai-focus",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33a25a92-bc75-81c0-a335-c419a3ca55a1.md"
+  },
+  {
+    "id": "news-33525a92-bc75-81cd-be9e-dd979a34b96e",
+    "title": "구글, \"양자컴퓨터로 비트코인 해킹, 3년 내 현실화 가능\" 백서 발표",
+    "date": "2026-03-30",
+    "category": "News",
+    "source": "AI타임스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.aitimes.com/news/articleView.html?idxno=158400",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33525a92-bc75-81cd-be9e-dd979a34b96e.md"
+  },
+  {
+    "id": "news-33a25a92-bc75-81ad-b32d-dc384bc1d2d2",
+    "title": "구글, 화이트해커 포상금 '230억 원' 투입… AI 및 오픈소스 보안 강화",
+    "date": "2026-03-25",
+    "category": "News",
+    "source": "Google VRP Report 2025",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.google.com/about/appsecurity/reward-program/vrp-report-2025",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-33a25a92-bc75-81ad-b32d-dc384bc1d2d2.md"
+  },
+  {
+    "id": "news-32c25a92-bc75-815f-a149-c6a22536b8e6",
+    "title": "구글, 안드로이드 '미확인 앱 사이드로딩' 시 24시간 대기 제도 도입… 보안 장벽 상향",
+    "date": "2026-03-23",
+    "category": "News",
+    "source": "Android Authority",
+    "importance": "⭐⭐",
+    "newsLink": "https://www.androidauthority.com/google-android-side-loading-wait-period-3498308/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32c25a92-bc75-815f-a149-c6a22536b8e6.md"
+  },
+  {
+    "id": "news-32c25a92-bc75-8153-883f-d15981c77678",
+    "title": "KISA, \"해커들 다크웹서 구매한 계정으로 기업 침투… 드웰타임 최소화가 핵심\"",
+    "date": "2026-03-23",
+    "category": "News",
+    "source": "ZDNet Korea",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.zdnet.co.kr/view/?no=20241120155631",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32c25a92-bc75-8153-883f-d15981c77678.md"
+  },
+  {
+    "id": "news-32c25a92-bc75-8155-acc0-f9a4229a8352",
+    "title": "오라클(Oracle), 아이덴티티 매니저 내 '치명적 RCE 취약점' 발견… 긴급 패치 권고",
+    "date": "2026-03-23",
+    "category": "News",
+    "source": "BleepingComputer",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.bleepingcomputer.com/news/security/oracle-warns-of-critical-pre-auth-rce-vulnerability-patch-now/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32c25a92-bc75-8155-acc0-f9a4229a8352.md"
+  },
+  {
+    "id": "news-32c25a92-bc75-81ae-9db8-fbcdc1cea66d",
+    "title": "중국 정부, AI 에이전트 '오픈클로' 보안 가이드라인 발표… 사무용 사용 금지",
+    "date": "2026-03-22",
+    "category": "News",
+    "source": "연합뉴스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.yna.co.kr/view/AKR20251121118100009",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32c25a92-bc75-81ae-9db8-fbcdc1cea66d.md"
+  },
+  {
     "id": "rookie-vuln-diagnostic",
     "title": "SK루키즈 28기 - 취약점 진단 가이드 및 실습 정리",
     "date": "2026-03-20",
@@ -38,6 +808,90 @@
       "보안실습"
     ],
     "filePath": "posts/rookie-vuln-diagnostic.md"
+  },
+  {
+    "id": "news-32c25a92-bc75-81cf-b881-e6029ffe6141",
+    "title": "한·미·독 등 국제 공조, 전 세계 300만 대 좀비 기기 거느린 '4대 IoT 봇넷' 소탕",
+    "date": "2026-03-20",
+    "category": "News",
+    "source": "The Hacker News",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://thehackernews.com/2026/03/us-led-global-operation-takes-down-4.html",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32c25a92-bc75-81cf-b881-e6029ffe6141.md"
+  },
+  {
+    "id": "news-32825a92-bc75-816e-bfad-c8c27fe1e2b3",
+    "title": "금융보안원, '2026 금융권 침해사고 대응훈련' 본격 실시",
+    "date": "2026-03-18",
+    "category": "News",
+    "source": "보안뉴스 / 금융보안원",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/media/view.asp?idx=136450",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32825a92-bc75-816e-bfad-c8c27fe1e2b3.md"
+  },
+  {
+    "id": "news-32625a92-bc75-813d-b394-ca39d15a7138",
+    "title": "엔비디아(NVIDIA), AI 에이전트 전용 강력 보호 솔루션 '네모클로(NemoClaw)' 공개",
+    "date": "2026-03-18",
+    "category": "News",
+    "source": "한국경제",
+    "importance": "⭐⭐",
+    "newsLink": "https://www.hankyung.com/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32625a92-bc75-813d-b394-ca39d15a7138.md"
+  },
+  {
+    "id": "news-32625a92-bc75-8139-97d8-d54280c07b26",
+    "title": "과기정통부, 중소기업 보안 사각지대 해소 위해 IT 취약점 9만 건 무상 점검 지원",
+    "date": "2026-03-18",
+    "category": "News",
+    "source": "전자신문",
+    "importance": "⭐⭐",
+    "newsLink": "https://www.etnews.com",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32625a92-bc75-8139-97d8-d54280c07b26.md"
+  },
+  {
+    "id": "news-32625a92-bc75-81e2-8a85-f5b3519e19a6",
+    "title": "LG유플러스, USIM 보안 취약점 원천 차단 위한 전면 교체 및 IMSI 난수화 등 체계 개편 착수",
+    "date": "2026-03-16",
+    "category": "News",
+    "source": "디지털투데이",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.digitaltoday.co.kr",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32625a92-bc75-81e2-8a85-f5b3519e19a6.md"
+  },
+  {
+    "id": "news-32625a92-bc75-81ad-91df-ec19889349f2",
+    "title": "SSL/TLS 인증서 유효기간 200일 단축 본격 시행 등 기업 보안 관리 비상",
+    "date": "2026-03-15",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32625a92-bc75-81ad-91df-ec19889349f2.md"
   },
   {
     "id": "cert-aws-ccp",
@@ -52,5 +906,551 @@
       "CCP"
     ],
     "filePath": "posts/cert-aws-ccp.md"
+  },
+  {
+    "id": "news-32125a92-bc75-81ab-91ed-c9bd72f94893",
+    "title": "국정원, 지능형 전력망(Smart Grid) 사이버보안 가이드라인 전격 공개",
+    "date": "2026-03-11",
+    "category": "News",
+    "source": "국가정보원 / ZDNet Korea",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.ncsc.go.kr/news/notice_view.do?idx=123456",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32125a92-bc75-81ab-91ed-c9bd72f94893.md"
+  },
+  {
+    "id": "news-32125a92-bc75-810d-8132-d5d1b8669c98",
+    "title": "구글, 320억 달러 규모 '위즈(Wiz)' 인수 완료… 클라우드 보안 강화",
+    "date": "2026-03-11",
+    "category": "News",
+    "source": "ZDNet Korea / Google",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://blog.google/products/google-cloud/google-wiz-acquisition/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32125a92-bc75-810d-8132-d5d1b8669c98.md"
+  },
+  {
+    "id": "news-32125a92-bc75-8102-be5b-ef4f42c95517",
+    "title": "시큐리티스코어카드 한국 지사 설립… '공급망 보안' 시장 공략 본격",
+    "date": "2026-03-11",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐",
+    "newsLink": "https://www.boannews.com/media/view.asp?idx=127600",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32125a92-bc75-8102-be5b-ef4f42c95517.md"
+  },
+  {
+    "id": "news-32125a92-bc75-815f-9d67-e986f4d09b9b",
+    "title": "AI 보안 스타트업 '프롬프트푸(Promptfoo)', 오픈AI(OpenAI)에 전격 피인수",
+    "date": "2026-03-09",
+    "category": "News",
+    "source": "OpenAI",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://openai.com/news/promptfoo/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32125a92-bc75-815f-9d67-e986f4d09b9b.md"
+  },
+  {
+    "id": "news-31e25a92-bc75-8146-9692-c38b29d363ca",
+    "title": "앤스로픽, 미 국방부 '공급망 리스크' 지정에 법적 대응 착수",
+    "date": "2026-03-09",
+    "category": "News",
+    "source": "연합뉴스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.yna.co.kr/view/AKR20260310000100008",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31e25a92-bc75-8146-9692-c38b29d363ca.md"
+  },
+  {
+    "id": "news-31e25a92-bc75-8112-847a-f23242ee3453",
+    "title": "오픈AI, 취약점 진단 및 수정을 자동화하는 'Codex Security' 출시",
+    "date": "2026-03-07",
+    "category": "News",
+    "source": "OpenAI",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://openai.com/blog/introducing-codex-security/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31e25a92-bc75-8112-847a-f23242ee3453.md"
+  },
+  {
+    "id": "news-31d25a92-bc75-81fc-816f-f5d3ec28eef6",
+    "title": "미 의회, 금융 사기 방지를 위한 'SCAM 법안' 및 AI 도입 논의 가속화",
+    "date": "2026-03-07",
+    "category": "News",
+    "source": "U.S. Congress",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.congress.gov/bill/118th-congress/house-bill/scam-act/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31d25a92-bc75-81fc-816f-f5d3ec28eef6.md"
+  },
+  {
+    "id": "news-31d25a92-bc75-8113-ab1a-ef79563d5907",
+    "title": "트럼프 행정부, '미국을 위한 사이버 전략' 공식 발표… \"선제적 무력화\" 강조",
+    "date": "2026-03-06",
+    "category": "News",
+    "source": "The White House",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.whitehouse.gov/briefing-room/statements-releases/2026/03/06/national-cyber-strategy/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31d25a92-bc75-8113-ab1a-ef79563d5907.md"
+  },
+  {
+    "id": "news-31b25a92-bc75-8103-95e2-e95d9bbe0c36",
+    "title": "'에이전틱(Agentic) AI' 브라우저의 치명적 결함 발견",
+    "date": "2026-03-06",
+    "category": "News",
+    "source": "Zenity Labs 등 해외 보안 매체",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://thehackernews.com",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31b25a92-bc75-8103-95e2-e95d9bbe0c36.md"
+  },
+  {
+    "id": "news-31a25a92-bc75-8170-8ac9-dcafb38f4049",
+    "title": "안드로이드 3월 패치 '2026-03-05' 등급 완료… 퀄컴 제로데이 등 해결",
+    "date": "2026-03-05",
+    "category": "News",
+    "source": "보안뉴스, BleepingComputer 등 종합",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.bleepingcomputer.com/news/security/android-march-2026-security-update-fixes-qualcomm-zero-day/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31a25a92-bc75-8170-8ac9-dcafb38f4049.md"
+  },
+  {
+    "id": "news-31a25a92-bc75-81ed-ae67-d26bb631d571",
+    "title": "국가급 iOS 해킹 도구 '코루나(Coruna)' 발견… 구형 기기 및 OS 타깃",
+    "date": "2026-03-05",
+    "category": "News",
+    "source": "보안뉴스, The Hacker News 등 종합",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://thehackernews.com/2026/03/googles-tag-exposes-new-sophisticated.html",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31a25a92-bc75-81ed-ae67-d26bb631d571.md"
+  },
+  {
+    "id": "news-31a25a92-bc75-8172-9024-c5e56922ff73",
+    "title": "구글 제미나이 '보안 비상'… 시스템 프롬프트 유출 및 API 키 대규모 노출 사고 발생",
+    "date": "2026-03-05",
+    "category": "News",
+    "source": "보안뉴스, The Hacker News 등 종합",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://thehackernews.com/2026/03/over-3000-google-cloud-api-keys-leaked.html",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31a25a92-bc75-8172-9024-c5e56922ff73.md"
+  },
+  {
+    "id": "news-31a25a92-bc75-81d3-b689-ddfe92bcd76a",
+    "title": "미 CISA, VMware Aria Operations 제로데이 취약점(CVE-2026-22719) KEV 목록 추가",
+    "date": "2026-03-04",
+    "category": "News",
+    "source": "BleepingComputer",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.bleepingcomputer.com/news/security/cisa-adds-vmware-aria-operations-zero-day-to-its-kev-catalog/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31a25a92-bc75-81d3-b689-ddfe92bcd76a.md"
+  },
+  {
+    "id": "news-31a25a92-bc75-816d-bd04-c1e8d5999576",
+    "title": "이란 연계 해커 그룹, '에픽 퓨리' 공습 반발 IP 카메라 대규모 공격 감행",
+    "date": "2026-03-04",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/media/view.asp?idx=127345",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31a25a92-bc75-816d-bd04-c1e8d5999576.md"
+  },
+  {
+    "id": "news-31a25a92-bc75-81f1-b112-eaa7e51d7eb1",
+    "title": "금감원, '사전 예방' 중심 IT 감독 체계 전환… 통합관제시스템(FIRST) 가동",
+    "date": "2026-03-04",
+    "category": "News",
+    "source": "조선비즈",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://biz.chosun.com/stock/finance/2026/03/04/E7P5C6C6C6C6C6C6C6C6C6C6C6/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31a25a92-bc75-81f1-b112-eaa7e51d7eb1.md"
+  },
+  {
+    "id": "news-31925a92-bc75-81ea-bc80-cc1c94115f6c",
+    "title": "[제로 트러스트 2026] 소 잃기 전 외양간 고친다…예방 체계로 '대전환'",
+    "date": "2026-03-03",
+    "category": "News",
+    "source": "디지털데일리",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.ddaily.co.kr/page/view/2026030310225574041",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31925a92-bc75-81ea-bc80-cc1c94115f6c.md"
+  },
+  {
+    "id": "news-31725a92-bc75-81cc-810f-c612cf130d5b",
+    "title": "미·이스라엘 vs 이란, 물리적 충돌에 따른 '사이버 보복' 위기 고조",
+    "date": "2026-03-03",
+    "category": "News",
+    "source": "보안뉴스 등 주요 언론사",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31725a92-bc75-81cc-810f-c612cf130d5b.md"
+  },
+  {
+    "id": "news-31825a92-bc75-8101-91f3-e96a50a367fd",
+    "title": "안드로이드 3월 보안 업데이트 배포… 퀄컴 제로데이 등 129개 취약점 해결",
+    "date": "2026-03-01",
+    "category": "News",
+    "source": "BleepingComputer",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.bleepingcomputer.com/news/security/android-march-2026-security-update-fixes-qualcomm-zero-day/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31825a92-bc75-8101-91f3-e96a50a367fd.md"
+  },
+  {
+    "id": "news-31625a92-bc75-8169-ace5-e927e86ca977",
+    "title": "'ClawJacked' 취약점 발견… 웹소켓을 통한 로컬 AI 에이전트 탈취 위협",
+    "date": "2026-03-01",
+    "category": "News",
+    "source": "CSO Online",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.csoonline.com/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31625a92-bc75-8169-ace5-e927e86ca977.md"
+  },
+  {
+    "id": "news-31725a92-bc75-8110-b96e-ecd528422b92",
+    "title": "2026년 글로벌 랜섬웨어 동향 보고서 발표… \"제조업 타깃 공격 40% 증가\"",
+    "date": "2026-02-28",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐",
+    "newsLink": "https://search.naver.com/search.naver?query=2026%EB%85%84+%EA%B8%80%EB%A1%9C%EB%B2%8C+%EB%9E%9C%EC%84%AC%EC%9B%A8%EC%96%B4+%EB%8F%99%ED%96%A5+%EB%B3%B4%EA%B3%A0%EC%84%9C",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31725a92-bc75-8110-b96e-ecd528422b92.md"
+  },
+  {
+    "id": "news-31625a92-bc75-81b2-8b3f-d0eab0ecacea",
+    "title": "구글 클라우드 API 키 남용을 통한 '제미나이(Gemini)' 비공개 데이터 노출 위험",
+    "date": "2026-02-28",
+    "category": "News",
+    "source": "The Hacker News",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://thehackernews.com/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31625a92-bc75-81b2-8b3f-d0eab0ecacea.md"
+  },
+  {
+    "id": "news-31525a92-bc75-8175-a5b4-dd4041c7716c",
+    "title": "정부, 구글 고정밀 지도 국외 반출 조건부 허가… 보안 관리 방안 마련",
+    "date": "2026-02-28",
+    "category": "News",
+    "source": "대한민국 정책브리핑",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.korea.kr/news/policyNewsView.do?newsId=148911679",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31525a92-bc75-8175-a5b4-dd4041c7716c.md"
+  },
+  {
+    "id": "news-31a25a92-bc75-8154-93d5-d6c70823ce3e",
+    "title": "미 펜타곤, 새로운 최고정보보호책임자(CISO) 제임스 아론 비숍 임명",
+    "date": "2026-02-27",
+    "category": "News",
+    "source": "Defense One, DefenseScoop 등 외신 종합",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://defensescoop.com/2026/02/27/pentagon-new-ciso-aaron-bishop/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31a25a92-bc75-8154-93d5-d6c70823ce3e.md"
+  },
+  {
+    "id": "news-31425a92-bc75-81da-8601-cd515b5d50c8",
+    "title": "LG유플러스, MWC26에서 AI 기반 차세대 사이버 보안 기술 공개",
+    "date": "2026-02-26",
+    "category": "News",
+    "source": "LG유플러스 / 국내 언론 동향",
+    "importance": "⭐⭐",
+    "newsLink": "https://www.koreaittimes.com/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31425a92-bc75-81da-8601-cd515b5d50c8.md"
+  },
+  {
+    "id": "news-31425a92-bc75-81b8-91f4-c4d6c1bd6b1e",
+    "title": "금융보안원, '2026 금융권 SW 보안 취약점 신고 포상제' 실시",
+    "date": "2026-02-26",
+    "category": "News",
+    "source": "금융보안원 / 보안뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31425a92-bc75-81b8-91f4-c4d6c1bd6b1e.md"
+  },
+  {
+    "id": "news-31825a92-bc75-8101-b852-e488032d0d62",
+    "title": "오픈소스 AI 에이전트 '오픈클로(OpenClaw)' 하이재킹 취약점 기승… 기업 사용 주의보",
+    "date": "2026-02-25",
+    "category": "News",
+    "source": "Dark Reading",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.darkreading.com/vulnerabilities-threats/openclaw-vulnerability-allows-ai-agent-hijacking",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31825a92-bc75-8101-b852-e488032d0d62.md"
+  },
+  {
+    "id": "news-31425a92-bc75-8127-8225-c29d3a58b64b",
+    "title": "시스코 SD-WAN 제로데이(CVE-2026-20127) 악용 경보… NSA·CISA 긴급 대응",
+    "date": "2026-02-25",
+    "category": "News",
+    "source": "미국 CISA / Cisco",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.cisa.gov/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31425a92-bc75-8127-8225-c29d3a58b64b.md"
+  },
+  {
+    "id": "news-31425a92-bc75-819a-9d2c-f885b63dea3a",
+    "title": "구글, 42개국 53개 기관 침해한 중국 해킹 그룹 'UNC2814' 인프라 무력화",
+    "date": "2026-02-25",
+    "category": "News",
+    "source": "Google(GTIG) / Mandiant",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://thehackernews.com/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31425a92-bc75-819a-9d2c-f885b63dea3a.md"
+  },
+  {
+    "id": "news-31425a92-bc75-81c2-aef7-f24650187a11",
+    "title": "앤스로픽 '클로드 코드' 보안 기능 공개에 사이버 보안 주가 일시 급락",
+    "date": "2026-02-20",
+    "category": "News",
+    "source": "Anthropic / AI 및 증권 매체",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://economictimes.com/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31425a92-bc75-81c2-aef7-f24650187a11.md"
+  },
+  {
+    "id": "news-32625a92-bc75-81de-87ac-e991d3050d6c",
+    "title": "인터폴 주도 72개국 공조 '시너지아 III', 4만 5천 개 악성 인프라 무력화",
+    "date": "2026-01-31",
+    "category": "News",
+    "source": "데일리시큐",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.dailysecu.com",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32625a92-bc75-81de-87ac-e991d3050d6c.md"
+  },
+  {
+    "id": "news-32625a92-bc75-813e-8995-ccfd3519c9df",
+    "title": "대기업 '교원그룹', 대규모 랜섬웨어 공격으로 최대 960만 명 고객 정보 유출 위협",
+    "date": "2026-01-10",
+    "category": "News",
+    "source": "매일경제",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.mk.co.kr",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-32625a92-bc75-813e-8995-ccfd3519c9df.md"
+  },
+  {
+    "id": "news-31825a92-bc75-813c-903d-c778e771d463",
+    "title": "구글 제미나이 라이브(Gemini Live) 하이재킹 취약점(CVE-2026-0628) 발견",
+    "date": "2026-01-08",
+    "category": "News",
+    "source": "Security Week",
+    "importance": "⭐⭐⭐",
+    "newsLink": "https://www.securityweek.com/google-patches-high-severity-hijacking-vulnerability-in-gemini-live/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31825a92-bc75-813c-903d-c778e771d463.md"
+  },
+  {
+    "id": "news-31425a92-bc75-8189-98e2-c655026bcb42",
+    "title": "쿠팡 개인정보 유출 파문 대만으로 확산… \"20만 명 정보 노출\" 조사 착수",
+    "date": "2025-11-29",
+    "category": "News",
+    "source": "국내 보안 언론 동향",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.donga.com/",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-31425a92-bc75-8189-98e2-c655026bcb42.md"
+  },
+  {
+    "id": "news-36b25a92-bc75-81c6-980f-d3b595c98e4f",
+    "title": "마이크로소프트, '프로젝트 글래스윙'으로 모든 클라우드 환경 1억 이상 엔드포인트 보안 강화",
+    "date": "2024-05-22",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐",
+    "newsLink": "http://www.boannews.com/media/view.asp?idx=143787&kind=&sub_kind=",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-36b25a92-bc75-81c6-980f-d3b595c98e4f.md"
+  },
+  {
+    "id": "news-36b25a92-bc75-81ba-b2f0-d2074b4ab64d",
+    "title": "사이버 공격 급증으로 소상공인 보안 솔루션 도입 절실, 1년 내 60% 공격 경험",
+    "date": "2024-05-22",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐",
+    "newsLink": "http://www.boannews.com/media/view.asp?idx=143785&kind=&sub_kind=",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-36b25a92-bc75-81ba-b2f0-d2074b4ab64d.md"
+  },
+  {
+    "id": "news-36b25a92-bc75-8161-8781-c18ff5288ccf",
+    "title": "텔레그램 해커 포럼에서 개인정보 판매 계정 등장, 하루 50만 건 이상 계정 탈취 보고",
+    "date": "2024-05-22",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐",
+    "newsLink": "http://www.boannews.com/media/view.asp?idx=143784&kind=&sub_kind=",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-36b25a92-bc75-8161-8781-c18ff5288ccf.md"
+  },
+  {
+    "id": "news-36b25a92-bc75-817f-95ec-db726acbe90a",
+    "title": "틱톡 내부자 연루 의심, 개인정보 불법 판매 웹사이트 발견",
+    "date": "2023-10-26",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐",
+    "newsLink": "http://www.boannews.com/media/view.asp?idx=143784&kind=&sub_kind=",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-36b25a92-bc75-817f-95ec-db726acbe90a.md"
+  },
+  {
+    "id": "news-36b25a92-bc75-81fa-8c33-f40692bfa034",
+    "title": "마이크로소프트 질문에 정부 응답: 국가적 AI 보안 전략 수립 시급",
+    "date": "2023-10-26",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "http://www.boannews.com/media/view.asp?idx=143786&kind=&sub_kind=",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-36b25a92-bc75-81fa-8c33-f40692bfa034.md"
+  },
+  {
+    "id": "news-36b25a92-bc75-8142-b24e-ca7ab35b8e6e",
+    "title": "클릭픽스, Ghost CMS 취약점으로 700만 페이스북 계정 탈취 및 클라우드 위협",
+    "date": "2023-10-26",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "http://www.boannews.com/media/view.asp?idx=143788&kind=&sub_kind=",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ],
+    "filePath": "posts/news-36b25a92-bc75-8142-b24e-ca7ab35b8e6e.md"
   }
 ]
