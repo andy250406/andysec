@@ -15,6 +15,15 @@
   <link rel="stylesheet" href="./style.css">
 </head>
 <body class="dark-theme">
+  <!-- Global Deploying Overlay -->
+  <div id="deploy-overlay" class="deploy-overlay" style="display: none;">
+    <div class="deploy-spinner-box">
+      <i class="fa-solid fa-cloud-arrow-up fa-bounce"></i>
+      <h3 id="deploy-overlay-title">깃허브 업로드 중...</h3>
+      <p id="deploy-overlay-desc">파일을 커밋하고 저장소에 밀어넣고 있습니다. 잠시만 기다려주세요.</p>
+    </div>
+  </div>
+
   <div class="app-container">
     
     <!-- Sidebar / Profile Panel -->
@@ -63,9 +72,17 @@
         </button>
       </nav>
 
+      <!-- Sidebar Settings Button -->
+      <div class="sidebar-settings-wrapper">
+        <button class="settings-btn" id="btn-open-settings" title="깃허브 동기화 설정">
+          <i class="fa-solid fa-gear"></i> <span>깃허브 동기화 설정</span>
+          <span class="sync-status-indicator offline" id="sync-indicator">오프라인</span>
+        </button>
+      </div>
+
       <div class="sidebar-footer">
         <p>&copy; 2026 andysec</p>
-        <span class="version">v1.0.0 (Static)</span>
+        <span class="version">v1.1.0 (Cloud Sync)</span>
       </div>
     </aside>
     
@@ -455,7 +472,7 @@
     
   </div>
 
-  <!-- ADD/EDIT PROJECT MODAL -->
+  <!-- ADD/EDIT PROJECT MODAL (Smaller size, normal popup) -->
   <div class="modal" id="add-project-modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -494,68 +511,183 @@
     </div>
   </div>
 
-  <!-- ADD/EDIT PROJECT NOTE MODAL -->
+  <!-- ADD/EDIT PROJECT NOTE MODAL (Wide split editor with Markdown help) -->
   <div class="modal" id="add-note-modal">
-    <div class="modal-content">
+    <div class="modal-content modal-lg">
       <div class="modal-header">
         <h3 id="note-modal-title"><i class="fa-solid fa-pen-to-square"></i> 새 기록 작성</h3>
         <button class="close-btn" id="btn-close-note-modal">&times;</button>
       </div>
-      <form id="add-note-form">
-        <input type="hidden" id="note-edit-id">
-        <div class="form-group">
-          <label for="note-title">제목 *</label>
-          <input type="text" id="note-title" required placeholder="기록할 제목 입력">
+      <div class="editor-split-container">
+        <!-- Left: Form -->
+        <form id="add-note-form" class="editor-main-form">
+          <input type="hidden" id="note-edit-id">
+          <div class="form-group">
+            <label for="note-title">제목 *</label>
+            <input type="text" id="note-title" required placeholder="기록할 제목 입력">
+          </div>
+          <div class="form-group">
+            <label for="note-content">내용 (Markdown 지원) *</label>
+            <textarea id="note-content" rows="12" required placeholder="내용을 기록해 보세요. 마크다운 형식을 지원합니다."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-note">취소</button>
+            <button type="submit" class="btn-primary" id="btn-submit-note">기록 추가</button>
+          </div>
+        </form>
+        
+        <!-- Right: Markdown Syntax Cheat Sheet -->
+        <div class="markdown-cheat-sheet">
+          <h4><i class="fa-brands fa-markdown"></i> 마크다운 작성 가이드</h4>
+          <div class="cheat-sheet-content">
+            <div class="cheat-item">
+              <span class="cheat-label">제목</span>
+              <code># 제목 1</code> <code>## 제목 2</code> <code>### 제목 3</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">강조</span>
+              <code>**굵게**</code> <code>*기울임*</code> <code>~~취소선~~</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">목록</span>
+              <code>- 글머리 기호</code> <code>1. 순서 있는 목록</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">링크 & 이미지</span>
+              <code>[링크이름](URL)</code> <code>![대체텍스트](이미지URL)</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">인용 & 구분선</span>
+              <code>&gt; 인용문 작성</code> <code>--- (가로 구분선)</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">코드블록</span>
+              <code>`인라인코드`</code>
+              <pre><code>```python
+print("Hello Security")
+```</code></pre>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">테이블(표)</span>
+              <pre><code>| 제목1 | 제목2 |
+|---|---|
+| 내용1 | 내용2 |</code></pre>
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="note-content">내용 (Markdown 작성 가능) *</label>
-          <textarea id="note-content" rows="10" required placeholder="내용을 기록해 보세요. 마크다운 형식도 지원합니다."></textarea>
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn-secondary" id="btn-cancel-note">취소</button>
-          <button type="submit" class="btn-primary" id="btn-submit-note">기록 추가</button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 
-  <!-- ADD/EDIT STUDY NOTE MODAL -->
+  <!-- ADD/EDIT STUDY NOTE MODAL (Wide split editor with Markdown help) -->
   <div class="modal" id="add-study-modal">
-    <div class="modal-content">
+    <div class="modal-content modal-lg">
       <div class="modal-header">
         <h3 id="study-modal-title"><i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성</h3>
         <button class="close-btn" id="btn-close-study-modal">&times;</button>
       </div>
-      <form id="add-study-form">
-        <input type="hidden" id="study-edit-id">
-        <div class="form-group">
-          <label for="study-title">제목 *</label>
-          <input type="text" id="study-title" required placeholder="글 제목 입력">
-        </div>
-        <div class="form-row">
+      <div class="editor-split-container">
+        <!-- Left: Form -->
+        <form id="add-study-form" class="editor-main-form">
+          <input type="hidden" id="study-edit-id">
           <div class="form-group">
-            <label for="study-category">분류 *</label>
-            <select id="study-category" required class="custom-select" style="width:100%; height:38px;">
-              <option value="Cert">자격증 공부</option>
-              <option value="CertAnalysis">보안인증 분석</option>
-            </select>
+            <label for="study-title">제목 *</label>
+            <input type="text" id="study-title" required placeholder="글 제목 입력">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="study-category">분류 *</label>
+              <select id="study-category" required class="custom-select" style="width:100%; height:38px;">
+                <option value="Cert">자격증 공부</option>
+                <option value="CertAnalysis">보안인증 분석</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="study-type">유형 *</label>
+              <input type="text" id="study-type" required placeholder="예: CPPG, ISMS-P">
+            </div>
           </div>
           <div class="form-group">
-            <label for="study-type">유형 *</label>
-            <input type="text" id="study-type" required placeholder="예: CPPG, ISMS-P">
+            <label for="study-tags">태그 (쉼표로 구분) *</label>
+            <input type="text" id="study-tags" required placeholder="예: 개인정보, 자격증, 법률">
+          </div>
+          <div class="form-group">
+            <label for="study-content">내용 (Markdown 지원) *</label>
+            <textarea id="study-content" rows="10" required placeholder="공부한 핵심 요약을 마크다운을 곁들여 작성해 보세요."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-study">취소</button>
+            <button type="submit" class="btn-primary" id="btn-submit-study">등록하기</button>
+          </div>
+        </form>
+        
+        <!-- Right: Markdown Cheat Sheet -->
+        <div class="markdown-cheat-sheet">
+          <h4><i class="fa-brands fa-markdown"></i> 마크다운 작성 가이드</h4>
+          <div class="cheat-sheet-content">
+            <div class="cheat-item">
+              <span class="cheat-label">제목</span>
+              <code># 제목 1</code> <code>## 제목 2</code> <code>### 제목 3</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">강조</span>
+              <code>**굵게**</code> <code>*기울임*</code> <code>~~취소선~~</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">목록</span>
+              <code>- 글머리 기호</code> <code>1. 순서 있는 목록</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">링크 & 이미지</span>
+              <code>[링크이름](URL)</code> <code>![대체텍스트](이미지URL)</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">인용 & 구분선</span>
+              <code>&gt; 인용문 작성</code> <code>--- (가로 구분선)</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">코드블록</span>
+              <code>`인라인코드`</code>
+              <pre><code>```python
+print("Hello Security")
+```</code></pre>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">테이블(표)</span>
+              <pre><code>| 제목1 | 제목2 |
+|---|---|
+| 내용1 | 내용2 |</code></pre>
+            </div>
           </div>
         </div>
-        <div class="form-group">
-          <label for="study-tags">태그 (쉼표로 구분) *</label>
-          <input type="text" id="study-tags" required placeholder="예: 개인정보, 자격증, 법률">
+      </div>
+    </div>
+  </div>
+
+  <!-- CLOUD SYNC CONFIG SETTINGS MODAL -->
+  <div class="modal" id="settings-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-gear"></i> 깃허브 동기화 설정</h3>
+        <button class="close-btn" id="btn-close-settings-modal">&times;</button>
+      </div>
+      <form id="settings-form">
+        <div class="form-group" style="flex-direction:row; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+          <label for="sync-toggle" style="cursor:pointer; font-weight:600; color:var(--text-highlight);">
+            <i class="fa-solid fa-cloud-arrow-up"></i> 깃허브 실시간 동기화 활성화
+          </label>
+          <input type="checkbox" id="sync-toggle" style="width:20px; height:20px; cursor:pointer;">
         </div>
-        <div class="form-group">
-          <label for="study-content">내용 (Markdown 작성 가능) *</label>
-          <textarea id="study-content" rows="8" required placeholder="공부한 핵심 요약을 마크다운을 곁들여 작성해 보세요."></textarea>
+        <div class="form-group" id="pat-input-wrapper">
+          <label for="github-pat">GitHub Personal Access Token (PAT) *</label>
+          <input type="password" id="github-pat" placeholder="ghp_************************************">
+          <p class="form-help-text" style="font-size:0.75rem; color:var(--text-muted); margin-top:5px; line-height:1.4;">
+            저장소(repo) 권한이 있는 토큰이 필요합니다. 토큰은 오직 본인 브라우저(LocalStorage)에만 안전하게 보관됩니다.
+          </p>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn-secondary" id="btn-cancel-study">취소</button>
-          <button type="submit" class="btn-primary" id="btn-submit-study">등록하기</button>
+          <button type="button" class="btn-secondary" id="btn-cancel-settings">취소</button>
+          <button type="submit" class="btn-primary">설정 저장</button>
         </div>
       </form>
     </div>

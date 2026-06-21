@@ -3,6 +3,8 @@ import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
 
 // Constants
 const TODAY = new Date('2026-06-21'); // Simulated today's date
+const REPO_OWNER = 'andy250406';
+const REPO_NAME = 'andysec';
 
 // State Store
 let appState = {
@@ -13,9 +15,11 @@ let appState = {
   searchQuery: '',
   studyFilter: 'all',
   newsFilter: 'all',
-  activePostId: null,      // ID of post currently viewed in detail (posts or projectNotes)
+  activePostId: null,      // ID of post currently viewed in detail
   activePostType: null,    // 'general' or 'projectNote'
-  activeProjectId: null    // ID of project currently viewed in details
+  activeProjectId: null,   // ID of project currently viewed in details
+  syncEnabled: false,
+  githubPat: ''
 };
 
 // DOM Elements
@@ -51,10 +55,18 @@ const elements = {
   btnEditProject: document.getElementById('btn-edit-project-details'),
   btnDeleteProject: document.getElementById('btn-delete-project-details'),
   
+  // Settings Button / Info
+  btnOpenSettings: document.getElementById('btn-open-settings'),
+  syncIndicator: document.getElementById('sync-indicator'),
+  deployOverlay: document.getElementById('deploy-overlay'),
+  deployOverlayTitle: document.getElementById('deploy-overlay-title'),
+  deployOverlayDesc: document.getElementById('deploy-overlay-desc'),
+  
   // Modals
   addProjectModal: document.getElementById('add-project-modal'),
   addNoteModal: document.getElementById('add-note-modal'),
   addStudyModal: document.getElementById('add-study-modal'),
+  settingsModal: document.getElementById('settings-modal'),
   
   // Modal Titles & Hidden inputs
   projectModalTitle: document.getElementById('project-modal-title'),
@@ -73,6 +85,7 @@ const elements = {
   addProjectForm: document.getElementById('add-project-form'),
   addNoteForm: document.getElementById('add-note-form'),
   addStudyForm: document.getElementById('add-study-form'),
+  settingsForm: document.getElementById('settings-form'),
   
   // Buttons
   btnOpenAddProject: document.getElementById('btn-open-add-project-modal'),
@@ -84,6 +97,8 @@ const elements = {
   btnCancelNote: document.getElementById('btn-cancel-note'),
   btnCloseStudyModal: document.getElementById('btn-close-study-modal'),
   btnCancelStudy: document.getElementById('btn-cancel-study'),
+  btnCloseSettingsModal: document.getElementById('btn-close-settings-modal'),
+  btnCancelSettings: document.getElementById('btn-cancel-settings'),
   
   // News Tab
   fullNewsTable: document.getElementById('full-news-table'),
@@ -109,6 +124,7 @@ const elements = {
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
   initTheme();
+  loadSyncSettings();
   loadData();
   setupEventListeners();
   initRouter();
@@ -155,12 +171,30 @@ function toggleTheme() {
   }
 }
 
+// Load Sync Settings from LocalStorage
+function loadSyncSettings() {
+  appState.syncEnabled = localStorage.getItem('github_sync_enabled') === 'true';
+  appState.githubPat = localStorage.getItem('github_pat') || '';
+  
+  updateSyncIndicator();
+}
+
+function updateSyncIndicator() {
+  if (!elements.syncIndicator) return;
+  if (appState.syncEnabled && appState.githubPat) {
+    elements.syncIndicator.textContent = '동기화 중';
+    elements.syncIndicator.className = 'sync-status-indicator online';
+  } else {
+    elements.syncIndicator.textContent = '오프라인';
+    elements.syncIndicator.className = 'sync-status-indicator offline';
+  }
+}
+
 // Router using Hash
 function initRouter() {
   const handleRouting = () => {
     const hash = window.location.hash;
     
-    // Reset view visibility
     elements.articlePane.style.display = 'none';
     
     if (hash.startsWith('#/post/')) {
@@ -179,14 +213,13 @@ function initRouter() {
   };
   
   window.addEventListener('hashchange', handleRouting);
-  // Trigger initially
   handleRouting();
 }
 
 // Load All Data (JSON + LocalStorage)
 async function loadData() {
   try {
-    // 1. Load posts (Study notes & News) from LocalStorage or fallback to JSON
+    // 1. Load posts (Study notes & News)
     const savedPosts = localStorage.getItem('posts');
     if (savedPosts) {
       appState.posts = JSON.parse(savedPosts);
@@ -195,12 +228,9 @@ async function loadData() {
       if (!response.ok) throw new Error('Failed to load posts index');
       const allPosts = await response.json();
       
-      // Filter out 'Project' categories, keep Cert, CertAnalysis, News
       const postsToStore = allPosts.filter(p => p.category !== 'Project');
       
-      // Seed details from files if possible, or we save content directly.
-      // To make them editable, we load the content from markdown files now and store them directly in the post object!
-      // This is a brilliant strategy for a fully editable local experience.
+      // Load markdown contents to make them editable locally
       for (let post of postsToStore) {
         try {
           const res = await fetch(`./public/${post.filePath}`);
@@ -208,7 +238,7 @@ async function loadData() {
             post.content = await res.text();
           }
         } catch (e) {
-          post.content = `# ${post.title}\n내용이 아직 등록되지 않았습니다.`;
+          post.content = `# ${post.title}\n\n내용을 등록해 보세요.`;
         }
       }
       
@@ -218,11 +248,27 @@ async function loadData() {
     
     appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
     
-    // 2. Initialize projects from localStorage or seed defaults
+    // 2. Initialize projects
     initProjects();
     
-    // 3. Load project internal notes
-    appState.projectNotes = JSON.parse(localStorage.getItem('projectNotes')) || [];
+    // 3. Load project internal notes from localStorage or fetch seeded JSON if exists
+    const savedNotes = localStorage.getItem('projectNotes');
+    if (savedNotes) {
+      appState.projectNotes = JSON.parse(savedNotes);
+    } else {
+      // Try to load projectNotes.json, fallback to empty array
+      try {
+        const res = await fetch('./public/posts/projectNotes.json');
+        if (res.ok) {
+          appState.projectNotes = await res.json();
+        } else {
+          appState.projectNotes = [];
+        }
+      } catch (e) {
+        appState.projectNotes = [];
+      }
+      localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
+    }
     
     renderAll();
   } catch (error) {
@@ -237,6 +283,7 @@ function initProjects() {
   if (savedProjects) {
     appState.projects = JSON.parse(savedProjects);
   } else {
+    // If not in localStorage, fetch from public/posts/projects.json if available
     const seeded = [
       {
         id: 'project-cons-audit',
@@ -272,28 +319,8 @@ function initProjects() {
       }
     ];
     
-    // Check if posts.json contains content for them
-    // Let's seed pre-existing project notes inside localStorage projectNotes
-    const seededNotes = [
-      {
-        id: 'note-seeded-1',
-        projectId: 'project-cons-audit',
-        title: '수탁사 점검 체크리스트 수립 일지',
-        content: '수탁사 개인정보 처리 현황 점검을 위한 체크리스트 설계 완료. 위수탁계약서 상의 필수 조항(법 제26조) 이행 여부 점검 예정.',
-        date: '2026-03-10'
-      },
-      {
-        id: 'note-seeded-2',
-        projectId: 'project-web-vuln',
-        title: 'Flask 연동 진단 엔진 모듈 설계 자료',
-        content: '웹 스캐너 백엔드 설계를 위한 Flask API 연동 규격 설계. REST API 형태로 스캔 상태값 리턴 구성.',
-        date: '2026-01-15'
-      }
-    ];
-    
     appState.projects = seeded;
     localStorage.setItem('projects', JSON.stringify(seeded));
-    localStorage.setItem('projectNotes', JSON.stringify(seededNotes));
   }
 }
 
@@ -323,12 +350,10 @@ function switchTab(tabId) {
   appState.activePostType = null;
   appState.activeProjectId = null;
   
-  // Hide details and modals
   elements.articlePane.style.display = 'none';
   elements.projectDetailView.style.display = 'none';
   elements.projectsListView.style.display = 'block';
   
-  // Update UI navigation active state
   elements.navBtns.forEach(btn => {
     if (btn.getAttribute('data-tab') === tabId) {
       btn.classList.add('active');
@@ -337,7 +362,6 @@ function switchTab(tabId) {
     }
   });
 
-  // Toggle Tab content panes
   elements.tabPanes.forEach(pane => {
     if (pane.id === `tab-${tabId}`) {
       pane.classList.add('active');
@@ -414,7 +438,7 @@ function renderActiveProject() {
   });
 }
 
-// Render Dashboard (Recent Study list + Sidebar News list)
+// Render Dashboard
 function renderDashboard() {
   const studyPosts = appState.posts.filter(p => p.category !== 'News' && matchSearch(p));
   elements.recentStudyList.innerHTML = '';
@@ -490,7 +514,7 @@ function renderStudyNotes() {
       <div class="post-card-body">
         <h4 class="post-card-title">${post.title}</h4>
         <div class="badge-group">
-          ${post.tags.map(t => `<span class="badge">#${t}</span>`).join('')}
+          ${post.tags ? post.tags.map(t => `<span class="badge">#${t}</span>`).join('') : ''}
         </div>
       </div>
       <div class="post-card-footer">
@@ -505,7 +529,7 @@ function renderStudyNotes() {
   });
 }
 
-// Render Projects Schedule List on Projects Tab
+// Render Projects Tab Table
 function renderProjectsList() {
   if (!elements.projectsTableBody) return;
   elements.projectsTableBody.innerHTML = '';
@@ -546,7 +570,7 @@ function renderProjectsList() {
   });
 }
 
-// Show Project Detail View & Load Internal Board
+// Show Project Detail View
 function showProjectDetail(projectId) {
   const project = appState.projects.find(p => p.id === projectId);
   if (!project) {
@@ -557,13 +581,11 @@ function showProjectDetail(projectId) {
   
   appState.activeProjectId = projectId;
   
-  // Show/Hide divs
   elements.projectsListView.style.display = 'none';
   elements.projectDetailView.style.display = 'block';
   elements.tabPanes.forEach(pane => pane.classList.remove('active'));
   document.getElementById('tab-projects').classList.add('active');
   
-  // Populate Metadata
   elements.detailProjectName.textContent = project.name;
   elements.detailProjectClient.textContent = project.client;
   elements.detailProjectDesc.textContent = project.details;
@@ -574,7 +596,6 @@ function showProjectDetail(projectId) {
   elements.detailProjectPercent.textContent = `${progressPercent}%`;
   elements.detailProjectProgressBar.style.width = `${progressPercent}%`;
   
-  // Render project specific notes
   renderProjectNotes(projectId);
 }
 
@@ -607,7 +628,7 @@ function renderProjectNotes(projectId) {
   });
 }
 
-// Show Local Note Detail in the Article Pane
+// Show Local Note Detail
 function showLocalNoteDetail(note) {
   appState.activePostId = note.id;
   appState.activePostType = 'projectNote';
@@ -622,11 +643,10 @@ function showLocalNoteDetail(note) {
   elements.articleType.style.display = 'none';
   elements.articleTags.innerHTML = '';
   
-  // Parse content using marked
   elements.articleContent.innerHTML = marked.parse(note.content);
 }
 
-// Show Post Detail View from posts
+// Show Post Detail View
 function showArticleDetail(postId) {
   const post = appState.posts.find(p => p.id === postId);
   if (!post) {
@@ -711,6 +731,78 @@ function matchSearch(post) {
   return title.includes(q) || tagMatch || typeMatch;
 }
 
+// Unicode-Safe Base64 encoding
+function utf8ToBase64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+// GitHub REST API Commit Helper
+async function commitToGitHub(filePath, fileContent, commitMessage) {
+  if (!appState.syncEnabled || !appState.githubPat) {
+    return true; // Sync disabled, treat as local-only success
+  }
+  
+  showLoader('깃허브 연동 중...', '저장소 파일 정보를 동기화하고 있습니다.');
+  
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`;
+  const headers = {
+    'Authorization': `token ${appState.githubPat}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json'
+  };
+  
+  try {
+    // 1. Get current file SHA (if it exists)
+    let sha = null;
+    const getRes = await fetch(url, { headers });
+    if (getRes.status === 200) {
+      const getJson = await getRes.json();
+      sha = getJson.sha;
+    }
+    
+    // 2. Commit file
+    const body = {
+      message: commitMessage,
+      content: utf8ToBase64(fileContent)
+    };
+    if (sha) {
+      body.sha = sha;
+    }
+    
+    const putRes = await fetch(url, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body)
+    });
+    
+    if (!putRes.ok) {
+      const errJson = await putRes.json();
+      throw new Error(errJson.message || 'PUT request failed');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('GitHub API error:', error);
+    alert(`깃허브 동기화 실패: ${error.message}\n(로컬 저장소에는 기록되었으나 클라우드 배포는 지연됩니다.)`);
+    return false;
+  } finally {
+    hideLoader();
+  }
+}
+
+// Spinner Helper
+function showLoader(title, desc) {
+  if (!elements.deployOverlay) return;
+  elements.deployOverlayTitle.textContent = title;
+  elements.deployOverlayDesc.textContent = desc;
+  elements.deployOverlay.style.display = 'flex';
+}
+function hideLoader() {
+  if (elements.deployOverlay) {
+    elements.deployOverlay.style.display = 'none';
+  }
+}
+
 // Event Listeners Setup
 function setupEventListeners() {
   // Navigation tabs
@@ -735,7 +827,7 @@ function setupEventListeners() {
     }
   });
   
-  // Theme Toggle Click
+  // Theme Toggle
   elements.themeToggle.addEventListener('click', toggleTheme);
   
   // Global Search input
@@ -768,9 +860,38 @@ function setupEventListeners() {
     });
   });
   
-  // Modals visibility handlers
+  // Settings Modal Handlers
+  elements.btnOpenSettings.addEventListener('click', () => {
+    document.getElementById('sync-toggle').checked = appState.syncEnabled;
+    document.getElementById('github-pat').value = appState.githubPat;
+    elements.settingsModal.style.display = 'flex';
+  });
+  elements.btnCloseSettingsModal.addEventListener('click', () => {
+    elements.settingsModal.style.display = 'none';
+  });
+  elements.btnCancelSettings.addEventListener('click', () => {
+    elements.settingsModal.style.display = 'none';
+  });
   
-  // Project Modal
+  // Save Settings Form
+  elements.settingsForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const enabled = document.getElementById('sync-toggle').checked;
+    const pat = document.getElementById('github-pat').value.trim();
+    
+    appState.syncEnabled = enabled;
+    appState.githubPat = pat;
+    
+    localStorage.setItem('github_sync_enabled', enabled);
+    localStorage.setItem('github_pat', pat);
+    
+    updateSyncIndicator();
+    elements.settingsModal.style.display = 'none';
+    
+    alert('깃허브 동기화 설정이 저장되었습니다!');
+  });
+  
+  // Project Modal Handlers
   elements.btnOpenAddProject.addEventListener('click', () => {
     elements.projectModalTitle.innerHTML = '<i class="fa-solid fa-diagram-project"></i> 새로운 프로젝트 등록';
     elements.projectEditId.value = '';
@@ -801,12 +922,20 @@ function setupEventListeners() {
     elements.addProjectModal.style.display = 'flex';
   });
   
-  elements.btnDeleteProject.addEventListener('click', () => {
+  elements.btnDeleteProject.addEventListener('click', async () => {
     if (confirm('정말로 이 프로젝트를 삭제하시겠습니까?\n프로젝트 내의 게시판 글도 함께 삭제됩니다.')) {
       appState.projects = appState.projects.filter(p => p.id !== appState.activeProjectId);
       appState.projectNotes = appState.projectNotes.filter(n => n.projectId !== appState.activeProjectId);
+      
       localStorage.setItem('projects', JSON.stringify(appState.projects));
       localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
+      
+      // Sync list state to GitHub
+      if (appState.syncEnabled) {
+        await commitToGitHub('public/posts/projects.json', JSON.stringify(appState.projects, null, 2), 'chore: delete project metadata via web CMS');
+        await commitToGitHub('public/posts/projectNotes.json', JSON.stringify(appState.projectNotes, null, 2), 'chore: clean up project notes via web CMS');
+      }
+      
       window.location.hash = '#/tab/projects';
     }
   });
@@ -874,22 +1003,43 @@ function setupEventListeners() {
     }
   });
   
-  elements.btnDeleteArticle.addEventListener('click', () => {
+  elements.btnDeleteArticle.addEventListener('click', async () => {
     if (!confirm('정말로 이 글을 삭제하시겠습니까?')) return;
     
     if (appState.activePostType === 'projectNote') {
       appState.projectNotes = appState.projectNotes.filter(n => n.id !== appState.activePostId);
       localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
+      
+      if (appState.syncEnabled) {
+        await commitToGitHub('public/posts/projectNotes.json', JSON.stringify(appState.projectNotes, null, 2), 'chore: delete project note via web CMS');
+      }
+      
       window.location.hash = `#/project/${appState.activeProjectId}`;
     } else {
+      const postToDelete = appState.posts.find(p => p.id === appState.activePostId);
       appState.posts = appState.posts.filter(p => p.id !== appState.activePostId);
       localStorage.setItem('posts', JSON.stringify(appState.posts));
+      
+      if (appState.syncEnabled && postToDelete) {
+        // Build posts.json formatted without content field (to keep index clean)
+        const cleanPosts = appState.posts.map(p => {
+          const { content, ...rest } = p;
+          return {
+            ...rest,
+            filePath: p.filePath || `posts/${p.id}.md`
+          };
+        });
+        
+        await commitToGitHub('public/posts/posts.json', JSON.stringify(cleanPosts, null, 2), 'chore: remove study note from index via web CMS');
+        // Delete file is not directly needed, but we clean references
+      }
+      
       window.location.hash = '#/tab/study';
     }
   });
   
   // Form Submit: Add/Edit Project
-  elements.addProjectForm.addEventListener('submit', (e) => {
+  elements.addProjectForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const editId = elements.projectEditId.value;
     
@@ -901,34 +1051,36 @@ function setupEventListeners() {
       details: document.getElementById('project-details').value
     };
     
+    let targetId = editId;
     if (editId) {
-      // Edit
       const index = appState.projects.findIndex(p => p.id === editId);
       if (index !== -1) {
         appState.projects[index] = { ...appState.projects[index], ...projData };
       }
     } else {
-      // Add
+      targetId = 'project-' + Date.now();
       const newProj = {
-        id: 'project-' + Date.now(),
+        id: targetId,
         ...projData
       };
       appState.projects.unshift(newProj);
     }
     
     localStorage.setItem('projects', JSON.stringify(appState.projects));
+    
+    if (appState.syncEnabled) {
+      await commitToGitHub('public/posts/projects.json', JSON.stringify(appState.projects, null, 2), `feat: update project metadata for ${projData.name}`);
+    }
+    
     elements.addProjectForm.reset();
     elements.addProjectModal.style.display = 'none';
     
     renderAll();
-    
-    if (editId) {
-      showProjectDetail(editId);
-    }
+    showProjectDetail(targetId);
   });
   
   // Form Submit: Add/Edit Project Note
-  elements.addNoteForm?.addEventListener('submit', (e) => {
+  elements.addNoteForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const editId = elements.noteEditId.value;
     
@@ -937,28 +1089,34 @@ function setupEventListeners() {
       content: document.getElementById('note-content').value,
     };
     
+    let noteToSync = null;
     if (editId) {
       const index = appState.projectNotes.findIndex(n => n.id === editId);
       if (index !== -1) {
         appState.projectNotes[index] = { ...appState.projectNotes[index], ...noteData };
-        
-        // If currently viewing details, update detail pane content
+        noteToSync = appState.projectNotes[index];
         if (appState.activePostId === editId) {
           showLocalNoteDetail(appState.projectNotes[index]);
         }
       }
     } else {
       if (!appState.activeProjectId) return;
-      const newNote = {
+      noteToSync = {
         id: 'note-' + Date.now(),
         projectId: appState.activeProjectId,
         date: new Date().toISOString().split('T')[0],
         ...noteData
       };
-      appState.projectNotes.unshift(newNote);
+      appState.projectNotes.unshift(noteToSync);
     }
     
     localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
+    
+    if (appState.syncEnabled) {
+      // 1. Commit note list index
+      await commitToGitHub('public/posts/projectNotes.json', JSON.stringify(appState.projectNotes, null, 2), `feat: update project note index for ${noteData.title}`);
+    }
+    
     elements.addNoteForm.reset();
     elements.addNoteModal.style.display = 'none';
     
@@ -966,7 +1124,7 @@ function setupEventListeners() {
   });
   
   // Form Submit: Add/Edit Study Note
-  elements.addStudyForm.addEventListener('submit', (e) => {
+  elements.addStudyForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const editId = elements.studyEditId.value;
     
@@ -981,30 +1139,48 @@ function setupEventListeners() {
       content: document.getElementById('study-content').value
     };
     
+    let targetPostId = editId;
     if (editId) {
       const index = appState.posts.findIndex(p => p.id === editId);
       if (index !== -1) {
         appState.posts[index] = { ...appState.posts[index], ...studyData };
-        
-        // If currently viewing, update detail pane
-        if (appState.activePostId === editId) {
-          showArticleDetail(editId);
-        }
       }
     } else {
+      targetPostId = 'study-' + Date.now();
       const newPost = {
-        id: 'study-' + Date.now(),
+        id: targetPostId,
         date: new Date().toISOString().split('T')[0],
-        filePath: '', // Custom user posts don't have filepath, content is stored in object directly
+        filePath: `posts/${targetPostId}.md`,
         ...studyData
       };
       appState.posts.unshift(newPost);
     }
     
     localStorage.setItem('posts', JSON.stringify(appState.posts));
+    
+    if (appState.syncEnabled) {
+      // 1. Commit the markdown content
+      const filePath = `public/posts/${targetPostId}.md`;
+      await commitToGitHub(filePath, studyData.content, `feat: publish post content for ${studyData.title}`);
+      
+      // 2. Commit the updated posts.json index (without content values)
+      const cleanPosts = appState.posts.map(p => {
+        const { content, ...rest } = p;
+        return {
+          ...rest,
+          filePath: p.filePath || `posts/${p.id}.md`
+        };
+      });
+      await commitToGitHub('public/posts/posts.json', JSON.stringify(cleanPosts, null, 2), `feat: update posts index for ${studyData.title}`);
+    }
+    
     elements.addStudyForm.reset();
     elements.addStudyModal.style.display = 'none';
     
     renderAll();
+    
+    if (editId) {
+      showArticleDetail(editId);
+    }
   });
 }
