@@ -14,21 +14,6 @@
     "filePath": "posts/cert-analysis-isms-p.md"
   },
   {
-    "id": "news-ai-phishing",
-    "title": "생성형 AI 기술을 악용한 피싱 메일 고도화와 예방 체계",
-    "date": "2026-04-10",
-    "category": "News",
-    "source": "데일리시큐",
-    "importance": "⭐⭐⭐⭐",
-    "newsLink": "https://www.dailysecu.com/",
-    "tags": [
-      "생성형AI",
-      "피싱메일",
-      "사회공학적기법"
-    ],
-    "filePath": "posts/news-ai-phishing.md"
-  },
-  {
     "id": "cert-cppg-study",
     "title": "CPPG(개인정보관리사) 단기 합격 후기 및 공부법 요약",
     "date": "2026-04-05",
