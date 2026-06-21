@@ -14,21 +14,6 @@
     "filePath": "posts/cert-analysis-isms-p.md"
   },
   {
-    "id": "news-xkcd-security",
-    "title": "최근 공급망 취약점에 따른 보안 관리 체계 및 대응 방안",
-    "date": "2026-04-17",
-    "category": "News",
-    "source": "보안뉴스",
-    "importance": "⭐⭐⭐⭐⭐",
-    "newsLink": "https://www.boannews.com/",
-    "tags": [
-      "공급망보안",
-      "취약점",
-      "대응방안"
-    ],
-    "filePath": "posts/news-xkcd-security.md"
-  },
-  {
     "id": "news-ai-phishing",
     "title": "생성형 AI 기술을 악용한 피싱 메일 고도화와 예방 체계",
     "date": "2026-04-10",
