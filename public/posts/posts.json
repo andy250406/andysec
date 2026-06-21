@@ -1,0 +1,87 @@
+[
+  {
+    "id": "project-cons-audit",
+    "title": "개인정보 보안 컨설팅 수탁사 점검 프로젝트",
+    "date": "2026-04-15",
+    "category": "Project",
+    "type": "최종 프로젝트",
+    "tags": ["개인정보", "보안컨설팅", "수탁사점검", "SK루키즈"],
+    "filePath": "posts/project-cons-audit.md"
+  },
+  {
+    "id": "project-web-vuln",
+    "title": "의료 데이터를 위한 웹 취약점 자동 진단 시스템 개발",
+    "date": "2026-01-20",
+    "category": "Project",
+    "type": "미니 프로젝트 2",
+    "tags": ["웹취약점", "자동진단", "의료데이터", "OWASP"],
+    "filePath": "posts/project-web-vuln.md"
+  },
+  {
+    "id": "project-forest-fire",
+    "title": "산불 발생 데이터 분석 대시보드 구축",
+    "date": "2025-11-10",
+    "category": "Project",
+    "type": "미니 프로젝트 1",
+    "tags": ["데이터분석", "대시보드", "산불데이터", "Python"],
+    "filePath": "posts/project-forest-fire.md"
+  },
+  {
+    "id": "cert-cppg-study",
+    "title": "CPPG(개인정보관리사) 단기 합격 후기 및 공부법 요약",
+    "date": "2026-04-05",
+    "category": "Cert",
+    "type": "CPPG",
+    "tags": ["CPPG", "자격증", "개인정보보호법"],
+    "filePath": "posts/cert-cppg-study.md"
+  },
+  {
+    "id": "cert-aws-ccp",
+    "title": "AWS Certified Cloud Practitioner (CCP) 취득 및 서비스 핵심 요약",
+    "date": "2026-03-12",
+    "category": "Cert",
+    "type": "AWS CCP",
+    "tags": ["AWS", "Cloud", "자격증", "CCP"],
+    "filePath": "posts/cert-aws-ccp.md"
+  },
+  {
+    "id": "cert-analysis-isms-p",
+    "title": "ISMS-P 인증 기준 및 주요 결함 사례 완벽 분석",
+    "date": "2026-05-02",
+    "category": "CertAnalysis",
+    "type": "ISMS-P",
+    "tags": ["ISMS-P", "보안인증", "인증기준", "결함사례"],
+    "filePath": "posts/cert-analysis-isms-p.md"
+  },
+  {
+    "id": "news-xkcd-security",
+    "title": "최근 공급망 취약점에 따른 보안 관리 체계 및 대응 방안",
+    "date": "2026-04-17",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/",
+    "tags": ["공급망보안", "취약점", "대응방안"],
+    "filePath": "posts/news-xkcd-security.md"
+  },
+  {
+    "id": "news-ai-phishing",
+    "title": "생성형 AI 기술을 악용한 피싱 메일 고도화와 예방 체계",
+    "date": "2026-04-10",
+    "category": "News",
+    "source": "데일리시큐",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.dailysecu.com/",
+    "tags": ["생성형AI", "피싱메일", "사회공학적기법"],
+    "filePath": "posts/news-ai-phishing.md"
+  },
+  {
+    "id": "rookie-vuln-diagnostic",
+    "title": "SK루키즈 28기 - 취약점 진단 가이드 및 실습 정리",
+    "date": "2026-03-20",
+    "category": "Rookie",
+    "type": "취약점진단",
+    "tags": ["SK루키즈", "취약점진단", "보안실습"],
+    "filePath": "posts/rookie-vuln-diagnostic.md"
+  }
+]
