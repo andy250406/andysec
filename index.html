@@ -1,2 +1,705 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AndySec | 보안 블로그</title>
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="안태경의 개인 보안 블로그 및 스터디 대시보드. 보안뉴스 정리, 자격증 요약, 포트폴리오를 제공합니다.">
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' rx='40' fill='%23f1f5f9'/><circle cx='45' cy='45' r='10' fill='%23ef4444'/><circle cx='80' cy='45' r='10' fill='%23f59e0b'/><circle cx='115' cy='45' r='10' fill='%2310b981'/><text x='35' y='95' font-family='Courier' font-size='18' fill='%2322c55e' font-weight='bold'>$</text><text x='50' y='95' font-family='Courier' font-size='16' fill='%231f2937'>whoami</text><text x='35' y='130' font-family='Georgia' font-size='13' fill='%233b82f6' font-style='italic'>Security</text><text x='35' y='155' font-family='Courier' font-size='10' fill='%2309a3ff' font-weight='bold'>$</text></svg>" />
+  <meta name="theme-color" content="#0a0d13" />
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body class="dark-theme">
+  <!-- Global Deploying Overlay -->
+  <div id="deploy-overlay" class="deploy-overlay" style="display: none;">
+    <div class="deploy-spinner-box">
+      <i class="fa-solid fa-cloud-arrow-up fa-bounce"></i>
+      <h3 id="deploy-overlay-title">깃허브 업로드 중...</h3>
+      <p id="deploy-overlay-desc">파일을 커밋하고 저장소에 밀어넣고 있습니다. 잠시만 기다려주세요.</p>
+    </div>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- Sidebar / Profile Panel -->
+    <aside class="sidebar">
+      <div class="profile-card">
+        <div class="profile-avatar-wrapper">
+          <div class="profile-avatar">
+            <img src="./profile.jpg" alt="안태경" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+          </div>
+          <span class="status-badge online"></span>
+        </div>
+        <div class="profile-info">
+          <h2 class="profile-name">안태경</h2>
+          <p class="profile-title">보안 컨설턴트</p>
+          <p class="profile-slogan">SK쉴더스 기업컨설팅 2팀</p>
+        </div>
+        
+        <div class="profile-contacts">
+          <a href="mailto:pp0406hh@email.com" class="contact-item" id="email-btn" title="이메일 보내기">
+            <i class="fa-regular fa-envelope"></i>
+            <span>pp0406hh@gmail.com</span>
+          </a>
+          <a href="tel:010-2224-1060" class="contact-item" title="전화하기">
+            <i class="fa-solid fa-phone"></i>
+            <span>010-2224-1060</span>
+          </a>
+        </div>
+      </div>
+      
+      <!-- Vertical Navigation Menu -->
+      <nav class="nav-menu">
+        <button class="nav-btn active" data-tab="dashboard">
+          <i class="fa-solid fa-chart-line"></i> <span>대시보드</span>
+        </button>
+        <button class="nav-btn" data-tab="study">
+          <i class="fa-solid fa-book-bookmark"></i> <span>스터디 노트</span>
+        </button>
+        <button class="nav-btn" data-tab="projects">
+          <i class="fa-solid fa-diagram-project"></i> <span>프로젝트</span>
+        </button>
+        <button class="nav-btn" data-tab="news">
+          <i class="fa-solid fa-newspaper"></i> <span>보안 뉴스</span>
+        </button>
+        <button class="nav-btn" data-tab="portfolio">
+          <i class="fa-solid fa-briefcase"></i> <span>포트폴리오</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Settings Button (Simplified for no cutoffs) -->
+      <div class="sidebar-settings-wrapper">
+        <button class="settings-btn" id="btn-open-settings" title="깃허브 동기화 설정">
+          <i class="fa-solid fa-gear"></i> <span>깃허브 동기화</span>
+          <span class="sync-status-indicator offline" id="sync-indicator">OFF</span>
+        </button>
+      </div>
+    </aside>
+    
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="global-search" placeholder="글 제목, 태그 검색...">
+        </div>
+        <div class="topbar-actions">
+          <button id="theme-toggle" class="action-btn" title="테마 변경">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+          <div class="system-time">
+            <i class="fa-regular fa-clock"></i>
+            <span id="live-clock">00:00:00</span>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Content Container -->
+      <section class="content-container">
+        
+        <!-- DASHBOARD TAB -->
+        <div class="tab-pane active" id="tab-dashboard">
+          <div class="dashboard-grid">
+            
+            <!-- Active Project Wide Display -->
+            <div class="active-project-card card" id="dashboard-active-project-wrapper">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-spinner fa-spin"></i> 현재 진행 중인 프로젝트 로드 중...</h3>
+              </div>
+            </div>
+            
+            <!-- Dashboard Main Row (Stretched heights) -->
+            <div class="dashboard-row">
+              <!-- Recent Study Notes -->
+              <div class="card flex-2 dashboard-main-card">
+                <div class="card-header">
+                  <h3><i class="fa-solid fa-fire-flame-curved"></i> 최근 스터디 노트</h3>
+                  <button class="btn-more" data-target-tab="study">전체보기</button>
+                </div>
+                <div class="card-body stretched-card-body">
+                  <div class="recent-list stretched-list" id="recent-study-list">
+                    <!-- Dynamic Loading -->
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Recent Security News Sidebar -->
+              <div class="card flex-1 dashboard-main-card">
+                <div class="card-header">
+                  <h3><i class="fa-solid fa-shield-halved"></i> 최근 보안 뉴스</h3>
+                  <button class="btn-more" data-target-tab="news">전체보기</button>
+                </div>
+                <div class="card-body stretched-card-body">
+                  <div class="recent-news-sidebar stretched-list" id="dashboard-recent-news-list">
+                    <!-- Dynamic Loading -->
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+        
+        <!-- STUDY NOTES TAB -->
+        <div class="tab-pane" id="tab-study">
+          <div class="filter-bar-wrapper">
+            <div class="filter-bar">
+              <button class="filter-btn active" data-filter="all">전체</button>
+              <button class="filter-btn" data-filter="Cert">자격증 공부</button>
+              <button class="filter-btn" data-filter="CertAnalysis">보안인증 분석</button>
+            </div>
+            <button class="btn-primary" id="btn-open-add-study-modal">
+              <i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성
+            </button>
+          </div>
+          <div class="posts-grid" id="study-posts-grid">
+            <!-- Dynamic Posts Grid -->
+          </div>
+        </div>
+        
+        <!-- PROJECTS TAB -->
+        <div class="tab-pane" id="tab-projects">
+          <!-- Projects List / Schedule View -->
+          <div id="projects-list-view">
+            <div class="section-header">
+              <h2><i class="fa-solid fa-list-check"></i> 프로젝트 리스트 및 일정</h2>
+              <button class="btn-primary" id="btn-open-add-project-modal">
+                <i class="fa-solid fa-plus"></i> 새로운 프로젝트 등록
+              </button>
+            </div>
+            
+            <div class="projects-table-wrapper card">
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>프로젝트 명</th>
+                      <th>고객사</th>
+                      <th>시작일</th>
+                      <th>종료일</th>
+                      <th>진행률</th>
+                    </tr>
+                  </thead>
+                  <tbody id="projects-table-body">
+                    <!-- Dynamic Projects List -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Projects Internal Board View -->
+          <div id="project-detail-view" style="display: none;">
+            <div class="detail-back-bar">
+              <button class="btn-back" id="btn-back-to-projects-list">
+                <i class="fa-solid fa-arrow-left"></i> 프로젝트 목록으로 돌아가기
+              </button>
+            </div>
+            
+            <!-- Project Metadata Header -->
+            <div class="project-info-header card">
+              <div class="project-header-left">
+                <span class="client-badge" id="detail-project-client">고객사</span>
+                <h1 id="detail-project-name">프로젝트 이름</h1>
+                <p id="detail-project-desc">프로젝트 상세 설명</p>
+                <div class="meta-actions" style="margin-top: 15px;">
+                  <button class="btn-secondary btn-sm" id="btn-edit-project-details"><i class="fa-regular fa-pen-to-square"></i> 프로젝트 수정</button>
+                  <button class="btn-danger btn-sm" id="btn-delete-project-details"><i class="fa-regular fa-trash-can"></i> 삭제</button>
+                </div>
+              </div>
+              <div class="project-header-right">
+                <div class="project-dates">
+                  <span class="date-lbl">시작일:</span> <span id="detail-project-start">2026-01-01</span>
+                  <span class="date-lbl">종료일:</span> <span id="detail-project-end">2026-12-31</span>
+                </div>
+                <div class="project-progress-wrapper">
+                  <div class="progress-lbl-row">
+                    <span>진행률</span>
+                    <span id="detail-project-percent">0%</span>
+                  </div>
+                  <div class="progress-bar"><div class="progress" id="detail-project-progress-bar" style="width: 0%;"></div></div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Project Internal Notes/Forum Board -->
+            <div class="project-board-section">
+              <div class="board-header">
+                <h3><i class="fa-solid fa-clipboard-question"></i> 프로젝트 스터디 & 기록 게시판</h3>
+                <button class="btn-primary" id="btn-open-add-note-modal">
+                  <i class="fa-solid fa-pen-to-square"></i> 새 기록 작성
+                </button>
+              </div>
+              
+              <div class="notes-grid" id="project-notes-grid">
+                <!-- Dynamic loading -->
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- SECURITY NEWS TAB -->
+        <div class="tab-pane" id="tab-news">
+          <div class="card">
+            <div class="card-header">
+              <h3>보안 뉴스 아카이브</h3>
+              <div class="table-actions">
+                <select id="news-importance-filter" class="custom-select">
+                  <option value="all">모든 중요도</option>
+                  <option value="⭐⭐⭐⭐⭐">⭐⭐⭐⭐⭐ (매우 중요)</option>
+                  <option value="⭐⭐⭐⭐">⭐⭐⭐⭐ (중요)</option>
+                  <option value="⭐⭐⭐">⭐⭐⭐ (보통)</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="custom-table font-large">
+                  <thead>
+                    <tr>
+                      <th>중요도</th>
+                      <th>제목</th>
+                      <th>출처</th>
+                      <th>날짜</th>
+                      <th>원문</th>
+                    </tr>
+                  </thead>
+                  <tbody id="full-news-table">
+                    <!-- Dynamic Loading -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- PORTFOLIO / RESUME TAB -->
+        <div class="tab-pane" id="tab-portfolio">
+          <div class="portfolio-layout">
+            
+            <!-- About Info / Quote -->
+            <div class="portfolio-quote card">
+              <div class="quote-content">
+                <i class="fa-solid fa-quote-left"></i>
+                <p>SK쉴더스 기업컨설팅 2팀</p>
+                <span class="author">보안 컨설턴트 안태경</span>
+              </div>
+            </div>
+            
+            <div class="portfolio-row">
+              <!-- Resume Timeline -->
+              <div class="card flex-2">
+                <div class="card-header">
+                  <h3><i class="fa-solid fa-clock-rotate-left"></i> RESUME</h3>
+                </div>
+                <div class="card-body">
+                  <div class="timeline">
+                    <div class="timeline-section">
+                      <h4><i class="fa-solid fa-id-card"></i> 주요 자격증</h4>
+                      <div class="timeline-item">
+                        <span class="timeline-date">2026.04</span>
+                        <div class="timeline-content">
+                          <h5>CPPG (개인정보관리사) 취득</h5>
+                          <p>개인정보보호법 및 망법 등 관련 규정 준수 요건 검토 지식 보유</p>
+                        </div>
+                      </div>
+                      <div class="timeline-item">
+                        <span class="timeline-date">2026.03</span>
+                        <div class="timeline-content">
+                          <h5>AWS Certified Cloud Practitioner 취득</h5>
+                          <p>AWS 핵심 클라우드 아키텍처 및 클라우드 보안 공동 책임 모델 지식 검증</p>
+                        </div>
+                      </div>
+                      <div class="timeline-item">
+                        <span class="timeline-date">2025.10</span>
+                        <div class="timeline-content">
+                          <h5>빅데이터분석기사 필기 합격</h5>
+                          <p>대용량 보안 모니터링 로그 및 시계열 기상/재해 데이터 처리 분석 역량</p>
+                        </div>
+                      </div>
+                      <div class="timeline-item">
+                        <span class="timeline-date">2025.09</span>
+                        <div class="timeline-content">
+                          <h5>정보처리기사 취득</h5>
+                          <p>시스템 아키텍처 설계, 네트워크 및 운영체제 전반에 대한 기본 지식 검증</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="timeline-section">
+                      <h4><i class="fa-solid fa-folder-open"></i> 프로젝트 이력</h4>
+                      <div class="timeline-item">
+                        <span class="timeline-date">2026.04</span>
+                        <div class="timeline-content">
+                          <h5>개인정보 보안 컨설팅 수탁사 점검 프로젝트</h5>
+                          <p>SK Shieldus Rookies 28기 최종 프로젝트로 모의 수탁기업 점검서 수립 및 가이드라인 제시</p>
+                        </div>
+                      </div>
+                      <div class="timeline-item">
+                        <span class="timeline-date">2026.01</span>
+                        <div class="timeline-content">
+                          <h5>의료 데이터를 위한 웹 취약점 자동 진단 시스템</h5>
+                          <p>병원 데이터 대상 웹 취약점 자동 스캔 프로그램 및 대응 소스코드 리포트 연동 시스템</p>
+                        </div>
+                      </div>
+                      <div class="timeline-item">
+                        <span class="timeline-date">2025.11</span>
+                        <div class="timeline-content">
+                          <h5>산불 발생 데이터 분석 대시보드 구축</h5>
+                          <p>Streamlit을 활용하여 기온, 풍속 및 산불 발생 피해 면적 연계 시각화 및 예측 인자 분석</p>
+                        </div>
+                      </div>
+                      <div class="timeline-item">
+                        <span class="timeline-date">2021.12</span>
+                        <div class="timeline-content">
+                          <h5>AI를 활용한 자동 틀린 그림 찾기 프로그램</h5>
+                          <p>대학교 졸업 작품으로 OpenCV와 머신러닝 비교 검출 알고리즘 적용</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="timeline-section">
+                      <h4><i class="fa-solid fa-shield"></i> 군 경력</h4>
+                      <div class="timeline-item">
+                        <span class="timeline-date">2023.11 ~ 2025.05</span>
+                        <div class="timeline-content">
+                          <h5>여단 통신중대 정보체계운용/정비병 복무</h5>
+                          <p>인트라넷 네트워크 서버 구축 지원 및 군 내부 정보체계 장애 처리/유지보수 담당</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Skill Inventory -->
+              <div class="card flex-1">
+                <div class="card-header">
+                  <h3><i class="fa-solid fa-code"></i> SKILLS</h3>
+                </div>
+                <div class="card-body">
+                  <div class="skill-list">
+                    <div class="skill-category-title">보안 & 컨설팅</div>
+                    <div class="skill-item">
+                      <div class="skill-info">
+                        <span>개인정보보호 및 법률 점검</span>
+                        <span class="skill-level">상 (⭐⭐⭐)</span>
+                      </div>
+                      <div class="progress-bar"><div class="progress" style="width: 90%;"></div></div>
+                    </div>
+                    <div class="skill-item">
+                      <div class="skill-info">
+                        <span>취약점 진단 (Web/System)</span>
+                        <span class="skill-level">중상 (⭐⭐)</span>
+                      </div>
+                      <div class="progress-bar"><div class="progress" style="width: 75%;"></div></div>
+                    </div>
+                    <div class="skill-item">
+                      <div class="skill-info">
+                        <span>ISMS-P 인증 기준 분석</span>
+                        <span class="skill-level">중 (⭐⭐)</span>
+                      </div>
+                      <div class="progress-bar"><div class="progress" style="width: 70%;"></div></div>
+                    </div>
+
+                    <div class="skill-category-title">개발 & 데이터</div>
+                    <div class="skill-item">
+                      <div class="skill-info">
+                        <span>Python (Pandas, Flask)</span>
+                        <span class="skill-level">상 (⭐⭐⭐)</span>
+                      </div>
+                      <div class="progress-bar"><div class="progress" style="width: 85%;"></div></div>
+                    </div>
+                    <div class="skill-item">
+                      <div class="skill-info">
+                        <span>클라우드 인프라 (AWS)</span>
+                        <span class="skill-level">중 (⭐⭐)</span>
+                      </div>
+                      <div class="progress-bar"><div class="progress" style="width: 65%;"></div></div>
+                    </div>
+                    <div class="skill-item">
+                      <div class="skill-info">
+                        <span>HTML/CSS/JS (Vanilla)</span>
+                        <span class="skill-level">중 (⭐⭐)</span>
+                      </div>
+                      <div class="progress-bar"><div class="progress" style="width: 60%;"></div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+        
+        <!-- ARTICLE DETAIL PANE (HIDDEN BY DEFAULT) -->
+        <div class="article-detail-pane" id="article-detail-pane">
+          <div class="article-header">
+            <div class="article-header-top">
+              <button id="btn-back-to-list" class="btn-back" style="margin-bottom:0">
+                <i class="fa-solid fa-arrow-left"></i> 목록으로 돌아가기
+              </button>
+              <div class="article-actions" id="article-detail-actions">
+                <button class="btn-secondary btn-sm" id="btn-edit-article"><i class="fa-regular fa-pen-to-square"></i> 수정</button>
+                <button class="btn-danger btn-sm" id="btn-delete-article"><i class="fa-regular fa-trash-can"></i> 삭제</button>
+              </div>
+            </div>
+            <div class="article-meta">
+              <span id="article-date" class="meta-item"></span>
+              <span id="article-category" class="meta-item badge"></span>
+              <span id="article-type" class="meta-item badge type-badge"></span>
+            </div>
+            <h1 id="article-title">글 제목</h1>
+            <div class="article-tags" id="article-tags"></div>
+          </div>
+          <hr class="article-divider">
+          <article class="markdown-body" id="article-content">
+            <!-- Parsed Markdown content will render here -->
+          </article>
+        </div>
+        
+      </section>
+      
+      <!-- Unified footer for mobile and desktop layout -->
+      <footer class="main-footer">
+        <p>&copy; 2026 andysec</p>
+        <span class="version">v1.2.0 (Sync Pro)</span>
+      </footer>
+    </main>
+    
+  </div>
+
+  <!-- ADD/EDIT PROJECT MODAL -->
+  <div class="modal" id="add-project-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="project-modal-title"><i class="fa-solid fa-diagram-project"></i> 새로운 프로젝트 등록</h3>
+        <button class="close-btn" id="btn-close-project-modal">&times;</button>
+      </div>
+      <form id="add-project-form">
+        <input type="hidden" id="project-edit-id">
+        <div class="form-group">
+          <label for="project-name">프로젝트 명 *</label>
+          <input type="text" id="project-name" required placeholder="예: 2026년 하반기 개인정보 실태 점검">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="project-start">시작 날짜 *</label>
+            <input type="date" id="project-start" required>
+          </div>
+          <div class="form-group">
+            <label for="project-end">종료 날짜 *</label>
+            <input type="date" id="project-end" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="project-client">고객사 *</label>
+          <input type="text" id="project-client" required placeholder="예: 한국보안진흥원">
+        </div>
+        <div class="form-group">
+          <label for="project-details">프로젝트 간단 내용 *</label>
+          <textarea id="project-details" rows="4" required placeholder="프로젝트의 주요 목적 및 수행 내용을 기록하세요."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" id="btn-cancel-project">취소</button>
+          <button type="submit" class="btn-primary" id="btn-submit-project">등록하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD/EDIT PROJECT NOTE MODAL -->
+  <div class="modal" id="add-note-modal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 id="note-modal-title"><i class="fa-solid fa-pen-to-square"></i> 새 기록 작성</h3>
+        <button class="close-btn" id="btn-close-note-modal">&times;</button>
+      </div>
+      <div class="editor-split-container">
+        <!-- Left: Form -->
+        <form id="add-note-form" class="editor-main-form">
+          <input type="hidden" id="note-edit-id">
+          <div class="form-group">
+            <label for="note-title">제목 *</label>
+            <input type="text" id="note-title" required placeholder="기록할 제목 입력">
+          </div>
+          <div class="form-group">
+            <label for="note-content">내용 (Markdown 지원) *</label>
+            <textarea id="note-content" rows="12" required placeholder="내용을 기록해 보세요. 마크다운 형식을 지원합니다."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-note">취소</button>
+            <button type="submit" class="btn-primary" id="btn-submit-note">기록 추가</button>
+          </div>
+        </form>
+        
+        <!-- Right: Markdown Syntax Cheat Sheet -->
+        <div class="markdown-cheat-sheet">
+          <h4><i class="fa-brands fa-markdown"></i> 마크다운 작성 가이드</h4>
+          <div class="cheat-sheet-content">
+            <div class="cheat-item">
+              <span class="cheat-label">제목</span>
+              <code># 제목 1</code> <code>## 제목 2</code> <code>### 제목 3</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">강조</span>
+              <code>**굵게**</code> <code>*기울임*</code> <code>~~취소선~~</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">목록</span>
+              <code>- 글머리 기호</code> <code>1. 순서 있는 목록</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">링크 & 이미지</span>
+              <code>[링크이름](URL)</code> <code>![대체텍스트](이미지URL)</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">인용 & 구분선</span>
+              <code>&gt; 인용문 작성</code> <code>--- (가로 구분선)</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">코드블록</span>
+              <code>`인라인코드`</code>
+              <pre><code>```python
+print("Hello Security")
+```</code></pre>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">테이블(표)</span>
+              <pre><code>| 제목1 | 제목2 |
+| |---|---|
+| | 내용1 | 내용2 |</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD/EDIT STUDY NOTE MODAL -->
+  <div class="modal" id="add-study-modal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 id="study-modal-title"><i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성</h3>
+        <button class="close-btn" id="btn-close-study-modal">&times;</button>
+      </div>
+      <div class="editor-split-container">
+        <!-- Left: Form -->
+        <form id="add-study-form" class="editor-main-form">
+          <input type="hidden" id="study-edit-id">
+          <div class="form-group">
+            <label for="study-title">제목 *</label>
+            <input type="text" id="study-title" required placeholder="글 제목 입력">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="study-category">분류 *</label>
+              <select id="study-category" required class="custom-select" style="width:100%; height:38px;">
+                <option value="Cert">자격증 공부</option>
+                <option value="CertAnalysis">보안인증 분석</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="study-type">유형 *</label>
+              <input type="text" id="study-type" required placeholder="예: CPPG, ISMS-P">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="study-tags">태그 (쉼표로 구분) *</label>
+            <input type="text" id="study-tags" required placeholder="예: 개인정보, 자격증, 법률">
+          </div>
+          <div class="form-group">
+            <label for="study-content">내용 (Markdown 지원) *</label>
+            <textarea id="study-content" rows="10" required placeholder="공부한 핵심 요약을 마크다운을 곁들여 작성해 보세요."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-study">취소</button>
+            <button type="submit" class="btn-primary" id="btn-submit-study">등록하기</button>
+          </div>
+        </form>
+        
+        <!-- Right: Markdown Cheat Sheet -->
+        <div class="markdown-cheat-sheet">
+          <h4><i class="fa-brands fa-markdown"></i> 마크다운 작성 가이드</h4>
+          <div class="cheat-sheet-content">
+            <div class="cheat-item">
+              <span class="cheat-label">제목</span>
+              <code># 제목 1</code> <code>## 제목 2</code> <code>### 제목 3</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">강조</span>
+              <code>**굵게**</code> <code>*기울임*</code> <code>~~취소선~~</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">목록</span>
+              <code>- 글머리 기호</code> <code>1. 순서 있는 목록</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">링크 & 이미지</span>
+              <code>[링크이름](URL)</code> <code>![대체텍스트](이미지URL)</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">인용 & 구분선</span>
+              <code>&gt; 인용문 작성</code> <code>--- (가로 구분선)</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">코드블록</span>
+              <code>`인라인코드`</code>
+              <pre><code>```python
+print("Hello Security")
+```</code></pre>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">테이블(표)</span>
+              <pre><code>| 제목1 | 제목2 |
+| |---|---|
+| | 내용1 | 내용2 |</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLOUD SYNC CONFIG SETTINGS MODAL -->
+  <div class="modal" id="settings-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-gear"></i> 깃허브 동기화 설정</h3>
+        <button class="close-btn" id="btn-close-settings-modal">&times;</button>
+      </div>
+      <form id="settings-form">
+        <div class="form-group" style="flex-direction:row; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+          <label for="sync-toggle" style="cursor:pointer; font-weight:600; color:var(--text-highlight);">
+            <i class="fa-solid fa-cloud-arrow-up"></i> 깃허브 실시간 동기화 활성화
+          </label>
+          <input type="checkbox" id="sync-toggle" style="width:20px; height:20px; cursor:pointer;">
+        </div>
+        <div class="form-group" id="pat-input-wrapper">
+          <label for="github-pat">GitHub Personal Access Token (PAT) *</label>
+          <input type="password" id="github-pat" placeholder="ghp_************************************">
+          <p class="form-help-text" style="font-size:0.75rem; color:var(--text-muted); margin-top:5px; line-height:1.4;">
+            저장소(repo) 권한이 있는 토큰이 필요합니다. 토큰은 오직 본인 브라우저(LocalStorage)에만 안전하게 보관됩니다.
+          </p>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" id="btn-cancel-settings">취소</button>
+          <button type="submit" class="btn-primary">설정 저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- App JS -->
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
