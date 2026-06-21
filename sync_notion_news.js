@@ -166,7 +166,11 @@ async function sync() {
     const props = page.properties;
 
     // Parse properties safely
-    const title = props.Name && props.Name.title ? props.Name.title.map(t => t.plain_text).join('') : '제목 없음';
+    const title = props.Name && props.Name.title ? props.Name.title.map(t => t.plain_text).join('').trim() : '';
+    if (!title || title === '제목 없음') {
+      console.log(`Skipping ghost/empty page: ID ${pageId}`);
+      continue;
+    }
     const date = props.날짜 && props.날짜.date ? props.날짜.date.start : new Date().toISOString().split('T')[0];
     const source = props.출처 && props.출처.rich_text ? props.출처.rich_text.map(t => t.plain_text).join('') : '출처 없음';
     const importance = props.중요도 && props.중요도.select ? props.중요도.select.name : '⭐⭐⭐';
