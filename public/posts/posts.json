@@ -308,6 +308,21 @@
     "filePath": "posts/news-34c25a92-bc75-817f-afbf-cc7731c4b18a.md"
   },
   {
+    "id": "news-xkcd-security",
+    "title": "최근 공급망 취약점에 따른 보안 관리 체계 및 대응 방안",
+    "date": "2026-04-17",
+    "category": "News",
+    "source": "보안뉴스",
+    "importance": "⭐⭐⭐⭐⭐",
+    "newsLink": "https://www.boannews.com/",
+    "tags": [
+      "공급망보안",
+      "취약점",
+      "대응방안"
+    ],
+    "filePath": "posts/news-xkcd-security.md"
+  },
+  {
     "id": "news-34c25a92-bc75-81b0-878a-d101315e7892",
     "title": "과기정통부·KISA, 'SBOM 기반 소프트웨어 공급망 보안 사례집' 발급",
     "date": "2026-04-16",
@@ -502,6 +517,21 @@
       "Notion연동"
     ],
     "filePath": "posts/news-33f25a92-bc75-80a0-8644-f3ec5e54a00e.md"
+  },
+  {
+    "id": "news-ai-phishing",
+    "title": "생성형 AI 기술을 악용한 피싱 메일 고도화와 예방 체계",
+    "date": "2026-04-10",
+    "category": "News",
+    "source": "데일리시큐",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.dailysecu.com/",
+    "tags": [
+      "생성형AI",
+      "피싱메일",
+      "사회공학적기법"
+    ],
+    "filePath": "posts/news-ai-phishing.md"
   },
   {
     "id": "news-34325a92-bc75-8164-abf3-ee5b1c9b8522",
