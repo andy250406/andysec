@@ -655,7 +655,7 @@ function renderStudyNotes() {
   elements.studyPostsGrid.innerHTML = '';
   const filtered = appState.posts.filter(p => {
     if (appState.studyFilter === 'all') {
-      return (p.category === 'Cert' || p.category === 'CertAnalysis');
+      return (p.category === 'Cert' || p.category === 'CertAnalysis' || p.category === 'Shieldus');
     }
     return p.category === appState.studyFilter;
   }).filter(matchSearch);
