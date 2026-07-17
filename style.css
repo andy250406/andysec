@@ -30,6 +30,7 @@
   --color-cert: #38bdf8;
   --color-news: #fb923c;
   --color-cert-analysis: #f472b6;
+  --color-shieldus: #a78bfa;
   
   --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
@@ -680,6 +681,7 @@ a:hover {
 .badge.cert { color: var(--color-cert); border-color: rgba(56, 189, 248, 0.3); }
 .badge.news { color: var(--color-news); border-color: rgba(251, 146, 60, 0.3); }
 .badge.certanalysis { color: var(--color-cert-analysis); border-color: rgba(244, 114, 182, 0.3); }
+.badge.shieldus { color: var(--color-shieldus); border-color: rgba(167, 139, 250, 0.3); }
 
 /* Tables */
 .table-responsive {
