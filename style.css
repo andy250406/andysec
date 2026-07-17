@@ -59,6 +59,12 @@ body.light-theme {
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
+/* Light Theme Overrides */
+body.light-theme .project-info-header {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 0.95) 100%);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
 /* Reset & Global */
 * {
   margin: 0;
