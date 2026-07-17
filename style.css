@@ -1574,7 +1574,7 @@ a:hover {
   border-collapse: collapse;
   margin-top: 0.5rem;
   margin-bottom: 1.75rem;
-  font-size: 0.92rem;
+  font-size: 0.92em;
   background: rgba(255, 255, 255, 0.01);
   border-radius: 8px;
   overflow: hidden;
