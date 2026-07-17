@@ -4,16 +4,27 @@
     "date": "2026-07-11",
     "filePath": "posts/study-1783753819893.md",
     "title": "필수 법 이해 교육",
-    "category": "CertAnalysis",
-    "type": "교육"
+    "category": "Shieldus",
+    "type": "개인정보보호법",
+    "tags": [
+      "교육",
+      "법",
+      "개정법",
+      "정통망법"
+    ]
   },
   {
     "id": "study-1783132487159",
     "date": "2026-07-04",
     "filePath": "posts/study-1783132487159.md",
     "title": "주요정보통신기반시설 역량 강화 교육",
-    "category": "CertAnalysis",
-    "type": "주요정보통신기반시설"
+    "category": "Shieldus",
+    "type": "주요정보통신기반시설",
+    "tags": [
+      "주정통",
+      "ISMS",
+      "주요정보통신기반시설"
+    ]
   },
   {
     "id": "news-36c25a92-bc75-81cb-9499-c9a59d5235e7",
@@ -23,7 +34,11 @@
     "source": "연합뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFnXxq6TXdvE_6jyKxlZ7WF-8V2rJBotfqwHkj11u4-JN9UT84FxzxdaSYRc0VyUjcQQ2BWNtS3MmS7vmcPRiHPUXe77ZIjCxCqcs_Tv5H70LMLUX3-iHntWDzNscGjmCTllYmuDaCMCucXpdF4UP3pZHpecpkhu25syQ5aBjaUsECUxAw=",
-    "filePath": "posts/news-36c25a92-bc75-81cb-9499-c9a59d5235e7.md"
+    "filePath": "posts/news-36c25a92-bc75-81cb-9499-c9a59d5235e7.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-36c25a92-bc75-815f-9127-f4765c3241f8",
@@ -33,7 +48,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.boannews.com/media/view.asp?idx=128509",
-    "filePath": "posts/news-36c25a92-bc75-815f-9127-f4765c3241f8.md"
+    "filePath": "posts/news-36c25a92-bc75-815f-9127-f4765c3241f8.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-36c25a92-bc75-8199-8a65-c5625a66e873",
@@ -43,7 +62,11 @@
     "source": "디지털데일리 (Daum 뉴스 게재)",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://v.daum.net/v/20260510090000000",
-    "filePath": "posts/news-36c25a92-bc75-8199-8a65-c5625a66e873.md"
+    "filePath": "posts/news-36c25a92-bc75-8199-8a65-c5625a66e873.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35d25a92-bc75-81fe-b481-d135e52205cd",
@@ -53,7 +76,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/",
-    "filePath": "posts/news-35d25a92-bc75-81fe-b481-d135e52205cd.md"
+    "filePath": "posts/news-35d25a92-bc75-81fe-b481-d135e52205cd.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35d25a92-bc75-8173-b2a7-ebd1889a3f78",
@@ -63,7 +90,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/",
-    "filePath": "posts/news-35d25a92-bc75-8173-b2a7-ebd1889a3f78.md"
+    "filePath": "posts/news-35d25a92-bc75-8173-b2a7-ebd1889a3f78.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35d25a92-bc75-818e-bfc7-d9b632b0ec81",
@@ -73,7 +104,11 @@
     "source": "연합뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.yna.co.kr/",
-    "filePath": "posts/news-35d25a92-bc75-818e-bfc7-d9b632b0ec81.md"
+    "filePath": "posts/news-35d25a92-bc75-818e-bfc7-d9b632b0ec81.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35925a92-bc75-8141-92b3-c074b25a45ea",
@@ -83,7 +118,11 @@
     "source": "삼성SDS (Samsung SDS)",
     "importance": "⭐⭐",
     "newsLink": "https://www.samsungsds.com/kr/insights/security_threat_2026.html",
-    "filePath": "posts/news-35925a92-bc75-8141-92b3-c074b25a45ea.md"
+    "filePath": "posts/news-35925a92-bc75-8141-92b3-c074b25a45ea.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35925a92-bc75-8181-a1af-fdfb892d94d0",
@@ -93,7 +132,11 @@
     "source": "안랩 (AhnLab)",
     "importance": "⭐⭐",
     "newsLink": "https://www.ahnlab.com/kr/site/securityinfo/secunews/secuNewsView.do?seq=30001",
-    "filePath": "posts/news-35925a92-bc75-8181-a1af-fdfb892d94d0.md"
+    "filePath": "posts/news-35925a92-bc75-8181-a1af-fdfb892d94d0.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "cert-analysis-isms-p",
@@ -101,7 +144,13 @@
     "date": "2026-05-02",
     "category": "CertAnalysis",
     "type": "ISMS-P",
-    "filePath": "posts/cert-analysis-isms-p.md"
+    "filePath": "posts/cert-analysis-isms-p.md",
+    "tags": [
+      "ISMS-P",
+      "보안인증",
+      "인증기준",
+      "결함사례"
+    ]
   },
   {
     "id": "news-35925a92-bc75-81e8-a63d-cf489452889d",
@@ -111,7 +160,11 @@
     "source": "CIO Korea / Gartner",
     "importance": "⭐⭐",
     "newsLink": "https://www.ciokorea.com/news/2026/05/generative-ai-ip-protection/",
-    "filePath": "posts/news-35925a92-bc75-81e8-a63d-cf489452889d.md"
+    "filePath": "posts/news-35925a92-bc75-81e8-a63d-cf489452889d.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35925a92-bc75-81e1-9329-f3ea2601090d",
@@ -121,7 +174,11 @@
     "source": "Breaking Defense / YNA",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://breakingdefense.com/2026/05/dod-signs-classified-ai-deals-with-openai-spacex-and-others/",
-    "filePath": "posts/news-35925a92-bc75-81e1-9329-f3ea2601090d.md"
+    "filePath": "posts/news-35925a92-bc75-81e1-9329-f3ea2601090d.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35425a92-bc75-81a4-85b5-dc19d0552f86",
@@ -131,7 +188,11 @@
     "source": "CISA",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.cisa.gov/resources-tools/resources/careful-adoption-agentic-artificial-intelligence-ai-services",
-    "filePath": "posts/news-35425a92-bc75-81a4-85b5-dc19d0552f86.md"
+    "filePath": "posts/news-35425a92-bc75-81a4-85b5-dc19d0552f86.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35925a92-bc75-8161-b392-ca1f206e7ab3",
@@ -141,7 +202,11 @@
     "source": "Anthropic / Donga 등",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.anthropic.com/news/claude-security-release",
-    "filePath": "posts/news-35925a92-bc75-8161-b392-ca1f206e7ab3.md"
+    "filePath": "posts/news-35925a92-bc75-8161-b392-ca1f206e7ab3.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35425a92-bc75-8179-86e6-cba42e4daad5",
@@ -151,7 +216,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/media/view.asp?idx=128504",
-    "filePath": "posts/news-35425a92-bc75-8179-86e6-cba42e4daad5.md"
+    "filePath": "posts/news-35425a92-bc75-8179-86e6-cba42e4daad5.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35425a92-bc75-8162-9b59-eb939e832d0a",
@@ -161,7 +230,11 @@
     "source": "정책브리핑",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.korea.kr/news/policyNewsView.do?newsId=148928421",
-    "filePath": "posts/news-35425a92-bc75-8162-9b59-eb939e832d0a.md"
+    "filePath": "posts/news-35425a92-bc75-8162-9b59-eb939e832d0a.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35425a92-bc75-81e0-82aa-f078fb7103d3",
@@ -171,7 +244,11 @@
     "source": "매일경제",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.mk.co.kr/news/society/11015678",
-    "filePath": "posts/news-35425a92-bc75-81e0-82aa-f078fb7103d3.md"
+    "filePath": "posts/news-35425a92-bc75-81e0-82aa-f078fb7103d3.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35425a92-bc75-81dd-a5a1-f246f1cb1724",
@@ -181,7 +258,11 @@
     "source": "SecurityWeek",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.oracle.com/security-alerts/",
-    "filePath": "posts/news-35425a92-bc75-81dd-a5a1-f246f1cb1724.md"
+    "filePath": "posts/news-35425a92-bc75-81dd-a5a1-f246f1cb1724.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35925a92-bc75-81b7-8aa6-f7b9b5d8a884",
@@ -191,7 +272,11 @@
     "source": "BleepingComputer / BankInfoSecurity",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.bleepingcomputer.com/news/security/adt-confirms-data-breach-affecting-5-5-million-customers/",
-    "filePath": "posts/news-35925a92-bc75-81b7-8aa6-f7b9b5d8a884.md"
+    "filePath": "posts/news-35925a92-bc75-81b7-8aa6-f7b9b5d8a884.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-35425a92-bc75-81db-a51f-f6644c747dea",
@@ -201,7 +286,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.fsec.or.kr/",
-    "filePath": "posts/news-35425a92-bc75-81db-a51f-f6644c747dea.md"
+    "filePath": "posts/news-35425a92-bc75-81db-a51f-f6644c747dea.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34c25a92-bc75-81c7-91ee-ed9aef4155d1",
@@ -211,7 +300,11 @@
     "source": "전자신문 / 금융위원회",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.etnews.com/202604200001",
-    "filePath": "posts/news-34c25a92-bc75-81c7-91ee-ed9aef4155d1.md"
+    "filePath": "posts/news-34c25a92-bc75-81c7-91ee-ed9aef4155d1.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34c25a92-bc75-8134-b8e9-f81d11adbc34",
@@ -221,7 +314,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/media/view.asp?idx=128521",
-    "filePath": "posts/news-34c25a92-bc75-8134-b8e9-f81d11adbc34.md"
+    "filePath": "posts/news-34c25a92-bc75-8134-b8e9-f81d11adbc34.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34c25a92-bc75-817f-afbf-cc7731c4b18a",
@@ -231,7 +328,11 @@
     "source": "안랩 / ZDNet Korea",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.zdnet.co.kr/view/?no=202604181000",
-    "filePath": "posts/news-34c25a92-bc75-817f-afbf-cc7731c4b18a.md"
+    "filePath": "posts/news-34c25a92-bc75-817f-afbf-cc7731c4b18a.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-xkcd-security",
@@ -241,7 +342,12 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/",
-    "filePath": "posts/news-xkcd-security.md"
+    "filePath": "posts/news-xkcd-security.md",
+    "tags": [
+      "공급망보안",
+      "취약점",
+      "대응방안"
+    ]
   },
   {
     "id": "news-34c25a92-bc75-81b0-878a-d101315e7892",
@@ -251,7 +357,11 @@
     "source": "보안뉴스 / KISA",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/media/view.asp?idx=128543",
-    "filePath": "posts/news-34c25a92-bc75-81b0-878a-d101315e7892.md"
+    "filePath": "posts/news-34c25a92-bc75-81b0-878a-d101315e7892.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34525a92-bc75-818e-84f7-d68658e16636",
@@ -261,7 +371,11 @@
     "source": "지디넷코리아",
     "importance": "⭐⭐⭐",
     "newsLink": "https://zdnet.co.kr/netsec-kr-2026-llm",
-    "filePath": "posts/news-34525a92-bc75-818e-84f7-d68658e16636.md"
+    "filePath": "posts/news-34525a92-bc75-818e-84f7-d68658e16636.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34525a92-bc75-8160-a64b-f669fc46a41a",
@@ -271,7 +385,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/robo-advisor-2026",
-    "filePath": "posts/news-34525a92-bc75-8160-a64b-f669fc46a41a.md"
+    "filePath": "posts/news-34525a92-bc75-8160-a64b-f669fc46a41a.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34525a92-bc75-8139-93bd-c694036bbe7d",
@@ -281,7 +399,11 @@
     "source": "테크M",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://techm.kr/news/gpt-5-4-cyber",
-    "filePath": "posts/news-34525a92-bc75-8139-93bd-c694036bbe7d.md"
+    "filePath": "posts/news-34525a92-bc75-8139-93bd-c694036bbe7d.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34325a92-bc75-818e-8d15-f61cf2d2875b",
@@ -291,7 +413,11 @@
     "source": "전자신문",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.etnews.com",
-    "filePath": "posts/news-34325a92-bc75-818e-8d15-f61cf2d2875b.md"
+    "filePath": "posts/news-34325a92-bc75-818e-8d15-f61cf2d2875b.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34325a92-bc75-816c-a951-f82dbda27cce",
@@ -301,7 +427,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.boannews.com",
-    "filePath": "posts/news-34325a92-bc75-816c-a951-f82dbda27cce.md"
+    "filePath": "posts/news-34325a92-bc75-816c-a951-f82dbda27cce.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34325a92-bc75-813a-9a7e-f77467a152ee",
@@ -311,7 +441,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com",
-    "filePath": "posts/news-34325a92-bc75-813a-9a7e-f77467a152ee.md"
+    "filePath": "posts/news-34325a92-bc75-813a-9a7e-f77467a152ee.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34325a92-bc75-810a-a88b-eb039c5ba638",
@@ -321,7 +455,11 @@
     "source": "조선일보",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.chosun.com",
-    "filePath": "posts/news-34325a92-bc75-810a-a88b-eb039c5ba638.md"
+    "filePath": "posts/news-34325a92-bc75-810a-a88b-eb039c5ba638.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34c25a92-bc75-8177-96cf-c0b1772bbe78",
@@ -331,7 +469,11 @@
     "source": "조선일보 / 네이버 뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.chosun.com/economy/tech_it/2026/04/12/ABCDEF/",
-    "filePath": "posts/news-34c25a92-bc75-8177-96cf-c0b1772bbe78.md"
+    "filePath": "posts/news-34c25a92-bc75-8177-96cf-c0b1772bbe78.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34525a92-bc75-81f2-a1fd-fd583bd56274",
@@ -341,7 +483,11 @@
     "source": "전자신문",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.etnews.com/mythos-shock-2026",
-    "filePath": "posts/news-34525a92-bc75-81f2-a1fd-fd583bd56274.md"
+    "filePath": "posts/news-34525a92-bc75-81f2-a1fd-fd583bd56274.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34325a92-bc75-81b9-850c-f3bafcfda054",
@@ -351,7 +497,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com",
-    "filePath": "posts/news-34325a92-bc75-81b9-850c-f3bafcfda054.md"
+    "filePath": "posts/news-34325a92-bc75-81b9-850c-f3bafcfda054.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34325a92-bc75-81e3-ad4c-e71c3fc7e40f",
@@ -361,7 +511,11 @@
     "source": "The Hacker News",
     "importance": "⭐⭐⭐",
     "newsLink": "https://thehackernews.com",
-    "filePath": "posts/news-34325a92-bc75-81e3-ad4c-e71c3fc7e40f.md"
+    "filePath": "posts/news-34325a92-bc75-81e3-ad4c-e71c3fc7e40f.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34325a92-bc75-8157-a8e8-edea29615593",
@@ -371,7 +525,11 @@
     "source": "데일리시큐",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.dailysecu.com",
-    "filePath": "posts/news-34325a92-bc75-8157-a8e8-edea29615593.md"
+    "filePath": "posts/news-34325a92-bc75-8157-a8e8-edea29615593.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33f25a92-bc75-80a0-8644-f3ec5e54a00e",
@@ -381,7 +539,11 @@
     "source": "ITDaily",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "http://www.itdaily.kr/news/articleView.html?idxno=238844",
-    "filePath": "posts/news-33f25a92-bc75-80a0-8644-f3ec5e54a00e.md"
+    "filePath": "posts/news-33f25a92-bc75-80a0-8644-f3ec5e54a00e.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-ai-phishing",
@@ -391,7 +553,12 @@
     "source": "데일리시큐",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.dailysecu.com/",
-    "filePath": "posts/news-ai-phishing.md"
+    "filePath": "posts/news-ai-phishing.md",
+    "tags": [
+      "생성형AI",
+      "피싱메일",
+      "사회공학적기법"
+    ]
   },
   {
     "id": "news-34325a92-bc75-8164-abf3-ee5b1c9b8522",
@@ -401,7 +568,11 @@
     "source": "ZDNet",
     "importance": "⭐⭐",
     "newsLink": "https://zdnet.co.kr",
-    "filePath": "posts/news-34325a92-bc75-8164-abf3-ee5b1c9b8522.md"
+    "filePath": "posts/news-34325a92-bc75-8164-abf3-ee5b1c9b8522.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "cert-cppg-study",
@@ -409,7 +580,12 @@
     "date": "2026-04-05",
     "category": "Cert",
     "type": "CPPG",
-    "filePath": "posts/cert-cppg-study.md"
+    "filePath": "posts/cert-cppg-study.md",
+    "tags": [
+      "CPPG",
+      "자격증",
+      "개인정보보호법"
+    ]
   },
   {
     "id": "news-33a25a92-bc75-8132-9818-fdc51b589c23",
@@ -419,7 +595,11 @@
     "source": "과학기술정보통신부",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://boho.or.kr/401/form?postSeq=3150",
-    "filePath": "posts/news-33a25a92-bc75-8132-9818-fdc51b589c23.md"
+    "filePath": "posts/news-33a25a92-bc75-8132-9818-fdc51b589c23.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33825a92-bc75-81d9-ba67-db1f9529fdb2",
@@ -429,7 +609,11 @@
     "source": "Broadband Breakfast",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://broadbandbreakfast.com/2026/04/fcc-advisory-council-warns-of-6g-vulnerabilities/",
-    "filePath": "posts/news-33825a92-bc75-81d9-ba67-db1f9529fdb2.md"
+    "filePath": "posts/news-33825a92-bc75-81d9-ba67-db1f9529fdb2.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33825a92-bc75-8185-b1f3-c16a3f1d4e42",
@@ -439,7 +623,11 @@
     "source": "연합뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.yna.co.kr/view/AKR20260403000100017",
-    "filePath": "posts/news-33825a92-bc75-8185-b1f3-c16a3f1d4e42.md"
+    "filePath": "posts/news-33825a92-bc75-8185-b1f3-c16a3f1d4e42.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33825a92-bc75-8145-8a57-d7ace4bd4ca9",
@@ -449,7 +637,11 @@
     "source": "데일리시큐",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.dailysecu.com/news/articleView.html?idxno=155000",
-    "filePath": "posts/news-33825a92-bc75-8145-8a57-d7ace4bd4ca9.md"
+    "filePath": "posts/news-33825a92-bc75-8145-8a57-d7ace4bd4ca9.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-34c25a92-bc75-8153-ac50-c6118477f8d0",
@@ -459,7 +651,11 @@
     "source": "Cybersecurity News / Censys Report",
     "importance": "⭐⭐",
     "newsLink": "https://cybersecuritynews.com/censys-report-ftp-exposure/",
-    "filePath": "posts/news-34c25a92-bc75-8153-ac50-c6118477f8d0.md"
+    "filePath": "posts/news-34c25a92-bc75-8153-ac50-c6118477f8d0.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33a25a92-bc75-811c-8e42-ed75837d017e",
@@ -469,7 +665,11 @@
     "source": "Google Quantum AI",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://quantumai.google/publications/quantum-cryptanalysis-bitcoin",
-    "filePath": "posts/news-33a25a92-bc75-811c-8e42-ed75837d017e.md"
+    "filePath": "posts/news-33a25a92-bc75-811c-8e42-ed75837d017e.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33825a92-bc75-81e4-8193-f1e5b95eeb20",
@@ -479,7 +679,11 @@
     "source": "국토교통부 보도자료",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.hankyung.com/article/202603310001",
-    "filePath": "posts/news-33825a92-bc75-81e4-8193-f1e5b95eeb20.md"
+    "filePath": "posts/news-33825a92-bc75-81e4-8193-f1e5b95eeb20.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33825a92-bc75-81ba-8b8c-f88274761a9c",
@@ -489,7 +693,11 @@
     "source": "Google Workspace 보도자료",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://workspaceupdates.googleblog.com/2026/03/ransomware-detection-restoration.html",
-    "filePath": "posts/news-33825a92-bc75-81ba-8b8c-f88274761a9c.md"
+    "filePath": "posts/news-33825a92-bc75-81ba-8b8c-f88274761a9c.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33525a92-bc75-8109-bdc8-f43b061dcc65",
@@ -499,7 +707,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.boannews.com/media/view.asp?idx=128550",
-    "filePath": "posts/news-33525a92-bc75-8109-bdc8-f43b061dcc65.md"
+    "filePath": "posts/news-33525a92-bc75-8109-bdc8-f43b061dcc65.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33525a92-bc75-81ba-bc65-cab50f182520",
@@ -509,7 +721,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/media/view.asp?idx=128500",
-    "filePath": "posts/news-33525a92-bc75-81ba-bc65-cab50f182520.md"
+    "filePath": "posts/news-33525a92-bc75-81ba-bc65-cab50f182520.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33525a92-bc75-811a-81e4-debe2ed1b633",
@@ -519,7 +735,11 @@
     "source": "AI타임스",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.aitimes.com/news/articleView.html?idxno=158428",
-    "filePath": "posts/news-33525a92-bc75-811a-81e4-debe2ed1b633.md"
+    "filePath": "posts/news-33525a92-bc75-811a-81e4-debe2ed1b633.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33a25a92-bc75-81c0-a335-c419a3ca55a1",
@@ -529,7 +749,11 @@
     "source": "HiddenLayer 2026 AI Threat Landscape Report",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://hiddenlayer.com/report-2026-ai-threat-landscape-report-agentic-ai-focus",
-    "filePath": "posts/news-33a25a92-bc75-81c0-a335-c419a3ca55a1.md"
+    "filePath": "posts/news-33a25a92-bc75-81c0-a335-c419a3ca55a1.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33525a92-bc75-81cd-be9e-dd979a34b96e",
@@ -539,7 +763,11 @@
     "source": "AI타임스",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.aitimes.com/news/articleView.html?idxno=158400",
-    "filePath": "posts/news-33525a92-bc75-81cd-be9e-dd979a34b96e.md"
+    "filePath": "posts/news-33525a92-bc75-81cd-be9e-dd979a34b96e.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-33a25a92-bc75-81ad-b32d-dc384bc1d2d2",
@@ -549,7 +777,11 @@
     "source": "Google VRP Report 2025",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.google.com/about/appsecurity/reward-program/vrp-report-2025",
-    "filePath": "posts/news-33a25a92-bc75-81ad-b32d-dc384bc1d2d2.md"
+    "filePath": "posts/news-33a25a92-bc75-81ad-b32d-dc384bc1d2d2.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32c25a92-bc75-815f-a149-c6a22536b8e6",
@@ -559,7 +791,11 @@
     "source": "Android Authority",
     "importance": "⭐⭐",
     "newsLink": "https://www.androidauthority.com/google-android-side-loading-wait-period-3498308/",
-    "filePath": "posts/news-32c25a92-bc75-815f-a149-c6a22536b8e6.md"
+    "filePath": "posts/news-32c25a92-bc75-815f-a149-c6a22536b8e6.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32c25a92-bc75-8153-883f-d15981c77678",
@@ -569,7 +805,11 @@
     "source": "ZDNet Korea",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.zdnet.co.kr/view/?no=20241120155631",
-    "filePath": "posts/news-32c25a92-bc75-8153-883f-d15981c77678.md"
+    "filePath": "posts/news-32c25a92-bc75-8153-883f-d15981c77678.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32c25a92-bc75-8155-acc0-f9a4229a8352",
@@ -579,7 +819,11 @@
     "source": "BleepingComputer",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.bleepingcomputer.com/news/security/oracle-warns-of-critical-pre-auth-rce-vulnerability-patch-now/",
-    "filePath": "posts/news-32c25a92-bc75-8155-acc0-f9a4229a8352.md"
+    "filePath": "posts/news-32c25a92-bc75-8155-acc0-f9a4229a8352.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32c25a92-bc75-81ae-9db8-fbcdc1cea66d",
@@ -589,7 +833,11 @@
     "source": "연합뉴스",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.yna.co.kr/view/AKR20251121118100009",
-    "filePath": "posts/news-32c25a92-bc75-81ae-9db8-fbcdc1cea66d.md"
+    "filePath": "posts/news-32c25a92-bc75-81ae-9db8-fbcdc1cea66d.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "rookie-vuln-diagnostic",
@@ -597,7 +845,12 @@
     "date": "2026-03-20",
     "category": "Rookie",
     "type": "취약점진단",
-    "filePath": "posts/rookie-vuln-diagnostic.md"
+    "filePath": "posts/rookie-vuln-diagnostic.md",
+    "tags": [
+      "SK루키즈",
+      "취약점진단",
+      "보안실습"
+    ]
   },
   {
     "id": "news-32c25a92-bc75-81cf-b881-e6029ffe6141",
@@ -607,7 +860,11 @@
     "source": "The Hacker News",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://thehackernews.com/2026/03/us-led-global-operation-takes-down-4.html",
-    "filePath": "posts/news-32c25a92-bc75-81cf-b881-e6029ffe6141.md"
+    "filePath": "posts/news-32c25a92-bc75-81cf-b881-e6029ffe6141.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32825a92-bc75-816e-bfad-c8c27fe1e2b3",
@@ -617,7 +874,11 @@
     "source": "보안뉴스 / 금융보안원",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/media/view.asp?idx=136450",
-    "filePath": "posts/news-32825a92-bc75-816e-bfad-c8c27fe1e2b3.md"
+    "filePath": "posts/news-32825a92-bc75-816e-bfad-c8c27fe1e2b3.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32625a92-bc75-813d-b394-ca39d15a7138",
@@ -627,7 +888,11 @@
     "source": "한국경제",
     "importance": "⭐⭐",
     "newsLink": "https://www.hankyung.com/",
-    "filePath": "posts/news-32625a92-bc75-813d-b394-ca39d15a7138.md"
+    "filePath": "posts/news-32625a92-bc75-813d-b394-ca39d15a7138.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32625a92-bc75-8139-97d8-d54280c07b26",
@@ -637,7 +902,11 @@
     "source": "전자신문",
     "importance": "⭐⭐",
     "newsLink": "https://www.etnews.com",
-    "filePath": "posts/news-32625a92-bc75-8139-97d8-d54280c07b26.md"
+    "filePath": "posts/news-32625a92-bc75-8139-97d8-d54280c07b26.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32625a92-bc75-81e2-8a85-f5b3519e19a6",
@@ -647,7 +916,11 @@
     "source": "디지털투데이",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.digitaltoday.co.kr",
-    "filePath": "posts/news-32625a92-bc75-81e2-8a85-f5b3519e19a6.md"
+    "filePath": "posts/news-32625a92-bc75-81e2-8a85-f5b3519e19a6.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32625a92-bc75-81ad-91df-ec19889349f2",
@@ -657,7 +930,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com",
-    "filePath": "posts/news-32625a92-bc75-81ad-91df-ec19889349f2.md"
+    "filePath": "posts/news-32625a92-bc75-81ad-91df-ec19889349f2.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "cert-aws-ccp",
@@ -665,7 +942,13 @@
     "date": "2026-03-12",
     "category": "Cert",
     "type": "AWS CCP",
-    "filePath": "posts/cert-aws-ccp.md"
+    "filePath": "posts/cert-aws-ccp.md",
+    "tags": [
+      "AWS",
+      "Cloud",
+      "자격증",
+      "CCP"
+    ]
   },
   {
     "id": "news-32125a92-bc75-81ab-91ed-c9bd72f94893",
@@ -675,7 +958,11 @@
     "source": "국가정보원 / ZDNet Korea",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.ncsc.go.kr/news/notice_view.do?idx=123456",
-    "filePath": "posts/news-32125a92-bc75-81ab-91ed-c9bd72f94893.md"
+    "filePath": "posts/news-32125a92-bc75-81ab-91ed-c9bd72f94893.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32125a92-bc75-810d-8132-d5d1b8669c98",
@@ -685,7 +972,11 @@
     "source": "ZDNet Korea / Google",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://blog.google/products/google-cloud/google-wiz-acquisition/",
-    "filePath": "posts/news-32125a92-bc75-810d-8132-d5d1b8669c98.md"
+    "filePath": "posts/news-32125a92-bc75-810d-8132-d5d1b8669c98.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32125a92-bc75-8102-be5b-ef4f42c95517",
@@ -695,7 +986,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐",
     "newsLink": "https://www.boannews.com/media/view.asp?idx=127600",
-    "filePath": "posts/news-32125a92-bc75-8102-be5b-ef4f42c95517.md"
+    "filePath": "posts/news-32125a92-bc75-8102-be5b-ef4f42c95517.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32125a92-bc75-815f-9d67-e986f4d09b9b",
@@ -705,7 +1000,11 @@
     "source": "OpenAI",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://openai.com/news/promptfoo/",
-    "filePath": "posts/news-32125a92-bc75-815f-9d67-e986f4d09b9b.md"
+    "filePath": "posts/news-32125a92-bc75-815f-9d67-e986f4d09b9b.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31e25a92-bc75-8146-9692-c38b29d363ca",
@@ -715,7 +1014,11 @@
     "source": "연합뉴스",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.yna.co.kr/view/AKR20260310000100008",
-    "filePath": "posts/news-31e25a92-bc75-8146-9692-c38b29d363ca.md"
+    "filePath": "posts/news-31e25a92-bc75-8146-9692-c38b29d363ca.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31e25a92-bc75-8112-847a-f23242ee3453",
@@ -725,7 +1028,11 @@
     "source": "OpenAI",
     "importance": "⭐⭐⭐",
     "newsLink": "https://openai.com/blog/introducing-codex-security/",
-    "filePath": "posts/news-31e25a92-bc75-8112-847a-f23242ee3453.md"
+    "filePath": "posts/news-31e25a92-bc75-8112-847a-f23242ee3453.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31d25a92-bc75-81fc-816f-f5d3ec28eef6",
@@ -735,7 +1042,11 @@
     "source": "U.S. Congress",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.congress.gov/bill/118th-congress/house-bill/scam-act/",
-    "filePath": "posts/news-31d25a92-bc75-81fc-816f-f5d3ec28eef6.md"
+    "filePath": "posts/news-31d25a92-bc75-81fc-816f-f5d3ec28eef6.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31d25a92-bc75-8113-ab1a-ef79563d5907",
@@ -745,7 +1056,11 @@
     "source": "The White House",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.whitehouse.gov/briefing-room/statements-releases/2026/03/06/national-cyber-strategy/",
-    "filePath": "posts/news-31d25a92-bc75-8113-ab1a-ef79563d5907.md"
+    "filePath": "posts/news-31d25a92-bc75-8113-ab1a-ef79563d5907.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31b25a92-bc75-8103-95e2-e95d9bbe0c36",
@@ -755,7 +1070,11 @@
     "source": "Zenity Labs 등 해외 보안 매체",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://thehackernews.com",
-    "filePath": "posts/news-31b25a92-bc75-8103-95e2-e95d9bbe0c36.md"
+    "filePath": "posts/news-31b25a92-bc75-8103-95e2-e95d9bbe0c36.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31a25a92-bc75-8170-8ac9-dcafb38f4049",
@@ -765,7 +1084,11 @@
     "source": "보안뉴스, BleepingComputer 등 종합",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.bleepingcomputer.com/news/security/android-march-2026-security-update-fixes-qualcomm-zero-day/",
-    "filePath": "posts/news-31a25a92-bc75-8170-8ac9-dcafb38f4049.md"
+    "filePath": "posts/news-31a25a92-bc75-8170-8ac9-dcafb38f4049.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31a25a92-bc75-81ed-ae67-d26bb631d571",
@@ -775,7 +1098,11 @@
     "source": "보안뉴스, The Hacker News 등 종합",
     "importance": "⭐⭐⭐",
     "newsLink": "https://thehackernews.com/2026/03/googles-tag-exposes-new-sophisticated.html",
-    "filePath": "posts/news-31a25a92-bc75-81ed-ae67-d26bb631d571.md"
+    "filePath": "posts/news-31a25a92-bc75-81ed-ae67-d26bb631d571.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31a25a92-bc75-8172-9024-c5e56922ff73",
@@ -785,7 +1112,11 @@
     "source": "보안뉴스, The Hacker News 등 종합",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://thehackernews.com/2026/03/over-3000-google-cloud-api-keys-leaked.html",
-    "filePath": "posts/news-31a25a92-bc75-8172-9024-c5e56922ff73.md"
+    "filePath": "posts/news-31a25a92-bc75-8172-9024-c5e56922ff73.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31a25a92-bc75-81d3-b689-ddfe92bcd76a",
@@ -795,7 +1126,11 @@
     "source": "BleepingComputer",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.bleepingcomputer.com/news/security/cisa-adds-vmware-aria-operations-zero-day-to-its-kev-catalog/",
-    "filePath": "posts/news-31a25a92-bc75-81d3-b689-ddfe92bcd76a.md"
+    "filePath": "posts/news-31a25a92-bc75-81d3-b689-ddfe92bcd76a.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31a25a92-bc75-816d-bd04-c1e8d5999576",
@@ -805,7 +1140,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/media/view.asp?idx=127345",
-    "filePath": "posts/news-31a25a92-bc75-816d-bd04-c1e8d5999576.md"
+    "filePath": "posts/news-31a25a92-bc75-816d-bd04-c1e8d5999576.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31a25a92-bc75-81f1-b112-eaa7e51d7eb1",
@@ -815,7 +1154,11 @@
     "source": "조선비즈",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://biz.chosun.com/stock/finance/2026/03/04/E7P5C6C6C6C6C6C6C6C6C6C6C6/",
-    "filePath": "posts/news-31a25a92-bc75-81f1-b112-eaa7e51d7eb1.md"
+    "filePath": "posts/news-31a25a92-bc75-81f1-b112-eaa7e51d7eb1.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31925a92-bc75-81ea-bc80-cc1c94115f6c",
@@ -825,7 +1168,11 @@
     "source": "디지털데일리",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.ddaily.co.kr/page/view/2026030310225574041",
-    "filePath": "posts/news-31925a92-bc75-81ea-bc80-cc1c94115f6c.md"
+    "filePath": "posts/news-31925a92-bc75-81ea-bc80-cc1c94115f6c.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31725a92-bc75-81cc-810f-c612cf130d5b",
@@ -835,7 +1182,11 @@
     "source": "보안뉴스 등 주요 언론사",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/",
-    "filePath": "posts/news-31725a92-bc75-81cc-810f-c612cf130d5b.md"
+    "filePath": "posts/news-31725a92-bc75-81cc-810f-c612cf130d5b.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31825a92-bc75-8101-91f3-e96a50a367fd",
@@ -845,7 +1196,11 @@
     "source": "BleepingComputer",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.bleepingcomputer.com/news/security/android-march-2026-security-update-fixes-qualcomm-zero-day/",
-    "filePath": "posts/news-31825a92-bc75-8101-91f3-e96a50a367fd.md"
+    "filePath": "posts/news-31825a92-bc75-8101-91f3-e96a50a367fd.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31625a92-bc75-8169-ace5-e927e86ca977",
@@ -855,7 +1210,11 @@
     "source": "CSO Online",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.csoonline.com/",
-    "filePath": "posts/news-31625a92-bc75-8169-ace5-e927e86ca977.md"
+    "filePath": "posts/news-31625a92-bc75-8169-ace5-e927e86ca977.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31725a92-bc75-8110-b96e-ecd528422b92",
@@ -865,7 +1224,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐",
     "newsLink": "https://search.naver.com/search.naver?query=2026%EB%85%84+%EA%B8%80%EB%A1%9C%EB%B2%8C+%EB%9E%9C%EC%84%AC%EC%9B%A8%EC%96%B4+%EB%8F%99%ED%96%A5+%EB%B3%B4%EA%B3%A0%EC%84%9C",
-    "filePath": "posts/news-31725a92-bc75-8110-b96e-ecd528422b92.md"
+    "filePath": "posts/news-31725a92-bc75-8110-b96e-ecd528422b92.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31625a92-bc75-81b2-8b3f-d0eab0ecacea",
@@ -875,7 +1238,11 @@
     "source": "The Hacker News",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://thehackernews.com/",
-    "filePath": "posts/news-31625a92-bc75-81b2-8b3f-d0eab0ecacea.md"
+    "filePath": "posts/news-31625a92-bc75-81b2-8b3f-d0eab0ecacea.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31525a92-bc75-8175-a5b4-dd4041c7716c",
@@ -885,7 +1252,11 @@
     "source": "대한민국 정책브리핑",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.korea.kr/news/policyNewsView.do?newsId=148911679",
-    "filePath": "posts/news-31525a92-bc75-8175-a5b4-dd4041c7716c.md"
+    "filePath": "posts/news-31525a92-bc75-8175-a5b4-dd4041c7716c.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31a25a92-bc75-8154-93d5-d6c70823ce3e",
@@ -895,7 +1266,11 @@
     "source": "Defense One, DefenseScoop 등 외신 종합",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://defensescoop.com/2026/02/27/pentagon-new-ciso-aaron-bishop/",
-    "filePath": "posts/news-31a25a92-bc75-8154-93d5-d6c70823ce3e.md"
+    "filePath": "posts/news-31a25a92-bc75-8154-93d5-d6c70823ce3e.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31425a92-bc75-81da-8601-cd515b5d50c8",
@@ -905,7 +1280,11 @@
     "source": "LG유플러스 / 국내 언론 동향",
     "importance": "⭐⭐",
     "newsLink": "https://www.koreaittimes.com/",
-    "filePath": "posts/news-31425a92-bc75-81da-8601-cd515b5d50c8.md"
+    "filePath": "posts/news-31425a92-bc75-81da-8601-cd515b5d50c8.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31425a92-bc75-81b8-91f4-c4d6c1bd6b1e",
@@ -915,7 +1294,11 @@
     "source": "금융보안원 / 보안뉴스",
     "importance": "⭐⭐⭐⭐⭐",
     "newsLink": "https://www.boannews.com/",
-    "filePath": "posts/news-31425a92-bc75-81b8-91f4-c4d6c1bd6b1e.md"
+    "filePath": "posts/news-31425a92-bc75-81b8-91f4-c4d6c1bd6b1e.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31825a92-bc75-8101-b852-e488032d0d62",
@@ -925,7 +1308,11 @@
     "source": "Dark Reading",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.darkreading.com/vulnerabilities-threats/openclaw-vulnerability-allows-ai-agent-hijacking",
-    "filePath": "posts/news-31825a92-bc75-8101-b852-e488032d0d62.md"
+    "filePath": "posts/news-31825a92-bc75-8101-b852-e488032d0d62.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31425a92-bc75-8127-8225-c29d3a58b64b",
@@ -935,7 +1322,11 @@
     "source": "미국 CISA / Cisco",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.cisa.gov/",
-    "filePath": "posts/news-31425a92-bc75-8127-8225-c29d3a58b64b.md"
+    "filePath": "posts/news-31425a92-bc75-8127-8225-c29d3a58b64b.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31425a92-bc75-819a-9d2c-f885b63dea3a",
@@ -945,7 +1336,11 @@
     "source": "Google(GTIG) / Mandiant",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://thehackernews.com/",
-    "filePath": "posts/news-31425a92-bc75-819a-9d2c-f885b63dea3a.md"
+    "filePath": "posts/news-31425a92-bc75-819a-9d2c-f885b63dea3a.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31425a92-bc75-81c2-aef7-f24650187a11",
@@ -955,7 +1350,11 @@
     "source": "Anthropic / AI 및 증권 매체",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://economictimes.com/",
-    "filePath": "posts/news-31425a92-bc75-81c2-aef7-f24650187a11.md"
+    "filePath": "posts/news-31425a92-bc75-81c2-aef7-f24650187a11.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32625a92-bc75-81de-87ac-e991d3050d6c",
@@ -965,7 +1364,11 @@
     "source": "데일리시큐",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.dailysecu.com",
-    "filePath": "posts/news-32625a92-bc75-81de-87ac-e991d3050d6c.md"
+    "filePath": "posts/news-32625a92-bc75-81de-87ac-e991d3050d6c.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-32625a92-bc75-813e-8995-ccfd3519c9df",
@@ -975,7 +1378,11 @@
     "source": "매일경제",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.mk.co.kr",
-    "filePath": "posts/news-32625a92-bc75-813e-8995-ccfd3519c9df.md"
+    "filePath": "posts/news-32625a92-bc75-813e-8995-ccfd3519c9df.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31825a92-bc75-813c-903d-c778e771d463",
@@ -985,7 +1392,11 @@
     "source": "Security Week",
     "importance": "⭐⭐⭐",
     "newsLink": "https://www.securityweek.com/google-patches-high-severity-hijacking-vulnerability-in-gemini-live/",
-    "filePath": "posts/news-31825a92-bc75-813c-903d-c778e771d463.md"
+    "filePath": "posts/news-31825a92-bc75-813c-903d-c778e771d463.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-31425a92-bc75-8189-98e2-c655026bcb42",
@@ -995,7 +1406,11 @@
     "source": "국내 보안 언론 동향",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "https://www.donga.com/",
-    "filePath": "posts/news-31425a92-bc75-8189-98e2-c655026bcb42.md"
+    "filePath": "posts/news-31425a92-bc75-8189-98e2-c655026bcb42.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-36b25a92-bc75-81c6-980f-d3b595c98e4f",
@@ -1005,7 +1420,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐",
     "newsLink": "http://www.boannews.com/media/view.asp?idx=143787&kind=&sub_kind=",
-    "filePath": "posts/news-36b25a92-bc75-81c6-980f-d3b595c98e4f.md"
+    "filePath": "posts/news-36b25a92-bc75-81c6-980f-d3b595c98e4f.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-36b25a92-bc75-81ba-b2f0-d2074b4ab64d",
@@ -1015,7 +1434,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐",
     "newsLink": "http://www.boannews.com/media/view.asp?idx=143785&kind=&sub_kind=",
-    "filePath": "posts/news-36b25a92-bc75-81ba-b2f0-d2074b4ab64d.md"
+    "filePath": "posts/news-36b25a92-bc75-81ba-b2f0-d2074b4ab64d.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-36b25a92-bc75-8161-8781-c18ff5288ccf",
@@ -1025,7 +1448,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐",
     "newsLink": "http://www.boannews.com/media/view.asp?idx=143784&kind=&sub_kind=",
-    "filePath": "posts/news-36b25a92-bc75-8161-8781-c18ff5288ccf.md"
+    "filePath": "posts/news-36b25a92-bc75-8161-8781-c18ff5288ccf.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-36b25a92-bc75-817f-95ec-db726acbe90a",
@@ -1035,7 +1462,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐",
     "newsLink": "http://www.boannews.com/media/view.asp?idx=143784&kind=&sub_kind=",
-    "filePath": "posts/news-36b25a92-bc75-817f-95ec-db726acbe90a.md"
+    "filePath": "posts/news-36b25a92-bc75-817f-95ec-db726acbe90a.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-36b25a92-bc75-81fa-8c33-f40692bfa034",
@@ -1045,7 +1476,11 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "http://www.boannews.com/media/view.asp?idx=143786&kind=&sub_kind=",
-    "filePath": "posts/news-36b25a92-bc75-81fa-8c33-f40692bfa034.md"
+    "filePath": "posts/news-36b25a92-bc75-81fa-8c33-f40692bfa034.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   },
   {
     "id": "news-36b25a92-bc75-8142-b24e-ca7ab35b8e6e",
@@ -1055,6 +1490,10 @@
     "source": "보안뉴스",
     "importance": "⭐⭐⭐⭐",
     "newsLink": "http://www.boannews.com/media/view.asp?idx=143788&kind=&sub_kind=",
-    "filePath": "posts/news-36b25a92-bc75-8142-b24e-ca7ab35b8e6e.md"
+    "filePath": "posts/news-36b25a92-bc75-8142-b24e-ca7ab35b8e6e.md",
+    "tags": [
+      "보안뉴스",
+      "Notion연동"
+    ]
   }
 ]
