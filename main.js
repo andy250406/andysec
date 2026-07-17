@@ -805,8 +805,30 @@ function renderProjectNotes(projectId) {
   });
 }
 
+// Reset Article Font Size to 100%
+function resetTextSize() {
+  const defaultBtn = document.querySelector('.text-size-btn[data-size="1em"]');
+  if (defaultBtn) {
+    const sizeBtns = document.querySelectorAll('.text-size-btn');
+    sizeBtns.forEach(b => {
+      b.classList.remove('active');
+      b.style.background = 'none';
+      b.style.color = 'var(--text-muted)';
+      b.style.fontWeight = 'normal';
+    });
+    defaultBtn.classList.add('active');
+    defaultBtn.style.background = 'var(--accent-color)';
+    defaultBtn.style.color = '#fff';
+    defaultBtn.style.fontWeight = '600';
+  }
+  if (elements.articleContent) {
+    elements.articleContent.style.fontSize = '1em';
+  }
+}
+
 // Show Local Note Detail
 function showLocalNoteDetail(note) {
+  resetTextSize();
   const isSync = appState.syncEnabled && appState.githubPat;
   if (!isSync) {
     alert('보안상 비공개 상태인 프로젝트 게시글입니다. 접근 권한이 없습니다.');
@@ -831,6 +853,7 @@ function showLocalNoteDetail(note) {
 
 // Show Post Detail View
 async function showArticleDetail(postId) {
+  resetTextSize();
   const post = appState.posts.find(p => p.id === postId);
   if (!post) {
     elements.articleTitle.textContent = '글을 찾을 수 없습니다.';
@@ -1610,6 +1633,29 @@ function setupEventListeners() {
       console.error('Error during batch deletion:', err);
       alert('삭제 중 오류가 발생했습니다: ' + err.message);
     }
+  });
+
+  // Text size selector for article details
+  const sizeBtns = document.querySelectorAll('.text-size-btn');
+  sizeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      sizeBtns.forEach(b => {
+        b.classList.remove('active');
+        b.style.background = 'none';
+        b.style.color = 'var(--text-muted)';
+        b.style.fontWeight = 'normal';
+      });
+      btn.classList.add('active');
+      btn.style.background = 'var(--accent-color)';
+      btn.style.color = '#fff';
+      btn.style.fontWeight = '600';
+      
+      const sizeValue = btn.getAttribute('data-size');
+      const contentArea = document.getElementById('article-content');
+      if (contentArea) {
+        contentArea.style.fontSize = sizeValue;
+      }
+    });
   });
 }
 

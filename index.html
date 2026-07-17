@@ -392,53 +392,46 @@
                     <div class="skill-item">
                       <div class="skill-info">
                         <span>개인정보보호 및 법률 점검</span>
-                        <span class="skill-level">하 (⭐)</span>
+                        <span class="skill-level">상 (⭐⭐⭐)</span>
                       </div>
-                      <div class="progress-bar"><div class="progress" style="width: 30%;"></div></div>
+                      <div class="progress-bar"><div class="progress" style="width: 90%;"></div></div>
                     </div>
                     <div class="skill-item">
                       <div class="skill-info">
                         <span>취약점 진단 (Web/System)</span>
-                        <span class="skill-level">하 (⭐)</span>
+                        <span class="skill-level">중상 (⭐⭐)</span>
                       </div>
-                      <div class="progress-bar"><div class="progress" style="width: 30%;"></div></div>
+                      <div class="progress-bar"><div class="progress" style="width: 75%;"></div></div>
                     </div>
                     <div class="skill-item">
                       <div class="skill-info">
                         <span>ISMS-P 인증 기준 분석</span>
-                        <span class="skill-level">하 (⭐)</span>
+                        <span class="skill-level">중 (⭐⭐)</span>
                       </div>
-                      <div class="progress-bar"><div class="progress" style="width: 30%;"></div></div>
+                      <div class="progress-bar"><div class="progress" style="width: 70%;"></div></div>
                     </div>
 
                     <div class="skill-category-title">개발 & 데이터</div>
                     <div class="skill-item">
                       <div class="skill-info">
-                        <span>Python</span>
+                        <span>Python (Pandas, Flask)</span>
                         <span class="skill-level">상 (⭐⭐⭐)</span>
                       </div>
                       <div class="progress-bar"><div class="progress" style="width: 85%;"></div></div>
                     </div>
                     <div class="skill-item">
                       <div class="skill-info">
-                        <span>JAVA, C</span>
-                        <span class="skill-level">중상 (⭐⭐)</span>
-                      </div>
-                      <div class="progress-bar"><div class="progress" style="width: 70%;"></div></div>
-                    </div>
-                    <div class="skill-item">
-                      <div class="skill-info">
                         <span>클라우드 인프라 (AWS)</span>
-                        <span class="skill-level">하 (⭐)</span>
+                        <span class="skill-level">중 (⭐⭐)</span>
                       </div>
-                      <div class="progress-bar"><div class="progress" style="width: 30%;"></div></div>
+                      <div class="progress-bar"><div class="progress" style="width: 65%;"></div></div>
                     </div>
                     <div class="skill-item">
                       <div class="skill-info">
                         <span>HTML/CSS/JS (Vanilla)</span>
-                        <span class="skill-level">하 (⭐)</span>
+                        <span class="skill-level">중 (⭐⭐)</span>
                       </div>
-                      <div class="progress-bar"><div class="progress" style="width: 30%;"></div></div>
+                      <div class="progress-bar"><div class="progress" style="width: 60%;"></div></div>
                     </div>
                   </div>
                 </div>
@@ -460,10 +453,19 @@
                 <button class="btn-danger btn-sm" id="btn-delete-article"><i class="fa-regular fa-trash-can"></i> 삭제</button>
               </div>
             </div>
-            <div class="article-meta">
-              <span id="article-date" class="meta-item"></span>
-              <span id="article-category" class="meta-item badge"></span>
-              <span id="article-type" class="meta-item badge type-badge"></span>
+            <div class="article-meta" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; width: 100%;">
+              <div>
+                <span id="article-date" class="meta-item"></span>
+                <span id="article-category" class="meta-item badge"></span>
+                <span id="article-type" class="meta-item badge type-badge"></span>
+              </div>
+              <div class="text-size-selector-bar" style="display: flex; align-items: center; gap: 2px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); padding: 3px; border-radius: 20px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted); padding: 0 8px;"><i class="fa-solid fa-font"></i> 크기</span>
+                <button type="button" class="text-size-btn" data-size="0.5em" style="background: none; border: none; padding: 4px 10px; border-radius: 15px; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">50%</button>
+                <button type="button" class="text-size-btn" data-size="0.75em" style="background: none; border: none; padding: 4px 10px; border-radius: 15px; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">75%</button>
+                <button type="button" class="text-size-btn active" data-size="1em" style="background: var(--accent-color); border: none; padding: 4px 10px; border-radius: 15px; color: #fff; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; font-weight: 600;">100%</button>
+                <button type="button" class="text-size-btn" data-size="1.25em" style="background: none; border: none; padding: 4px 10px; border-radius: 15px; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">125%</button>
+              </div>
             </div>
             <h1 id="article-title">글 제목</h1>
             <div class="article-tags" id="article-tags"></div>
