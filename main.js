@@ -119,7 +119,6 @@ const elements = {
   articleDate: document.getElementById('article-date'),
   articleCategory: document.getElementById('article-category'),
   articleType: document.getElementById('article-type'),
-  articleTags: document.getElementById('article-tags'),
   articleContent: document.getElementById('article-content'),
   
   // More buttons
@@ -676,9 +675,6 @@ function renderStudyNotes() {
       </div>
       <div class="post-card-body">
         <h4 class="post-card-title">${post.title}</h4>
-        <div class="badge-group">
-          ${post.tags ? post.tags.map(t => `<span class="badge">#${t}</span>`).join('') : ''}
-        </div>
       </div>
       <div class="post-card-footer">
         <span><i class="fa-regular fa-calendar-days"></i> ${post.date}</span>
@@ -846,7 +842,6 @@ function showLocalNoteDetail(note) {
   elements.articleCategory.className = 'meta-item badge project';
   elements.articleCategory.textContent = '프로젝트 기록';
   elements.articleType.style.display = 'none';
-  elements.articleTags.innerHTML = '';
   
   elements.articleContent.innerHTML = marked.parse(note.content);
 }
@@ -877,8 +872,6 @@ async function showArticleDetail(postId) {
   } else {
     elements.articleType.style.display = 'none';
   }
-  
-  elements.articleTags.innerHTML = post.tags ? post.tags.map(t => `<span class="badge">#${t}</span>`).join('') : '';
   
   if (!post.content) {
     elements.articleContent.innerHTML = '<p class="text-center text-muted" style="padding: 2rem;"><i class="fa-solid fa-spinner fa-spin"></i> 내용을 불러오는 중...</p>';
@@ -952,6 +945,7 @@ function getCategoryName(category) {
   const mapping = {
     'Cert': '자격증 공부',
     'CertAnalysis': '보안인증 분석',
+    'Shieldus': '쉴더스 교육',
     'Project': '프로젝트',
     'News': '보안 뉴스'
   };
@@ -962,9 +956,8 @@ function matchSearch(post) {
   if (!appState.searchQuery) return true;
   const q = appState.searchQuery.toLowerCase();
   const title = post.title.toLowerCase();
-  const tagMatch = post.tags && post.tags.some(t => t.toLowerCase().includes(q));
   const typeMatch = post.type && post.type.toLowerCase().includes(q);
-  return title.includes(q) || tagMatch || typeMatch;
+  return title.includes(q) || typeMatch;
 }
 
 // Unicode-Safe Base64 encoding
@@ -1320,7 +1313,6 @@ function setupEventListeners() {
       document.getElementById('study-title').value = post.title;
       document.getElementById('study-category').value = post.category;
       document.getElementById('study-type').value = post.type || '';
-      document.getElementById('study-tags').value = post.tags ? post.tags.join(', ') : '';
       document.getElementById('study-content').value = post.content || '';
       
       const newsFields = document.getElementById('news-fields-group');
@@ -1481,9 +1473,6 @@ function setupEventListeners() {
       e.preventDefault();
       const editId = elements.studyEditId.value;
       
-      const tagsString = document.getElementById('study-tags').value;
-      const tags = tagsString.split(',').map(t => t.trim()).filter(t => t.length > 0);
-      
       const category = document.getElementById('study-category').value;
       const isNews = category === 'News';
       
@@ -1491,7 +1480,6 @@ function setupEventListeners() {
         title: document.getElementById('study-title').value,
         category: category,
         type: document.getElementById('study-type').value,
-        tags: tags,
         content: document.getElementById('study-content').value
       };
       

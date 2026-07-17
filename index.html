@@ -468,7 +468,6 @@
               </div>
             </div>
             <h1 id="article-title">글 제목</h1>
-            <div class="article-tags" id="article-tags"></div>
           </div>
           <hr class="article-divider">
           <article class="markdown-body" id="article-content">
@@ -615,6 +614,7 @@ print("Hello Security")
               <select id="study-category" required class="custom-select" style="width:100%; height:38px;">
                 <option value="Cert">자격증 공부</option>
                 <option value="CertAnalysis">보안인증 분석</option>
+                <option value="Shieldus">쉴더스 교육</option>
               </select>
             </div>
             <div class="form-group">
@@ -622,10 +622,7 @@ print("Hello Security")
               <input type="text" id="study-type" required placeholder="예: CPPG, ISMS-P">
             </div>
           </div>
-          <div class="form-group">
-            <label for="study-tags">태그 (쉼표로 구분) *</label>
-            <input type="text" id="study-tags" required placeholder="예: 개인정보, 자격증, 법률">
-          </div>
+
           <div class="form-group flex-grow-group">
             <label for="study-content">내용 (Markdown 지원) *</label>
             <textarea id="study-content" required placeholder="공부한 핵심 요약을 마크다운을 곁들여 작성해 보세요."></textarea>

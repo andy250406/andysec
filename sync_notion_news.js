@@ -194,7 +194,6 @@ async function sync() {
       source: source,
       importance: importance,
       newsLink: newsLink,
-      tags: ["보안뉴스", "Notion연동"],
       filePath: `posts/${filename}`
     });
   }
