@@ -1,5 +1,15 @@
 [
   {
+    "id": "news-20260714-tving",
+    "title": "티빙 해킹, 제휴 가입자까지 개인정보 유출 피해 확산 우려",
+    "date": "2026-07-14",
+    "category": "News",
+    "source": "연합뉴스",
+    "importance": "⭐⭐⭐⭐",
+    "newsLink": "https://www.yna.co.kr/view/AKR20260714141400017",
+    "filePath": "posts/news-20260714-tving.md"
+  },
+  {
     "id": "study-1783753819893",
     "date": "2026-07-11",
     "filePath": "posts/study-1783753819893.md",
