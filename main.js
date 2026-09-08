@@ -148,7 +148,7 @@ const elements = {
   btnToggleGuideBanner: document.getElementById('btn-toggle-guide-banner'),
   editorGuideBody: document.getElementById('editor-guide-body'),
   editorMainTextarea: document.getElementById('editor-main-textarea'),
-  editorLivePreview: document.getElementById('editor-live-preview'),
+  editorWysiwygContent: document.getElementById('editor-wysiwyg-content'),
   editorWordCount: document.getElementById('editor-word-count'),
   
   // Table Generator Modal
@@ -584,7 +584,7 @@ function renderAll() {
   renderStudyNotes();
   renderProjectsList();
   renderSecurityNews();
-  applySyncPermissions();
+  applyAdminPermissions();
 }
 
 // Render Active Project on Dashboard (Slim & D-day configured)
@@ -1070,19 +1070,24 @@ function saveCustomCategories(cats) {
 
 function getAllStudyCategories() {
   const customCats = getCustomCategories();
+  const hiddenDefaults = JSON.parse(localStorage.getItem('hidden_default_cats') || '[]');
   const map = new Map();
   
-  // 1. Default categories
-  DEFAULT_CATEGORIES.forEach(c => map.set(c.id, { ...c, isDefault: true }));
+  // 1. Default categories (filter out deleted default categories)
+  DEFAULT_CATEGORIES.forEach(c => {
+    if (!hiddenDefaults.includes(c.id)) {
+      map.set(c.id, { ...c, isDefault: true });
+    }
+  });
   
   // 2. Custom categories in localStorage
   customCats.forEach(c => map.set(c.id, { ...c, isDefault: false }));
   
-  // 3. Any category found in existing posts (in case of legacy/imported posts)
+  // 3. Any category found in existing posts (in case of legacy/imported posts, provided not explicitly deleted)
   if (appState.posts && Array.isArray(appState.posts)) {
     appState.posts.forEach(p => {
       if (p.category && p.category !== 'News' && p.category !== 'Project' && p.category !== 'ProjectNote') {
-        if (!map.has(p.category)) {
+        if (!map.has(p.category) && !hiddenDefaults.includes(p.category)) {
           map.set(p.category, { id: p.category, name: p.category, isDefault: false });
         }
       }
@@ -1510,7 +1515,11 @@ function setupEventListeners() {
       }
       
       elements.editorPostType.value = post.type || (isNews ? 'News' : '보안');
-      elements.editorMainTextarea.value = post.content || '';
+      const rawMarkdown = post.content || '';
+      elements.editorMainTextarea.value = rawMarkdown;
+      if (elements.editorWysiwygContent) {
+        elements.editorWysiwygContent.innerHTML = rawMarkdown ? marked.parse(rawMarkdown) : '';
+      }
       
       // News specific fields
       if (elements.editorNewsFieldsGroup) {
@@ -1532,6 +1541,9 @@ function setupEventListeners() {
       elements.editorCustomCategoryInput.value = '';
       elements.editorPostType.value = '';
       elements.editorMainTextarea.value = '';
+      if (elements.editorWysiwygContent) {
+        elements.editorWysiwygContent.innerHTML = '';
+      }
       
       if (elements.editorNewsFieldsGroup) {
         elements.editorNewsFieldsGroup.style.display = 'none';
@@ -1542,7 +1554,7 @@ function setupEventListeners() {
       }
     }
 
-    updateEditorLivePreview();
+    updateEditorWordCount();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -1552,46 +1564,200 @@ function setupEventListeners() {
     switchTab(targetTab);
   }
 
-  function updateEditorLivePreview() {
-    if (!elements.editorLivePreview || !elements.editorMainTextarea) return;
-    const rawContent = elements.editorMainTextarea.value;
-    
-    // Update word count
-    if (elements.editorWordCount) {
-      elements.editorWordCount.textContent = `${rawContent.length}자`;
-    }
-
-    if (!rawContent.trim()) {
-      elements.editorLivePreview.innerHTML = '<p class="text-muted" style="text-align:center; margin-top:3rem;">작성 중인 내용이 여기에 실시간으로 표시됩니다.</p>';
-      return;
-    }
-
-    try {
-      // Parse markdown with marked.js
-      const html = marked.parse(rawContent);
-      elements.editorLivePreview.innerHTML = html;
-    } catch (e) {
-      console.warn('Markdown live preview parsing error:', e);
+  function updateEditorWordCount() {
+    if (elements.editorWordCount && elements.editorWysiwygContent) {
+      const text = elements.editorWysiwygContent.innerText || '';
+      elements.editorWordCount.textContent = `${text.trim().length}자`;
     }
   }
 
-  // Helper to insert markdown tags into textarea
-  function insertMarkdownSnippet(prefix, suffix = '', defaultText = '') {
-    const textarea = elements.editorMainTextarea;
-    if (!textarea) return;
+  // Convert HTML nodes back to clean Markdown
+  function htmlNodeToMarkdown(node) {
+    if (!node) return '';
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const selected = text.substring(start, end) || defaultText;
+    const tag = node.tagName.toLowerCase();
+    const children = Array.from(node.childNodes).map(htmlNodeToMarkdown).join('');
 
-    const replacement = `${prefix}${selected}${suffix}`;
-    textarea.value = text.substring(0, start) + replacement + text.substring(end);
+    switch (tag) {
+      case 'h1':
+        return `\n# ${children.trim()}\n\n`;
+      case 'h2':
+        return `\n## ${children.trim()}\n\n`;
+      case 'h3':
+        return `\n### ${children.trim()}\n\n`;
+      case 'h4':
+        return `\n#### ${children.trim()}\n\n`;
+      case 'h5':
+        return `\n##### ${children.trim()}\n\n`;
+      case 'h6':
+        return `\n###### ${children.trim()}\n\n`;
+      case 'p':
+        return children.trim() ? `\n${children.trim()}\n\n` : '\n';
+      case 'strong':
+      case 'b':
+        return `**${children}**`;
+      case 'em':
+      case 'i':
+        return `*${children}*`;
+      case 'del':
+      case 's':
+      case 'strike':
+        return `~~${children}~~`;
+      case 'code':
+        if (node.parentElement && node.parentElement.tagName.toLowerCase() === 'pre') {
+          return children;
+        }
+        return `\`${children}\``;
+      case 'pre':
+        return `\n\`\`\`\n${children.trim()}\n\`\`\`\n\n`;
+      case 'blockquote':
+        return `\n> ${children.trim().replace(/\n/g, '\n> ')}\n\n`;
+      case 'ul':
+        return `\n${children}\n`;
+      case 'ol':
+        return `\n${children}\n`;
+      case 'li': {
+        const parentTag = node.parentElement ? node.parentElement.tagName.toLowerCase() : 'ul';
+        if (parentTag === 'ol') {
+          const index = Array.from(node.parentElement.children).indexOf(node) + 1;
+          return `${index}. ${children.trim()}\n`;
+        }
+        return `- ${children.trim()}\n`;
+      }
+      case 'hr':
+        return `\n---\n\n`;
+      case 'a': {
+        const href = node.getAttribute('href') || '';
+        return `[${children.trim() || href}](${href})`;
+      }
+      case 'table': {
+        const rows = Array.from(node.querySelectorAll('tr'));
+        if (rows.length === 0) return '';
+        let md = '\n';
+        rows.forEach((r, idx) => {
+          const cells = Array.from(r.querySelectorAll('th, td'));
+          const rowText = '| ' + cells.map(c => htmlNodeToMarkdown(c).trim().replace(/\|/g, '\\|')).join(' | ') + ' |';
+          md += rowText + '\n';
+          if (idx === 0) {
+            const separator = '| ' + cells.map(() => '---').join(' | ') + ' |';
+            md += separator + '\n';
+          }
+        });
+        return md + '\n';
+      }
+      case 'br':
+        return '\n';
+      case 'div':
+        return children.trim() ? `\n${children.trim()}\n` : '\n';
+      default:
+        return children;
+    }
+  }
 
-    const cursorPosition = start + prefix.length + selected.length;
-    textarea.focus();
-    textarea.setSelectionRange(cursorPosition, cursorPosition);
-    updateEditorLivePreview();
+  function getWysiwygMarkdown() {
+    if (!elements.editorWysiwygContent) return '';
+    let md = Array.from(elements.editorWysiwygContent.childNodes)
+      .map(htmlNodeToMarkdown)
+      .join('');
+    // Normalize excess blank lines
+    md = md.replace(/\n{3,}/g, '\n\n').trim();
+    return md;
+  }
+
+  // Handle instant Markdown transformations as the user types in contenteditable
+  if (elements.editorWysiwygContent) {
+    elements.editorWysiwygContent.addEventListener('input', () => {
+      updateEditorWordCount();
+    });
+
+    elements.editorWysiwygContent.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        const sel = window.getSelection();
+        if (!sel || !sel.isCollapsed || !sel.anchorNode) return;
+
+        let node = sel.anchorNode;
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          node = node.childNodes[sel.anchorOffset - 1] || node;
+        }
+        if (node.nodeType !== Node.TEXT_NODE) return;
+
+        const textBeforeCursor = node.textContent.substring(0, sel.anchorOffset);
+
+        // Pattern matching for immediate transformations
+        // 1. List: "- " or "* "
+        if (e.key === ' ' && (textBeforeCursor === '-' || textBeforeCursor === '*')) {
+          e.preventDefault();
+          node.textContent = node.textContent.substring(sel.anchorOffset);
+          document.execCommand('insertUnorderedList', false, null);
+          return;
+        }
+
+        // 2. Numbered list: "1. "
+        if (e.key === ' ' && textBeforeCursor === '1.') {
+          e.preventDefault();
+          node.textContent = node.textContent.substring(sel.anchorOffset);
+          document.execCommand('insertOrderedList', false, null);
+          return;
+        }
+
+        // 3. Heading 1: "# "
+        if (e.key === ' ' && textBeforeCursor === '#') {
+          e.preventDefault();
+          node.textContent = node.textContent.substring(sel.anchorOffset);
+          document.execCommand('formatBlock', false, 'H1');
+          return;
+        }
+
+        // 4. Heading 2: "## "
+        if (e.key === ' ' && textBeforeCursor === '##') {
+          e.preventDefault();
+          node.textContent = node.textContent.substring(sel.anchorOffset);
+          document.execCommand('formatBlock', false, 'H2');
+          return;
+        }
+
+        // 5. Heading 3: "### "
+        if (e.key === ' ' && textBeforeCursor === '###') {
+          e.preventDefault();
+          node.textContent = node.textContent.substring(sel.anchorOffset);
+          document.execCommand('formatBlock', false, 'H3');
+          return;
+        }
+
+        // 6. Blockquote: "> "
+        if (e.key === ' ' && textBeforeCursor === '>') {
+          e.preventDefault();
+          node.textContent = node.textContent.substring(sel.anchorOffset);
+          document.execCommand('formatBlock', false, 'BLOCKQUOTE');
+          return;
+        }
+
+        // 7. Horizontal rule: "---" + Enter
+        if (e.key === 'Enter' && textBeforeCursor.trim() === '---') {
+          e.preventDefault();
+          node.textContent = '';
+          document.execCommand('insertHorizontalRule', false, null);
+          return;
+        }
+      }
+    });
+  }
+
+  // Insert HTML or Markdown tags into WYSIWYG editor
+  function insertWysiwygSnippet(prefix, suffix = '', defaultText = '') {
+    if (!elements.editorWysiwygContent) return;
+    elements.editorWysiwygContent.focus();
+    const sel = window.getSelection();
+    let selectedText = sel ? sel.toString() : '';
+    if (!selectedText) selectedText = defaultText;
+
+    const combined = `${prefix}${selectedText}${suffix}`;
+    document.execCommand('insertText', false, combined);
+    updateEditorWordCount();
   }
 
   // Open Editor button in Study Notes tab
@@ -1601,7 +1767,8 @@ function setupEventListeners() {
 
   // Cancel / Back button in Note Editor
   elements.btnCancelEditor?.addEventListener('click', () => {
-    if (elements.editorMainTextarea && elements.editorMainTextarea.value.trim().length > 0) {
+    const content = getWysiwygMarkdown();
+    if (content.trim().length > 0) {
       if (!confirm('작성 중인 내용이 저장되지 않았습니다. 목록으로 돌아가시겠습니까?')) {
         return;
       }
@@ -1646,59 +1813,67 @@ function setupEventListeners() {
     }
   });
 
-  // Live input handler on main textarea
-  elements.editorMainTextarea?.addEventListener('input', () => {
-    updateEditorLivePreview();
-  });
-
-  // Markdown Toolbar Actions
+  // Markdown Toolbar Actions (Targeting WYSIWYG content directly)
   document.querySelectorAll('.editor-toolbar .tool-btn[data-action]').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (!elements.editorWysiwygContent) return;
+      elements.editorWysiwygContent.focus();
       const action = btn.getAttribute('data-action');
       switch (action) {
         case 'h1':
-          insertMarkdownSnippet('# ', '', '제목 1');
+          document.execCommand('formatBlock', false, 'H1');
           break;
         case 'h2':
-          insertMarkdownSnippet('## ', '', '제목 2');
+          document.execCommand('formatBlock', false, 'H2');
           break;
         case 'h3':
-          insertMarkdownSnippet('### ', '', '제목 3');
+          document.execCommand('formatBlock', false, 'H3');
           break;
         case 'bold':
-          insertMarkdownSnippet('**', '**', '굵은 텍스트');
+          document.execCommand('bold', false, null);
           break;
         case 'italic':
-          insertMarkdownSnippet('*', '*', '기울임 텍스트');
+          document.execCommand('italic', false, null);
           break;
         case 'strike':
-          insertMarkdownSnippet('~~', '~~', '취소선');
+          document.execCommand('strikeThrough', false, null);
           break;
         case 'quote':
-          insertMarkdownSnippet('> ', '', '인용문 작성');
+          document.execCommand('formatBlock', false, 'BLOCKQUOTE');
           break;
-        case 'code-inline':
-          insertMarkdownSnippet('`', '`', '코드');
+        case 'code-inline': {
+          const sel = window.getSelection();
+          const txt = sel ? sel.toString() : 'code';
+          document.execCommand('insertHTML', false, `<code>${txt || '코드'}</code>`);
           break;
-        case 'code-block':
-          insertMarkdownSnippet('```\n', '\n```', '// 코드 작성');
+        }
+        case 'code-block': {
+          const sel = window.getSelection();
+          const txt = sel ? sel.toString() : '// 코드 작성';
+          document.execCommand('insertHTML', false, `<pre><code>${txt}</code></pre><p><br></p>`);
           break;
+        }
         case 'ul':
-          insertMarkdownSnippet('- ', '', '목록 항목');
+          document.execCommand('insertUnorderedList', false, null);
           break;
         case 'ol':
-          insertMarkdownSnippet('1. ', '', '순서 항목');
+          document.execCommand('insertOrderedList', false, null);
           break;
         case 'hr':
-          insertMarkdownSnippet('\n---\n', '');
+          document.execCommand('insertHorizontalRule', false, null);
           break;
-        case 'link':
-          insertMarkdownSnippet('[', '](https://)', '링크 텍스트');
+        case 'link': {
+          const url = prompt('링크 URL을 입력하세요:', 'https://');
+          if (url) {
+            document.execCommand('createLink', false, url);
+          }
           break;
+        }
         case 'img-tag':
-          insertMarkdownSnippet('{{img_1}}', '');
+          document.execCommand('insertText', false, '{{img_1}}');
           break;
       }
+      updateEditorWordCount();
     });
   });
 
@@ -1715,37 +1890,33 @@ function setupEventListeners() {
     if (elements.tableGeneratorModal) elements.tableGeneratorModal.style.display = 'none';
   });
 
-  // Table Generator Form submit
+  // Table Generator Form submit (Inserts HTML Table directly into WYSIWYG editor)
   elements.tableGeneratorForm?.addEventListener('submit', (e) => {
     e.preventDefault();
     const cols = parseInt(elements.tableInputCols.value, 10) || 3;
     const rows = parseInt(elements.tableInputRows.value, 10) || 3;
-    const align = elements.tableInputAlign.value || 'center';
 
-    let alignPattern = ':---:';
-    if (align === 'left') alignPattern = ':---';
-    if (align === 'right') alignPattern = '---:';
-
-    // Header row
-    let headerRow = '|';
-    let dividerRow = '|';
+    // Build Table HTML
+    let tableHtml = '<table border="1"><thead><tr>';
     for (let c = 1; c <= cols; c++) {
-      headerRow += ` 헤더 ${c} |`;
-      dividerRow += ` ${alignPattern} |`;
+      tableHtml += `<th>헤더 ${c}</th>`;
     }
+    tableHtml += '</tr></thead><tbody>';
 
-    // Body rows
-    let bodyRows = '';
     for (let r = 1; r <= rows; r++) {
-      let row = '|';
+      tableHtml += '<tr>';
       for (let c = 1; c <= cols; c++) {
-        row += ` 항목 ${r}-${c} |`;
+        tableHtml += `<td>항목 ${r}-${c}</td>`;
       }
-      bodyRows += row + '\n';
+      tableHtml += '</tr>';
     }
+    tableHtml += '</tbody></table><p><br></p>';
 
-    const markdownTable = `\n${headerRow}\n${dividerRow}\n${bodyRows}\n`;
-    insertMarkdownSnippet(markdownTable, '');
+    if (elements.editorWysiwygContent) {
+      elements.editorWysiwygContent.focus();
+      document.execCommand('insertHTML', false, tableHtml);
+      updateEditorWordCount();
+    }
     elements.tableGeneratorModal.style.display = 'none';
   });
 
@@ -1779,7 +1950,8 @@ function setupEventListeners() {
       }
 
       const type = elements.editorPostType.value.trim() || '보안';
-      const content = elements.editorMainTextarea.value.trim();
+      // Convert current WYSIWYG content to clean Markdown
+      const content = getWysiwygMarkdown();
       const isNews = category === 'News';
 
       const postData = {

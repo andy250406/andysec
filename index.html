@@ -149,9 +149,6 @@
           <div class="filter-bar-wrapper">
             <div class="filter-bar" id="study-filter-bar">
               <button class="filter-btn active" data-filter="all">전체</button>
-              <button class="filter-btn" data-filter="Cert">자격증 공부</button>
-              <button class="filter-btn" data-filter="CertAnalysis">보안인증 분석</button>
-              <button class="filter-btn" data-filter="Shieldus">쉴더스 교육</button>
             </div>
             <button class="btn-primary" id="btn-open-add-study-modal">
               <i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성
@@ -603,23 +600,13 @@
             </div>
           </div>
 
-          <!-- Split Screen: Writing Area + Live Markdown Preview -->
-          <div class="editor-workspace">
-            <div class="editor-pane-half">
-              <div class="editor-pane-label">
-                <span><i class="fa-regular fa-pen-to-square"></i> 마크다운 본문 작성</span>
-              </div>
-              <textarea id="editor-main-textarea" class="editor-textarea" placeholder="이곳에 마크다운으로 자유롭게 본문을 작성하세요. 오른쪽 화면에서 실시간으로 렌더링된 결과물을 즉시 확인할 수 있습니다." spellcheck="false"></textarea>
-            </div>
-            <div class="editor-pane-half">
-              <div class="editor-pane-label">
-                <span><i class="fa-regular fa-eye"></i> 실시간 미리보기 (Live Preview)</span>
-              </div>
-              <div class="editor-preview-container">
-                <article class="markdown-body editor-preview" id="editor-live-preview">
-                  <p class="text-muted" style="text-align: center; margin-top: 3rem;">작성 중인 내용이 여기에 실시간으로 표시됩니다.</p>
-                </article>
-              </div>
+          <!-- Integrated Instant Markdown WYSIWYG Workspace -->
+          <div class="editor-workspace-integrated">
+            <div class="editor-integrated-wrapper card">
+              <!-- Live Editable Markdown Body Area -->
+              <div id="editor-wysiwyg-content" class="editor-wysiwyg-content markdown-body" contenteditable="true" spellcheck="false" placeholder="이곳에 내용을 입력하세요. (- 목록, # 제목, **굵게** 등의 마크다운을 입력하면 화면에서 즉시 변환되어 적용됩니다.)"></div>
+              <!-- Hidden textarea for underlying markdown sync and backup -->
+              <textarea id="editor-main-textarea" style="display: none;"></textarea>
             </div>
           </div>
         </div>
