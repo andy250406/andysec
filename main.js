@@ -38,6 +38,7 @@ const elements = {
   dashboardRecentNewsList: document.getElementById('dashboard-recent-news-list'),
   
   // Study Tab
+  studyFilterBar: document.getElementById('study-filter-bar'),
   studyPostsGrid: document.getElementById('study-posts-grid'),
   studyFilterBtns: document.querySelectorAll('#tab-study .filter-btn'),
   btnOpenAddStudy: document.getElementById('btn-open-add-study-modal'),
@@ -128,6 +129,38 @@ const elements = {
   articleType: document.getElementById('article-type'),
   articleContent: document.getElementById('article-content'),
   
+  // Note Editor Pane (Full-page)
+  noteEditorPane: document.getElementById('note-editor-pane'),
+  btnCancelEditor: document.getElementById('btn-cancel-editor'),
+  btnSaveEditor: document.getElementById('btn-save-editor'),
+  editorViewTitle: document.getElementById('editor-view-title'),
+  editorPostId: document.getElementById('editor-post-id'),
+  editorPostTitle: document.getElementById('editor-post-title'),
+  editorCategorySelect: document.getElementById('editor-category-select'),
+  editorCustomCategoryInput: document.getElementById('editor-custom-category-input'),
+  btnDeleteSelectedCategory: document.getElementById('btn-delete-selected-category'),
+  editorPostType: document.getElementById('editor-post-type'),
+  editorNewsFieldsGroup: document.getElementById('editor-news-fields-group'),
+  editorNewsImportance: document.getElementById('editor-news-importance'),
+  editorNewsSource: document.getElementById('editor-news-source'),
+  editorNewsDate: document.getElementById('editor-news-date'),
+  editorNewsLink: document.getElementById('editor-news-link'),
+  btnToggleGuideBanner: document.getElementById('btn-toggle-guide-banner'),
+  editorGuideBody: document.getElementById('editor-guide-body'),
+  editorMainTextarea: document.getElementById('editor-main-textarea'),
+  editorLivePreview: document.getElementById('editor-live-preview'),
+  editorWordCount: document.getElementById('editor-word-count'),
+  
+  // Table Generator Modal
+  tableGeneratorModal: document.getElementById('table-generator-modal'),
+  btnOpenTableModal: document.getElementById('btn-open-table-modal'),
+  btnCloseTableModal: document.getElementById('btn-close-table-modal'),
+  btnCancelTable: document.getElementById('btn-cancel-table'),
+  tableGeneratorForm: document.getElementById('table-generator-form'),
+  tableInputCols: document.getElementById('table-input-cols'),
+  tableInputRows: document.getElementById('table-input-rows'),
+  tableInputAlign: document.getElementById('table-input-align'),
+
   // More buttons
   moreBtns: document.querySelectorAll('.btn-more')
 };
@@ -248,7 +281,8 @@ function initRouter() {
   const handleRouting = () => {
     const hash = window.location.hash;
     
-    elements.articlePane.style.display = 'none';
+    if (elements.articlePane) elements.articlePane.style.display = 'none';
+    if (elements.noteEditorPane) elements.noteEditorPane.style.display = 'none';
     
     if (hash.startsWith('#/post/')) {
       const postId = hash.replace('#/post/', '');
@@ -518,9 +552,10 @@ function switchTab(tabId) {
   appState.activePostType = null;
   appState.activeProjectId = null;
   
-  elements.articlePane.style.display = 'none';
-  elements.projectDetailView.style.display = 'none';
-  elements.projectsListView.style.display = 'block';
+  if (elements.articlePane) elements.articlePane.style.display = 'none';
+  if (elements.noteEditorPane) elements.noteEditorPane.style.display = 'none';
+  if (elements.projectDetailView) elements.projectDetailView.style.display = 'none';
+  if (elements.projectsListView) elements.projectsListView.style.display = 'block';
   
   elements.navBtns.forEach(btn => {
     if (btn.getAttribute('data-tab') === tabId) {
@@ -543,6 +578,7 @@ function switchTab(tabId) {
 
 // Render All Components
 function renderAll() {
+  renderStudyCategories();
   renderActiveProject();
   renderDashboard();
   renderStudyNotes();
@@ -993,7 +1029,13 @@ function renderSecurityNews() {
   });
 }
 
-// Helpers
+// Helpers & Category Management
+const DEFAULT_CATEGORIES = [
+  { id: 'Cert', name: '자격증 공부' },
+  { id: 'CertAnalysis', name: '보안인증 분석' },
+  { id: 'Shieldus', name: '쉴더스 교육' }
+];
+
 function getCategoryName(category) {
   const mapping = {
     'Cert': '자격증 공부',
@@ -1002,7 +1044,153 @@ function getCategoryName(category) {
     'Project': '프로젝트',
     'News': '보안 뉴스'
   };
-  return mapping[category] || category;
+  if (mapping[category]) return mapping[category];
+  
+  // Check stored custom categories
+  const customCats = getCustomCategories();
+  const found = customCats.find(c => c.id === category);
+  return found ? found.name : category;
+}
+
+function getCustomCategories() {
+  try {
+    const raw = localStorage.getItem('custom_categories');
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.warn('Failed to parse custom_categories:', e);
+  }
+  return [];
+}
+
+function saveCustomCategories(cats) {
+  localStorage.setItem('custom_categories', JSON.stringify(cats));
+}
+
+function getAllStudyCategories() {
+  const customCats = getCustomCategories();
+  const map = new Map();
+  
+  // 1. Default categories
+  DEFAULT_CATEGORIES.forEach(c => map.set(c.id, { ...c, isDefault: true }));
+  
+  // 2. Custom categories in localStorage
+  customCats.forEach(c => map.set(c.id, { ...c, isDefault: false }));
+  
+  // 3. Any category found in existing posts (in case of legacy/imported posts)
+  if (appState.posts && Array.isArray(appState.posts)) {
+    appState.posts.forEach(p => {
+      if (p.category && p.category !== 'News' && p.category !== 'Project' && p.category !== 'ProjectNote') {
+        if (!map.has(p.category)) {
+          map.set(p.category, { id: p.category, name: p.category, isDefault: false });
+        }
+      }
+    });
+  }
+  
+  return Array.from(map.values());
+}
+
+// Render dynamic study categories in both filter bar and editor dropdown
+function renderStudyCategories() {
+  const allCats = getAllStudyCategories();
+  
+  // 1. Render study filter bar buttons
+  if (elements.studyFilterBar) {
+    let filterHtml = `<button class="filter-btn ${appState.studyFilter === 'all' ? 'active' : ''}" data-filter="all">전체</button>`;
+    allCats.forEach(cat => {
+      const activeClass = appState.studyFilter === cat.id ? 'active' : '';
+      filterHtml += `<button class="filter-btn ${activeClass}" data-filter="${cat.id}">${cat.name}</button>`;
+    });
+    elements.studyFilterBar.innerHTML = filterHtml;
+    
+    // Re-bind click events on dynamic filter buttons
+    const btns = elements.studyFilterBar.querySelectorAll('.filter-btn');
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        btns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        appState.studyFilter = btn.getAttribute('data-filter');
+        renderStudyNotes();
+      });
+    });
+  }
+
+  // 2. Render category select options in Note Editor
+  if (elements.editorCategorySelect) {
+    const currentVal = elements.editorCategorySelect.value;
+    let selectHtml = '';
+    allCats.forEach(cat => {
+      selectHtml += `<option value="${cat.id}">${cat.name}</option>`;
+    });
+    selectHtml += `<option value="News">보안 뉴스 (News)</option>`;
+    selectHtml += `<option value="custom">+ 직접 입력 (새 카테고리)</option>`;
+    elements.editorCategorySelect.innerHTML = selectHtml;
+    
+    if (currentVal && Array.from(elements.editorCategorySelect.options).some(o => o.value === currentVal)) {
+      elements.editorCategorySelect.value = currentVal;
+    }
+  }
+}
+
+// Category Deletion with Strict Post-Existence Validation
+function deleteCategory(targetCategoryId) {
+  if (!appState.isAdmin) {
+    alert('카테고리 관리는 관리자 인증(🔑) 후에만 가능합니다.');
+    return;
+  }
+  
+  if (!targetCategoryId || targetCategoryId === 'custom') {
+    alert('삭제할 카테고리를 먼저 선택해 주세요.');
+    return;
+  }
+  
+  // Count how many posts exist under this category
+  const postsCount = appState.posts.filter(p => p.category === targetCategoryId).length;
+  
+  if (postsCount > 0) {
+    alert(`[삭제 불가 경고]\n\n해당 카테고리('${getCategoryName(targetCategoryId)}')로 작성된 게시글이 ${postsCount}건 존재합니다.\n\n글이 존재하는 카테고리는 삭제할 수 없습니다. 글을 다른 카테고리로 이동하거나 먼저 삭제해 주세요.`);
+    return;
+  }
+  
+  const catName = getCategoryName(targetCategoryId);
+  if (!confirm(`'${catName}' 카테고리를 정말로 삭제하시겠습니까?\n(해당 카테고리로 작성된 글이 없어 안전하게 삭제됩니다.)`)) {
+    return;
+  }
+  
+  // Remove from custom categories
+  let customCats = getCustomCategories();
+  customCats = customCats.filter(c => c.id !== targetCategoryId);
+  saveCustomCategories(customCats);
+  
+  // Also check if default category
+  const isDef = DEFAULT_CATEGORIES.some(c => c.id === targetCategoryId);
+  if (isDef) {
+    let hiddenDefaults = JSON.parse(localStorage.getItem('hidden_default_cats') || '[]');
+    if (!hiddenDefaults.includes(targetCategoryId)) {
+      hiddenDefaults.push(targetCategoryId);
+      localStorage.setItem('hidden_default_cats', JSON.stringify(hiddenDefaults));
+    }
+  }
+  
+  // Reset current filter if active
+  if (appState.studyFilter === targetCategoryId) {
+    appState.studyFilter = 'all';
+  }
+  
+  renderStudyCategories();
+  renderStudyNotes();
+  
+  if (elements.editorCategorySelect) {
+    elements.editorCategorySelect.value = 'Cert';
+  }
+  if (elements.editorCustomCategoryInput) {
+    elements.editorCustomCategoryInput.style.display = 'none';
+    elements.editorCustomCategoryInput.value = '';
+  }
+  
+  alert(`'${catName}' 카테고리가 안전하게 삭제되었습니다.`);
 }
 
 function matchSearch(post) {
@@ -1277,28 +1465,382 @@ function setupEventListeners() {
     elements.addNoteModal.style.display = 'none';
   });
   
-  // Study Modal (General Study Notes)
-  elements.btnOpenAddStudy?.addEventListener('click', () => {
-    elements.studyModalTitle.innerHTML = '<i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성';
-    elements.studyEditId.value = '';
-    elements.addStudyForm.reset();
-    const customCatInput = document.getElementById('study-custom-category');
-    if (customCatInput) {
-      customCatInput.style.display = 'none';
-      customCatInput.value = '';
+  // Note Editor Functions
+  function openNoteEditor(postId = null) {
+    if (!appState.isAdmin) {
+      alert('글 작성/수정은 관리자 인증(🔑) 후에만 가능합니다.');
+      return;
     }
-    elements.btnSubmitStudy.textContent = '등록하기';
-    elements.addStudyModal.style.display = 'flex';
+
+    // Hide other views
+    elements.tabPanes.forEach(pane => pane.classList.remove('active'));
+    if (elements.articlePane) elements.articlePane.style.display = 'none';
+    if (elements.projectDetailView) elements.projectDetailView.style.display = 'none';
+    if (elements.projectsListView) elements.projectsListView.style.display = 'none';
+    
+    // Show editor pane
+    if (elements.noteEditorPane) elements.noteEditorPane.style.display = 'flex';
+
+    // Populate category dropdown
+    renderStudyCategories();
+
+    if (postId) {
+      // Editing existing post
+      const post = appState.posts.find(p => p.id === postId);
+      if (!post) {
+        alert('수정할 글을 찾을 수 없습니다.');
+        return;
+      }
+      
+      const isNews = post.category === 'News';
+      elements.editorViewTitle.innerHTML = isNews ? '<i class="fa-solid fa-newspaper"></i> 보안 뉴스 수정' : '<i class="fa-solid fa-pen-nib"></i> 스터디 노트 수정';
+      elements.editorPostId.value = post.id;
+      elements.editorPostTitle.value = post.title || '';
+      
+      // Category selection
+      const existsInSelect = Array.from(elements.editorCategorySelect.options).some(o => o.value === post.category);
+      if (existsInSelect) {
+        elements.editorCategorySelect.value = post.category;
+        elements.editorCustomCategoryInput.style.display = 'none';
+        elements.editorCustomCategoryInput.value = '';
+      } else {
+        elements.editorCategorySelect.value = 'custom';
+        elements.editorCustomCategoryInput.style.display = 'block';
+        elements.editorCustomCategoryInput.value = post.category || '';
+      }
+      
+      elements.editorPostType.value = post.type || (isNews ? 'News' : '보안');
+      elements.editorMainTextarea.value = post.content || '';
+      
+      // News specific fields
+      if (elements.editorNewsFieldsGroup) {
+        elements.editorNewsFieldsGroup.style.display = isNews ? 'block' : 'none';
+        if (isNews) {
+          elements.editorNewsImportance.value = post.importance || '⭐⭐⭐';
+          elements.editorNewsSource.value = post.source || '';
+          elements.editorNewsDate.value = post.date || '';
+          elements.editorNewsLink.value = post.newsLink || '';
+        }
+      }
+    } else {
+      // New post
+      elements.editorViewTitle.innerHTML = '<i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성';
+      elements.editorPostId.value = '';
+      elements.editorPostTitle.value = '';
+      elements.editorCategorySelect.value = 'Cert';
+      elements.editorCustomCategoryInput.style.display = 'none';
+      elements.editorCustomCategoryInput.value = '';
+      elements.editorPostType.value = '';
+      elements.editorMainTextarea.value = '';
+      
+      if (elements.editorNewsFieldsGroup) {
+        elements.editorNewsFieldsGroup.style.display = 'none';
+        elements.editorNewsImportance.value = '⭐⭐⭐';
+        elements.editorNewsSource.value = '';
+        elements.editorNewsDate.value = new Date().toISOString().split('T')[0];
+        elements.editorNewsLink.value = '';
+      }
+    }
+
+    updateEditorLivePreview();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function closeNoteEditor() {
+    if (elements.noteEditorPane) elements.noteEditorPane.style.display = 'none';
+    const targetTab = appState.currentTab || 'study';
+    switchTab(targetTab);
+  }
+
+  function updateEditorLivePreview() {
+    if (!elements.editorLivePreview || !elements.editorMainTextarea) return;
+    const rawContent = elements.editorMainTextarea.value;
+    
+    // Update word count
+    if (elements.editorWordCount) {
+      elements.editorWordCount.textContent = `${rawContent.length}자`;
+    }
+
+    if (!rawContent.trim()) {
+      elements.editorLivePreview.innerHTML = '<p class="text-muted" style="text-align:center; margin-top:3rem;">작성 중인 내용이 여기에 실시간으로 표시됩니다.</p>';
+      return;
+    }
+
+    try {
+      // Parse markdown with marked.js
+      const html = marked.parse(rawContent);
+      elements.editorLivePreview.innerHTML = html;
+    } catch (e) {
+      console.warn('Markdown live preview parsing error:', e);
+    }
+  }
+
+  // Helper to insert markdown tags into textarea
+  function insertMarkdownSnippet(prefix, suffix = '', defaultText = '') {
+    const textarea = elements.editorMainTextarea;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selected = text.substring(start, end) || defaultText;
+
+    const replacement = `${prefix}${selected}${suffix}`;
+    textarea.value = text.substring(0, start) + replacement + text.substring(end);
+
+    const cursorPosition = start + prefix.length + selected.length;
+    textarea.focus();
+    textarea.setSelectionRange(cursorPosition, cursorPosition);
+    updateEditorLivePreview();
+  }
+
+  // Open Editor button in Study Notes tab
+  elements.btnOpenAddStudy?.addEventListener('click', () => {
+    openNoteEditor(null);
   });
-  elements.btnCloseStudyModal?.addEventListener('click', () => {
-    elements.addStudyModal.style.display = 'none';
+
+  // Cancel / Back button in Note Editor
+  elements.btnCancelEditor?.addEventListener('click', () => {
+    if (elements.editorMainTextarea && elements.editorMainTextarea.value.trim().length > 0) {
+      if (!confirm('작성 중인 내용이 저장되지 않았습니다. 목록으로 돌아가시겠습니까?')) {
+        return;
+      }
+    }
+    closeNoteEditor();
   });
-  elements.btnCancelStudy?.addEventListener('click', () => {
-    elements.addStudyModal.style.display = 'none';
+
+  // Category select change in Note Editor
+  elements.editorCategorySelect?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    const isCustom = val === 'custom';
+    const isNews = val === 'News';
+
+    if (elements.editorCustomCategoryInput) {
+      elements.editorCustomCategoryInput.style.display = isCustom ? 'block' : 'none';
+      if (isCustom) elements.editorCustomCategoryInput.focus();
+    }
+
+    if (elements.editorNewsFieldsGroup) {
+      elements.editorNewsFieldsGroup.style.display = isNews ? 'block' : 'none';
+      if (isNews && !elements.editorNewsDate.value) {
+        elements.editorNewsDate.value = new Date().toISOString().split('T')[0];
+      }
+    }
   });
-  
-  // Article detail Edit & Delete buttons
-  elements.btnEditArticle.addEventListener('click', () => {
+
+  // Delete category button in Note Editor
+  elements.btnDeleteSelectedCategory?.addEventListener('click', () => {
+    const selectedCat = elements.editorCategorySelect.value;
+    deleteCategory(selectedCat);
+  });
+
+  // Toggle Markdown quick guide banner
+  elements.btnToggleGuideBanner?.addEventListener('click', () => {
+    if (elements.editorGuideBody) {
+      const isHidden = elements.editorGuideBody.style.display === 'none';
+      elements.editorGuideBody.style.display = isHidden ? 'block' : 'none';
+      const icon = elements.btnToggleGuideBanner.querySelector('.guide-toggle-icon i');
+      if (icon) {
+        icon.className = isHidden ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-right';
+      }
+    }
+  });
+
+  // Live input handler on main textarea
+  elements.editorMainTextarea?.addEventListener('input', () => {
+    updateEditorLivePreview();
+  });
+
+  // Markdown Toolbar Actions
+  document.querySelectorAll('.editor-toolbar .tool-btn[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.getAttribute('data-action');
+      switch (action) {
+        case 'h1':
+          insertMarkdownSnippet('# ', '', '제목 1');
+          break;
+        case 'h2':
+          insertMarkdownSnippet('## ', '', '제목 2');
+          break;
+        case 'h3':
+          insertMarkdownSnippet('### ', '', '제목 3');
+          break;
+        case 'bold':
+          insertMarkdownSnippet('**', '**', '굵은 텍스트');
+          break;
+        case 'italic':
+          insertMarkdownSnippet('*', '*', '기울임 텍스트');
+          break;
+        case 'strike':
+          insertMarkdownSnippet('~~', '~~', '취소선');
+          break;
+        case 'quote':
+          insertMarkdownSnippet('> ', '', '인용문 작성');
+          break;
+        case 'code-inline':
+          insertMarkdownSnippet('`', '`', '코드');
+          break;
+        case 'code-block':
+          insertMarkdownSnippet('```\n', '\n```', '// 코드 작성');
+          break;
+        case 'ul':
+          insertMarkdownSnippet('- ', '', '목록 항목');
+          break;
+        case 'ol':
+          insertMarkdownSnippet('1. ', '', '순서 항목');
+          break;
+        case 'hr':
+          insertMarkdownSnippet('\n---\n', '');
+          break;
+        case 'link':
+          insertMarkdownSnippet('[', '](https://)', '링크 텍스트');
+          break;
+        case 'img-tag':
+          insertMarkdownSnippet('{{img_1}}', '');
+          break;
+      }
+    });
+  });
+
+  // Table Generator Modal handlers
+  elements.btnOpenTableModal?.addEventListener('click', () => {
+    if (elements.tableGeneratorModal) {
+      elements.tableGeneratorModal.style.display = 'flex';
+    }
+  });
+  elements.btnCloseTableModal?.addEventListener('click', () => {
+    if (elements.tableGeneratorModal) elements.tableGeneratorModal.style.display = 'none';
+  });
+  elements.btnCancelTable?.addEventListener('click', () => {
+    if (elements.tableGeneratorModal) elements.tableGeneratorModal.style.display = 'none';
+  });
+
+  // Table Generator Form submit
+  elements.tableGeneratorForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const cols = parseInt(elements.tableInputCols.value, 10) || 3;
+    const rows = parseInt(elements.tableInputRows.value, 10) || 3;
+    const align = elements.tableInputAlign.value || 'center';
+
+    let alignPattern = ':---:';
+    if (align === 'left') alignPattern = ':---';
+    if (align === 'right') alignPattern = '---:';
+
+    // Header row
+    let headerRow = '|';
+    let dividerRow = '|';
+    for (let c = 1; c <= cols; c++) {
+      headerRow += ` 헤더 ${c} |`;
+      dividerRow += ` ${alignPattern} |`;
+    }
+
+    // Body rows
+    let bodyRows = '';
+    for (let r = 1; r <= rows; r++) {
+      let row = '|';
+      for (let c = 1; c <= cols; c++) {
+        row += ` 항목 ${r}-${c} |`;
+      }
+      bodyRows += row + '\n';
+    }
+
+    const markdownTable = `\n${headerRow}\n${dividerRow}\n${bodyRows}\n`;
+    insertMarkdownSnippet(markdownTable, '');
+    elements.tableGeneratorModal.style.display = 'none';
+  });
+
+  // Save Editor Post (GAS + Local)
+  elements.btnSaveEditor?.addEventListener('click', async () => {
+    try {
+      const editId = elements.editorPostId.value;
+      const title = elements.editorPostTitle.value.trim();
+      if (!title) {
+        alert('글 제목을 입력해 주세요.');
+        elements.editorPostTitle.focus();
+        return;
+      }
+
+      let category = elements.editorCategorySelect.value;
+      if (category === 'custom') {
+        const customVal = elements.editorCustomCategoryInput.value.trim();
+        if (!customVal) {
+          alert('새 카테고리명을 입력해 주세요.');
+          elements.editorCustomCategoryInput.focus();
+          return;
+        }
+        category = customVal;
+        
+        // Save new custom category
+        let customCats = getCustomCategories();
+        if (!customCats.some(c => c.id === category)) {
+          customCats.push({ id: category, name: category });
+          saveCustomCategories(customCats);
+        }
+      }
+
+      const type = elements.editorPostType.value.trim() || '보안';
+      const content = elements.editorMainTextarea.value.trim();
+      const isNews = category === 'News';
+
+      const postData = {
+        title,
+        category,
+        type,
+        content
+      };
+
+      if (isNews) {
+        postData.importance = elements.editorNewsImportance.value;
+        postData.source = elements.editorNewsSource.value.trim();
+        postData.date = elements.editorNewsDate.value || new Date().toISOString().split('T')[0];
+        postData.newsLink = elements.editorNewsLink.value.trim();
+      }
+
+      let targetPostId = editId;
+      if (editId) {
+        const index = appState.posts.findIndex(p => p.id === editId);
+        if (index !== -1) {
+          appState.posts[index] = { ...appState.posts[index], ...postData };
+        }
+      } else {
+        targetPostId = isNews ? 'news-' + Date.now() : 'study-' + Date.now();
+        const newPost = {
+          id: targetPostId,
+          date: postData.date || new Date().toISOString().split('T')[0],
+          filePath: `posts/${targetPostId}.md`,
+          ...postData
+        };
+        appState.posts.unshift(newPost);
+      }
+
+      // Save locally first
+      localStorage.setItem('posts', JSON.stringify(appState.posts));
+      renderAll();
+      closeNoteEditor();
+
+      if (targetPostId) {
+        showArticleDetail(targetPostId);
+      }
+
+      // Real-time Sync to Google Sheets via GAS
+      if (appState.isAdmin) {
+        const gasResult = await sendToGasApi('savePost', {
+          id: targetPostId,
+          category: postData.category,
+          title: postData.title,
+          date: postData.date || new Date().toISOString().split('T')[0],
+          content: postData.content
+        });
+        console.log('[GAS API] Post successfully saved:', gasResult);
+      }
+    } catch (err) {
+      console.error('Error saving post from editor:', err);
+      alert('글 저장 실패: ' + err.message);
+    }
+  });
+
+  // Article detail Edit button (wired to fullpage editor)
+  elements.btnEditArticle?.addEventListener('click', () => {
     if (appState.activePostType === 'projectNote') {
       const note = appState.projectNotes.find(n => n.id === appState.activePostId);
       if (!note) return;
@@ -1310,51 +1852,12 @@ function setupEventListeners() {
       elements.btnSubmitNote.textContent = '수정하기';
       elements.addNoteModal.style.display = 'flex';
     } else {
-      const post = appState.posts.find(p => p.id === appState.activePostId);
-      if (!post) return;
-      
-      const isNews = post.category === 'News';
-      elements.studyModalTitle.innerHTML = isNews ? '<i class="fa-solid fa-newspaper"></i> 보안 뉴스 수정' : '<i class="fa-solid fa-pen-nib"></i> 스터디 노트 수정';
-      elements.studyEditId.value = post.id;
-      document.getElementById('study-title').value = post.title;
-      const catSelect = document.getElementById('study-category');
-      const customCatInput = document.getElementById('study-custom-category');
-      
-      const knownOptions = ['Cert', 'CertAnalysis', 'Shieldus', 'News'];
-      if (knownOptions.includes(post.category)) {
-        catSelect.value = post.category;
-        if (customCatInput) {
-          customCatInput.style.display = 'none';
-          customCatInput.value = '';
-        }
-      } else {
-        catSelect.value = 'custom';
-        if (customCatInput) {
-          customCatInput.style.display = 'block';
-          customCatInput.value = post.category || '';
-        }
-      }
-      
-      document.getElementById('study-type').value = post.type || '';
-      document.getElementById('study-content').value = post.content || '';
-      
-      const newsFields = document.getElementById('news-fields-group');
-      if (newsFields) {
-        newsFields.style.display = isNews ? 'block' : 'none';
-        if (isNews) {
-          document.getElementById('news-importance').value = post.importance || '⭐⭐⭐';
-          document.getElementById('news-source').value = post.source || '';
-          document.getElementById('news-date').value = post.date || '';
-          document.getElementById('news-link').value = post.newsLink || '';
-        }
-      }
-      
-      elements.btnSubmitStudy.textContent = '수정하기';
-      elements.addStudyModal.style.display = 'flex';
+      openNoteEditor(appState.activePostId);
     }
   });
-  
-  elements.btnDeleteArticle.addEventListener('click', async () => {
+
+  // Article detail Delete button
+  elements.btnDeleteArticle?.addEventListener('click', async () => {
     if (!confirm('정말로 이 글을 삭제하시겠습니까?')) return;
     
     if (appState.activePostType === 'projectNote') {
@@ -1392,209 +1895,6 @@ function setupEventListeners() {
       }
       
       window.location.hash = '#/tab/study';
-    }
-  });
-  
-  // Form Submit: Add/Edit Project
-  elements.addProjectForm.addEventListener('submit', async (e) => {
-    try {
-      e.preventDefault();
-      const editId = elements.projectEditId.value;
-      
-      const projData = {
-        name: document.getElementById('project-name').value,
-        client: document.getElementById('project-client').value,
-        startDate: document.getElementById('project-start').value,
-        endDate: document.getElementById('project-end').value,
-        details: document.getElementById('project-details').value
-      };
-      
-      let targetId = editId;
-      if (editId) {
-        const index = appState.projects.findIndex(p => p.id === editId);
-        if (index !== -1) {
-          appState.projects[index] = { ...appState.projects[index], ...projData };
-        }
-      } else {
-        targetId = 'project-' + Date.now();
-        const newProj = {
-          id: targetId,
-          ...projData
-        };
-        appState.projects.unshift(newProj);
-      }
-      
-      // Save locally
-      localStorage.setItem('projects', JSON.stringify(appState.projects));
-      
-      renderAll();
-      elements.addProjectForm.reset();
-      elements.addProjectModal.style.display = 'none';
-      showProjectDetail(targetId);
-      
-      if (appState.isAdmin) {
-        try {
-          await sendToGasApi('savePost', {
-            id: targetId,
-            category: 'Project',
-            title: projData.name,
-            date: projData.startDate,
-            content: JSON.stringify(projData)
-          });
-        } catch (err) {
-          console.warn('GAS project save error:', err);
-        }
-      }
-    } catch (err) {
-      console.error('Error submitting project form:', err);
-      alert('프로젝트 저장 실패: ' + err.message);
-    }
-  });
-  
-  // Form Submit: Add/Edit Project Note
-  elements.addNoteForm?.addEventListener('submit', async (e) => {
-    try {
-      e.preventDefault();
-      const editId = elements.noteEditId.value;
-      
-      const noteData = {
-        title: document.getElementById('note-title').value,
-        content: document.getElementById('note-content').value,
-      };
-      
-      let noteToSync = null;
-      let targetNoteId = editId;
-      if (editId) {
-        const index = appState.projectNotes.findIndex(n => n.id === editId);
-        if (index !== -1) {
-          appState.projectNotes[index] = { ...appState.projectNotes[index], ...noteData };
-          noteToSync = appState.projectNotes[index];
-          if (appState.activePostId === editId) {
-            showLocalNoteDetail(appState.projectNotes[index]);
-          }
-        }
-      } else {
-        if (!appState.activeProjectId) return;
-        targetNoteId = 'note-' + Date.now();
-        noteToSync = {
-          id: targetNoteId,
-          projectId: appState.activeProjectId,
-          date: new Date().toISOString().split('T')[0],
-          ...noteData
-        };
-        appState.projectNotes.unshift(noteToSync);
-      }
-      
-      // Save locally
-      localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
-      
-      renderProjectNotes(appState.activeProjectId);
-      elements.addNoteForm.reset();
-      elements.addNoteModal.style.display = 'none';
-      
-      if (appState.isAdmin && noteToSync) {
-        try {
-          await sendToGasApi('savePost', {
-            id: targetNoteId,
-            category: 'ProjectNote',
-            title: noteData.title,
-            date: noteToSync.date,
-            content: noteData.content
-          });
-        } catch (err) {
-          console.warn('GAS note save error:', err);
-        }
-      }
-    } catch (err) {
-      console.error('Error submitting note form:', err);
-      alert('기록 저장 실패: ' + err.message);
-    }
-  });
-  
-  // Form Submit: Add/Edit Study Note
-  elements.addStudyForm.addEventListener('submit', async (e) => {
-    try {
-      e.preventDefault();
-      const editId = elements.studyEditId.value;
-      
-      let category = document.getElementById('study-category').value;
-      if (category === 'custom') {
-        const customVal = document.getElementById('study-custom-category').value.trim();
-        category = customVal || 'General';
-      }
-      const isNews = category === 'News';
-      
-      const studyData = {
-        title: document.getElementById('study-title').value,
-        category: category,
-        type: document.getElementById('study-type').value,
-        content: document.getElementById('study-content').value
-      };
-      
-      if (isNews) {
-        studyData.importance = document.getElementById('news-importance').value;
-        studyData.source = document.getElementById('news-source').value;
-        studyData.date = document.getElementById('news-date').value || new Date().toISOString().split('T')[0];
-        studyData.newsLink = document.getElementById('news-link').value;
-      }
-      
-      let targetPostId = editId;
-      if (editId) {
-        const index = appState.posts.findIndex(p => p.id === editId);
-        if (index !== -1) {
-          appState.posts[index] = { ...appState.posts[index], ...studyData };
-        }
-      } else {
-        targetPostId = isNews ? 'news-' + Date.now() : 'study-' + Date.now();
-        const newPost = {
-          id: targetPostId,
-          date: studyData.date || new Date().toISOString().split('T')[0],
-          filePath: `posts/${targetPostId}.md`,
-          ...studyData
-        };
-        appState.posts.unshift(newPost);
-      }
-      
-      // Save locally FIRST for instant rendering
-      localStorage.setItem('posts', JSON.stringify(appState.posts));
-      
-      renderAll();
-      elements.addStudyForm.reset();
-      elements.addStudyModal.style.display = 'none';
-      if (editId) {
-        showArticleDetail(editId);
-      }
-      
-      // Real-time Sync to Google Sheets via GAS
-      if (appState.isAdmin) {
-        const gasResult = await sendToGasApi('savePost', {
-          id: targetPostId,
-          category: studyData.category,
-          title: studyData.title,
-          date: studyData.date || new Date().toISOString().split('T')[0],
-          content: studyData.content
-        });
-        console.log('[GAS API] Post successfully saved:', gasResult);
-      }
-    } catch (err) {
-      console.error('Error submitting study form:', err);
-      alert('스터디 노트 저장 실패: ' + err.message);
-    }
-  });
-  elements.studyCategory?.addEventListener('change', (e) => {
-    const val = e.target.value;
-    const isNews = val === 'News';
-    const isCustom = val === 'custom';
-    
-    const newsFields = document.getElementById('news-fields-group');
-    if (newsFields) {
-      newsFields.style.display = isNews ? 'block' : 'none';
-    }
-
-    const customInput = document.getElementById('study-custom-category');
-    if (customInput) {
-      customInput.style.display = isCustom ? 'block' : 'none';
-      if (isCustom) customInput.focus();
     }
   });
 
