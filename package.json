@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync-notion": "node sync_notion_news.js",
+    "gen-push-args": "node generate_push_args.js",
+    "push-github": "node push_to_github.js"
   },
   "devDependencies": {
     "vite": "^5.0.0"
