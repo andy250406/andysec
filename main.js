@@ -1618,6 +1618,8 @@ function setupEventListeners() {
       case 'em':
       case 'i':
         return `*${children}*`;
+      case 'u':
+        return `<u>${children}</u>`;
       case 'del':
       case 's':
       case 'strike':
@@ -1882,8 +1884,29 @@ function setupEventListeners() {
       }
     });
 
-    // Handle Paste event: Detect URLs and format automatically
+    // Handle Paste event: Detect URLs, raw images, and format automatically
     elements.editorWysiwygContent.addEventListener('paste', (e) => {
+      // 1. Check for image files in clipboard (Direct Image Copy-Paste like Notion)
+      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+            e.preventDefault();
+            const file = items[i].getAsFile();
+            const reader = new FileReader();
+            reader.onload = (uploadEvent) => {
+              const base64Data = uploadEvent.target.result;
+              const imgHtml = `<span class="editor-img-card" title="클릭 시 새 창 열기"><img src="${base64Data}" alt="첨부 이미지"></span><p><br></p>`;
+              document.execCommand('insertHTML', false, imgHtml);
+              updateEditorWordCount();
+            };
+            reader.readAsDataURL(file);
+            return;
+          }
+        }
+      }
+
+      // 2. Check for URL text
       const pastedText = (e.clipboardData || window.clipboardData).getData('text');
       if (!pastedText) return;
 
@@ -1911,10 +1934,60 @@ function setupEventListeners() {
       const sel = window.getSelection();
       if (!sel || !sel.anchorNode) return;
 
-      // 1. Ctrl+B / Cmd+B Shortcut for Bold
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+      // 1. Notion-style Rich Text Shortcuts
+      // Ctrl + Shift + X: Strikethrough (취소선)
+      if (isCtrlOrCmd && e.shiftKey && (e.key === 'x' || e.key === 'X')) {
+        e.preventDefault();
+        document.execCommand('strikeThrough', false, null);
+        updateEditorWordCount();
+        return;
+      }
+
+      // Ctrl + B: Bold (굵게)
+      if (isCtrlOrCmd && !e.shiftKey && (e.key === 'b' || e.key === 'B')) {
         e.preventDefault();
         document.execCommand('bold', false, null);
+        updateEditorWordCount();
+        return;
+      }
+
+      // Ctrl + I: Italic (기울임)
+      if (isCtrlOrCmd && !e.shiftKey && (e.key === 'i' || e.key === 'I')) {
+        e.preventDefault();
+        document.execCommand('italic', false, null);
+        updateEditorWordCount();
+        return;
+      }
+
+      // Ctrl + U: Underline (밑줄)
+      if (isCtrlOrCmd && !e.shiftKey && (e.key === 'u' || e.key === 'U')) {
+        e.preventDefault();
+        document.execCommand('underline', false, null);
+        updateEditorWordCount();
+        return;
+      }
+
+      // Ctrl + E: Inline Code (인라인 코드)
+      if (isCtrlOrCmd && !e.shiftKey && (e.key === 'e' || e.key === 'E')) {
+        e.preventDefault();
+        const selectedText = sel.toString();
+        if (selectedText) {
+          // If already inside code, unwrap or insert text
+          const range = sel.getRangeAt(0);
+          const codeEl = document.createElement('code');
+          codeEl.textContent = selectedText;
+          range.deleteContents();
+          range.insertNode(codeEl);
+          // place cursor after code
+          range.setStartAfter(codeEl);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        } else {
+          document.execCommand('insertHTML', false, '<code>코드</code>&nbsp;');
+        }
         updateEditorWordCount();
         return;
       }
@@ -1970,28 +2043,44 @@ function setupEventListeners() {
             }
           }
 
-          // Strict line-start check: only transform if the cursor is right after the prefix at the start of block
-          // 1. Heading 1: exactly "#"
-          if (textBeforeCursor === '#') {
+          // Strict line-level heading conversion (Never affects previous paragraphs)
+          const headingMatch = textBeforeCursor.match(/^(#{1,3})$/);
+          if (headingMatch) {
             e.preventDefault();
-            node.textContent = node.textContent.substring(sel.anchorOffset);
-            document.execCommand('formatBlock', false, 'H1');
-            return;
-          }
+            const level = headingMatch[1].length; // 1 -> H1, 2 -> H2, 3 -> H3
+            const tag = `H${level}`;
 
-          // 2. Heading 2: exactly "##"
-          if (textBeforeCursor === '##') {
-            e.preventDefault();
-            node.textContent = node.textContent.substring(sel.anchorOffset);
-            document.execCommand('formatBlock', false, 'H2');
-            return;
-          }
+            // Find current block element containing node inside editor
+            let block = node;
+            while (block && block.parentNode !== elements.editorWysiwygContent && block !== elements.editorWysiwygContent) {
+              block = block.parentNode;
+            }
 
-          // 3. Heading 3: exactly "###"
-          if (textBeforeCursor === '###') {
-            e.preventDefault();
+            // Remove heading prefix from text
             node.textContent = node.textContent.substring(sel.anchorOffset);
-            document.execCommand('formatBlock', false, 'H3');
+
+            if (block && block !== elements.editorWysiwygContent) {
+              // Convert existing block to heading tag
+              const headingEl = document.createElement(tag);
+              while (block.firstChild) {
+                headingEl.appendChild(block.firstChild);
+              }
+              if (!headingEl.hasChildNodes() || !headingEl.textContent.trim()) {
+                headingEl.innerHTML = '<br>';
+              }
+              block.parentNode.replaceChild(headingEl, block);
+
+              // Set cursor inside new heading element
+              const newRange = document.createRange();
+              newRange.setStart(headingEl, 0);
+              newRange.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(newRange);
+            } else {
+              // Fallback to formatBlock
+              document.execCommand('formatBlock', false, tag);
+            }
+            updateEditorWordCount();
             return;
           }
 
@@ -2315,6 +2404,9 @@ function setupEventListeners() {
         case 'italic':
           document.execCommand('italic', false, null);
           break;
+        case 'underline':
+          document.execCommand('underline', false, null);
+          break;
         case 'strike':
           document.execCommand('strikeThrough', false, null);
           break;
@@ -2344,14 +2436,17 @@ function setupEventListeners() {
           break;
         case 'link': {
           const url = prompt('링크 URL을 입력하세요:', 'https://');
-          if (url) {
-            document.execCommand('createLink', false, url);
+          if (url && url.trim()) {
+            const linkId = 'link-' + Date.now();
+            document.execCommand('insertHTML', false, `<a id="${linkId}" href="${url.trim()}" target="_blank" title="클릭 시 이동: ${url.trim()}">${url.trim()}</a>&nbsp;`);
+            const anchor = document.getElementById(linkId);
+            if (anchor) {
+              anchor.removeAttribute('id');
+              showLinkBubble(anchor);
+            }
           }
           break;
         }
-        case 'img-tag':
-          document.execCommand('insertText', false, '{{img_1}}');
-          break;
       }
       updateEditorWordCount();
     });

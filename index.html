@@ -553,12 +553,11 @@
             </div>
             <div class="guide-banner-body" id="editor-guide-body">
               <div class="guide-chips">
-                <div class="guide-chip"><code># 제목 1</code> <code>## 제목 2</code> <code>### 제목 3</code> (줄 시작에서 # 후 공백)</div>
-                <div class="guide-chip"><code>**굵게**</code> (Ctrl+B) <code>*기울임*</code> <code>~~취소선~~</code> <code>`코드`</code></div>
+                <div class="guide-chip"><code># 제목 1</code> <code>## 제목 2</code> <code>### 제목 3</code> (줄에서 # 입력 후 공백 시 즉시 해당 줄이 제목으로 변환)</div>
+                <div class="guide-chip"><code>**굵게**</code> (Ctrl+B) <code>*기울임*</code> (Ctrl+I) <code><u>밑줄</u></code> (Ctrl+U) <code>~~취소선~~</code> (Ctrl+Shift+X) <code>`코드`</code> (Ctrl+E)</div>
                 <div class="guide-chip"><code>- 목록</code> <code>1. 순서목록</code> <code>&gt; 인용구</code> (빈 목록에서 백스페이스 시 일반 글로 복귀)</div>
                 <div class="guide-chip"><code>```코드블록```</code> (``` 입력 후 엔터)</div>
-                <div class="guide-chip"><span class="highlight-code">URL 입력/붙여넣기 시 제목 입력 말풍선 자동 표시 / 이미지 URL 자동 사진화</span></div>
-                <div class="guide-chip"><span class="highlight-code"><code>{{img_1}}</code>, <code>{{img_2}}</code> (시트 이미지 삽입)</span></div>
+                <div class="guide-chip"><span class="highlight-code">웹/이미지 링크: URL 입력 또는 복붙 시 제목 말풍선 자동 표시 / 이미지 URL은 자동 사진 렌더링</span></div>
               </div>
             </div>
           </div>
@@ -573,13 +572,14 @@
             <div class="toolbar-separator"></div>
             <div class="toolbar-group">
               <button type="button" class="tool-btn" data-action="bold" title="굵게 (Ctrl+B)"><i class="fa-solid fa-bold"></i></button>
-              <button type="button" class="tool-btn" data-action="italic" title="기울임 (Italic)"><i class="fa-solid fa-italic"></i></button>
-              <button type="button" class="tool-btn" data-action="strike" title="취소선"><i class="fa-solid fa-strikethrough"></i></button>
+              <button type="button" class="tool-btn" data-action="italic" title="기울임 (Ctrl+I)"><i class="fa-solid fa-italic"></i></button>
+              <button type="button" class="tool-btn" data-action="underline" title="밑줄 (Ctrl+U)"><i class="fa-solid fa-underline"></i></button>
+              <button type="button" class="tool-btn" data-action="strike" title="취소선 (Ctrl+Shift+X)"><i class="fa-solid fa-strikethrough"></i></button>
             </div>
             <div class="toolbar-separator"></div>
             <div class="toolbar-group">
               <button type="button" class="tool-btn" data-action="quote" title="인용구"><i class="fa-solid fa-quote-left"></i></button>
-              <button type="button" class="tool-btn" data-action="code-inline" title="인라인 코드"><i class="fa-solid fa-code"></i></button>
+              <button type="button" class="tool-btn" data-action="code-inline" title="인라인 코드 (Ctrl+E)"><i class="fa-solid fa-code"></i></button>
               <button type="button" class="tool-btn" data-action="code-block" title="코드 블록"><i class="fa-solid fa-file-code"></i></button>
             </div>
             <div class="toolbar-separator"></div>
@@ -591,7 +591,6 @@
             <div class="toolbar-separator"></div>
             <div class="toolbar-group">
               <button type="button" class="tool-btn" data-action="link" title="링크 삽입"><i class="fa-solid fa-link"></i></button>
-              <button type="button" class="tool-btn" data-action="img-tag" title="구글 시트 이미지 플레이스홀더 {{img_n}} 삽입"><i class="fa-regular fa-image"></i> {{img}}</button>
               <button type="button" class="tool-btn tool-btn-primary" id="btn-open-table-modal" title="표(Table) 생성기"><i class="fa-solid fa-table-cells"></i> 표 삽입</button>
             </div>
             <div class="toolbar-group toolbar-right">
