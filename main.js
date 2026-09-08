@@ -1,10 +1,11 @@
 // import marked parser dynamically from a ESM CDN
 import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
 
-// Constants
+// Constants & API Endpoints
 const TODAY = new Date('2026-06-21'); // Simulated today's date
-const REPO_OWNER = 'andy250406';
-const REPO_NAME = 'andysec';
+
+// Google Apps Script Web App Deployment URL
+const GAS_API_URL = localStorage.getItem('gas_api_url') || 'https://script.google.com/macros/s/AKfycby_5htUVodm_M16r25fUOyNAkNG7cpx3L1X098TYGtvS6KYN4nv8h8N5-wnNsveytLz8Q/exec';
 
 // State Store
 let appState = {
@@ -18,8 +19,8 @@ let appState = {
   activePostId: null,      // ID of post currently viewed in detail
   activePostType: null,    // 'general' or 'projectNote'
   activeProjectId: null,   // ID of project currently viewed in details
-  syncEnabled: false,
-  githubPat: ''
+  isAdmin: false,          // Administrator unlocked status
+  adminPassword: ''        // Cached admin password for GAS cross-validation
 };
 
 // DOM Elements
@@ -27,6 +28,7 @@ const elements = {
   navBtns: document.querySelectorAll('.nav-menu .nav-btn'),
   tabPanes: document.querySelectorAll('.tab-pane'),
   themeToggle: document.getElementById('theme-toggle'),
+  adminAuthBtn: document.getElementById('admin-auth-btn'),
   liveClock: document.getElementById('live-clock'),
   globalSearch: document.getElementById('global-search'),
   
@@ -55,9 +57,7 @@ const elements = {
   btnEditProject: document.getElementById('btn-edit-project-details'),
   btnDeleteProject: document.getElementById('btn-delete-project-details'),
   
-  // Settings Button / Info
-  btnOpenSettings: document.getElementById('btn-open-settings'),
-  syncIndicator: document.getElementById('sync-indicator'),
+  // Deploy Overlay / Loading Spinner
   deployOverlay: document.getElementById('deploy-overlay'),
   deployOverlayTitle: document.getElementById('deploy-overlay-title'),
   deployOverlayDesc: document.getElementById('deploy-overlay-desc'),
@@ -66,7 +66,7 @@ const elements = {
   addProjectModal: document.getElementById('add-project-modal'),
   addNoteModal: document.getElementById('add-note-modal'),
   addStudyModal: document.getElementById('add-study-modal'),
-  settingsModal: document.getElementById('settings-modal'),
+  adminAuthModal: document.getElementById('admin-auth-modal'),
   
   // Modal Titles & Hidden inputs
   projectModalTitle: document.getElementById('project-modal-title'),
@@ -79,13 +79,23 @@ const elements = {
   
   studyModalTitle: document.getElementById('study-modal-title'),
   studyEditId: document.getElementById('study-edit-id'),
+  studyCategory: document.getElementById('study-category'),
   btnSubmitStudy: document.getElementById('btn-submit-study'),
+  
+  // Admin Auth Form & Elements
+  adminAuthForm: document.getElementById('admin-auth-form'),
+  adminPasswordInput: document.getElementById('admin-password-input'),
+  adminPwdGroup: document.getElementById('admin-pwd-group'),
+  adminStatusInfo: document.getElementById('admin-status-info'),
+  btnSubmitAdmin: document.getElementById('btn-submit-admin'),
+  btnLogoutAdmin: document.getElementById('btn-logout-admin'),
+  btnCloseAdminModal: document.getElementById('btn-close-admin-modal'),
+  btnCancelAdmin: document.getElementById('btn-cancel-admin'),
   
   // Forms
   addProjectForm: document.getElementById('add-project-form'),
   addNoteForm: document.getElementById('add-note-form'),
   addStudyForm: document.getElementById('add-study-form'),
-  settingsForm: document.getElementById('settings-form'),
   
   // Buttons
   btnOpenAddProject: document.getElementById('btn-open-add-project-modal'),
@@ -97,12 +107,15 @@ const elements = {
   btnCancelNote: document.getElementById('btn-cancel-note'),
   btnCloseStudyModal: document.getElementById('btn-close-study-modal'),
   btnCancelStudy: document.getElementById('btn-cancel-study'),
-  btnCloseSettingsModal: document.getElementById('btn-close-settings-modal'),
-  btnCancelSettings: document.getElementById('btn-cancel-settings'),
   
   // News Tab
   fullNewsTable: document.getElementById('full-news-table'),
   newsImportanceFilter: document.getElementById('news-importance-filter'),
+  btnNewsDeleteMode: document.getElementById('btn-news-delete-mode'),
+  newsDeleteActions: document.getElementById('news-delete-actions'),
+  btnNewsDeleteConfirm: document.getElementById('btn-news-delete-confirm'),
+  btnNewsDeleteCancel: document.getElementById('btn-news-delete-cancel'),
+  newsSelectAll: document.getElementById('news-select-all'),
   
   // Article Pane
   articlePane: document.getElementById('article-detail-pane'),
@@ -113,7 +126,6 @@ const elements = {
   articleDate: document.getElementById('article-date'),
   articleCategory: document.getElementById('article-category'),
   articleType: document.getElementById('article-type'),
-  articleTags: document.getElementById('article-tags'),
   articleContent: document.getElementById('article-content'),
   
   // More buttons
@@ -124,7 +136,7 @@ const elements = {
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
   initTheme();
-  loadSyncSettings();
+  loadAdminAuth();
   loadData();
   setupEventListeners();
   initRouter();
@@ -171,46 +183,63 @@ function toggleTheme() {
   }
 }
 
-// Load Sync Settings from LocalStorage
-function loadSyncSettings() {
-  appState.syncEnabled = localStorage.getItem('github_sync_enabled') === 'true';
-  appState.githubPat = localStorage.getItem('github_pat') || '';
-  
-  updateSyncIndicator();
-}
-
-function updateSyncIndicator() {
-  if (!elements.syncIndicator) return;
-  if (appState.syncEnabled && appState.githubPat) {
-    elements.syncIndicator.textContent = 'ON';
-    elements.syncIndicator.className = 'sync-status-indicator online';
+// Load Admin Auth State from LocalStorage
+function loadAdminAuth() {
+  const cachedPwd = localStorage.getItem('admin_auth_pwd') || '';
+  if (cachedPwd) {
+    appState.isAdmin = true;
+    appState.adminPassword = cachedPwd;
   } else {
-    elements.syncIndicator.textContent = 'OFF';
-    elements.syncIndicator.className = 'sync-status-indicator offline';
+    appState.isAdmin = false;
+    appState.adminPassword = '';
   }
-  applySyncPermissions();
+  
+  updateAdminUI();
 }
 
-// Dynamically toggles write/edit/delete actions for external visitors (when sync is OFF)
-function applySyncPermissions() {
-  const isSync = appState.syncEnabled && appState.githubPat;
+function updateAdminUI() {
+  if (elements.adminAuthBtn) {
+    if (appState.isAdmin) {
+      elements.adminAuthBtn.classList.add('admin-unlocked');
+      elements.adminAuthBtn.title = '관리자 인증됨 (클릭하여 관리)';
+    } else {
+      elements.adminAuthBtn.classList.remove('admin-unlocked');
+      elements.adminAuthBtn.title = '관리자 인증 (열쇠)';
+    }
+  }
+  applyAdminPermissions();
+}
+
+// Dynamically toggles write/edit/delete actions based on Admin Status
+function applyAdminPermissions() {
+  const isAdmin = appState.isAdmin;
   
-  if (elements.btnOpenAddStudy) elements.btnOpenAddStudy.style.display = isSync ? 'block' : 'none';
-  if (elements.btnOpenAddProject) elements.btnOpenAddProject.style.display = isSync ? 'block' : 'none';
-  if (elements.btnEditProject) elements.btnEditProject.style.display = isSync ? 'inline-block' : 'none';
-  if (elements.btnDeleteProject) elements.btnDeleteProject.style.display = isSync ? 'inline-block' : 'none';
-  if (elements.btnOpenAddNote) elements.btnOpenAddNote.style.display = isSync ? 'block' : 'none';
-  if (elements.btnEditArticle) elements.btnEditArticle.style.display = isSync ? 'inline-block' : 'none';
-  if (elements.btnDeleteArticle) elements.btnDeleteArticle.style.display = isSync ? 'inline-block' : 'none';
+  if (elements.btnOpenAddStudy) elements.btnOpenAddStudy.style.display = isAdmin ? 'block' : 'none';
+  if (elements.btnOpenAddProject) elements.btnOpenAddProject.style.display = isAdmin ? 'block' : 'none';
+  if (elements.btnEditProject) elements.btnEditProject.style.display = isAdmin ? 'inline-block' : 'none';
+  if (elements.btnDeleteProject) elements.btnDeleteProject.style.display = isAdmin ? 'inline-block' : 'none';
+  if (elements.btnOpenAddNote) elements.btnOpenAddNote.style.display = isAdmin ? 'block' : 'none';
+  if (elements.btnEditArticle) elements.btnEditArticle.style.display = isAdmin ? 'inline-block' : 'none';
+  if (elements.btnDeleteArticle) elements.btnDeleteArticle.style.display = isAdmin ? 'inline-block' : 'none';
   
-  // Hide details view metadata action buttons if not synced
+  // Hide details view metadata action buttons if not admin
   const projectMetaActions = document.querySelector('.project-info-header .meta-actions');
   if (projectMetaActions) {
-    projectMetaActions.style.display = isSync ? 'block' : 'none';
+    projectMetaActions.style.display = isAdmin ? 'block' : 'none';
   }
   const articleActions = document.getElementById('article-detail-actions');
   if (articleActions) {
-    articleActions.style.display = isSync ? 'block' : 'none';
+    articleActions.style.display = isAdmin ? 'block' : 'none';
+  }
+
+  if (elements.btnNewsDeleteMode) {
+    if (!isAdmin) {
+      elements.btnNewsDeleteMode.style.display = 'none';
+      if (elements.newsDeleteActions) elements.newsDeleteActions.style.display = 'none';
+    } else {
+      elements.btnNewsDeleteMode.style.display = appState.newsDeleteMode ? 'none' : 'inline-block';
+      if (elements.newsDeleteActions) elements.newsDeleteActions.style.display = appState.newsDeleteMode ? 'flex' : 'none';
+    }
   }
 }
 
@@ -240,19 +269,41 @@ function initRouter() {
   handleRouting();
 }
 
-// Load All Data (JSON + LocalStorage Merged)
+// Load All Data (GAS Sheets DB Priority + Local Fallback)
 async function loadData() {
   try {
-    // 1. Fetch posts index from server (using path without 'public/' prefix for built/dev site resolution)
     let serverPosts = [];
+    
+    // 1. Fetch live posts from Google Apps Script (Sheets DB)
+    showLoader('데이터 로딩 중...', '구글 시트 데이터베이스와 연결하고 있습니다.');
+    let gasLoaded = false;
     try {
-      const response = await fetch('./posts/posts.json');
-      if (response.ok) {
-        serverPosts = await response.json();
-        serverPosts = serverPosts.filter(p => p.category !== 'Project');
+      const gasRes = await fetch(`${GAS_API_URL}?action=getPosts`, { method: 'GET' });
+      if (gasRes.ok) {
+        const gasData = await gasRes.json();
+        if (gasData && gasData.success && Array.isArray(gasData.posts)) {
+          serverPosts = gasData.posts;
+          gasLoaded = true;
+          console.log(`[GAS API] Successfully loaded ${serverPosts.length} posts from Sheets DB.`);
+        }
       }
-    } catch (e) {
-      console.warn('Could not load posts.json from server, falling back to local storage.');
+    } catch (gasErr) {
+      console.warn('[GAS API] Live fetch failed or offline, falling back to local posts.json:', gasErr);
+    } finally {
+      hideLoader();
+    }
+
+    // Fallback: If GAS fetch failed, fetch static posts.json
+    if (!gasLoaded || serverPosts.length === 0) {
+      try {
+        const response = await fetch('./posts/posts.json');
+        if (response.ok) {
+          serverPosts = await response.json();
+          serverPosts = serverPosts.filter(p => p.category !== 'Project');
+        }
+      } catch (e) {
+        console.warn('Could not load posts.json from server, falling back to local storage.');
+      }
     }
     
     // Load local posts safely
@@ -268,34 +319,23 @@ async function loadData() {
     if (!Array.isArray(localPosts)) localPosts = [];
     
     // Merge them: combine server and local, keeping local custom/edited posts as priority
-    const mergedPosts = [...serverPosts];
+    const deletedIds = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
+    const deletedSet = new Set(deletedIds);
+    const serverPostsFiltered = serverPosts.filter(p => p && p.id && !deletedSet.has(p.id));
+    
+    const mergedPosts = [...serverPostsFiltered];
     localPosts.forEach(localP => {
-      if (!localP || !localP.id) return; // Guard against corrupted items
+      if (!localP || !localP.id || deletedSet.has(localP.id)) return;
       const exists = mergedPosts.some(serverP => serverP && serverP.id === localP.id);
       if (!exists) {
         mergedPosts.push(localP);
       } else {
         const idx = mergedPosts.findIndex(serverP => serverP && serverP.id === localP.id);
         if (idx !== -1) {
-          mergedPosts[idx] = { ...mergedPosts[idx], ...localP }; // Local overrides/complements server details
+          mergedPosts[idx] = { ...mergedPosts[idx], ...localP };
         }
       }
     });
-    
-    // Fill content fields for posts
-    for (let post of mergedPosts) {
-      if (!post.content) {
-        try {
-          const res = await fetch(`./${post.filePath}`);
-          if (res.ok) {
-            post.content = await res.text();
-          }
-        } catch (e) {
-          post.content = `# ${post.title}\n\n내용이 아직 등록되지 않았습니다.`;
-        }
-      }
-    }
-    
     appState.posts = mergedPosts;
     localStorage.setItem('posts', JSON.stringify(mergedPosts));
     appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -651,7 +691,7 @@ function renderStudyNotes() {
   elements.studyPostsGrid.innerHTML = '';
   const filtered = appState.posts.filter(p => {
     if (appState.studyFilter === 'all') {
-      return (p.category === 'Cert' || p.category === 'CertAnalysis');
+      return (p.category === 'Cert' || p.category === 'CertAnalysis' || p.category === 'Shieldus');
     }
     return p.category === appState.studyFilter;
   }).filter(matchSearch);
@@ -671,9 +711,6 @@ function renderStudyNotes() {
       </div>
       <div class="post-card-body">
         <h4 class="post-card-title">${post.title}</h4>
-        <div class="badge-group">
-          ${post.tags ? post.tags.map(t => `<span class="badge">#${t}</span>`).join('') : ''}
-        </div>
       </div>
       <div class="post-card-footer">
         <span><i class="fa-regular fa-calendar-days"></i> ${post.date}</span>
@@ -800,11 +837,47 @@ function renderProjectNotes(projectId) {
   });
 }
 
+// Reset Article Font Size to 100%
+function resetTextSize() {
+  const defaultBtn = document.querySelector('.text-size-btn[data-size="1em"]');
+  if (defaultBtn) {
+    const sizeBtns = document.querySelectorAll('.text-size-btn');
+    sizeBtns.forEach(b => {
+      b.classList.remove('active');
+      b.style.background = 'none';
+      b.style.color = 'var(--text-muted)';
+      b.style.fontWeight = 'normal';
+    });
+    defaultBtn.classList.add('active');
+    defaultBtn.style.background = 'var(--accent-color)';
+    defaultBtn.style.color = '#fff';
+    defaultBtn.style.fontWeight = '600';
+  }
+  if (elements.articleContent) {
+    elements.articleContent.style.fontSize = '1em';
+  }
+}
+
+// Helper: Replace {{img_1}}, {{img_2}} placeholders with actual image URLs
+function replaceImagePlaceholders(content, images) {
+  if (!content) return '';
+  if (!images || !Array.isArray(images) || images.length === 0) return content;
+  
+  return content.replace(/\{\{img_(\d+)\}\}/g, (match, indexStr) => {
+    const idx = parseInt(indexStr, 10) - 1;
+    const url = images[idx];
+    if (url) {
+      return `![Image ${indexStr}](${url})`;
+    }
+    return match;
+  });
+}
+
 // Show Local Note Detail
 function showLocalNoteDetail(note) {
-  const isSync = appState.syncEnabled && appState.githubPat;
-  if (!isSync) {
-    alert('보안상 비공개 상태인 프로젝트 게시글입니다. 접근 권한이 없습니다.');
+  resetTextSize();
+  if (!appState.isAdmin) {
+    alert('보안상 비공개 상태인 프로젝트 게시글입니다. 관리자 열쇠(🔑)로 인증 후 확인 가능합니다.');
     window.location.hash = '#/tab/projects';
     return;
   }
@@ -819,13 +892,14 @@ function showLocalNoteDetail(note) {
   elements.articleCategory.className = 'meta-item badge project';
   elements.articleCategory.textContent = '프로젝트 기록';
   elements.articleType.style.display = 'none';
-  elements.articleTags.innerHTML = '';
   
-  elements.articleContent.innerHTML = marked.parse(note.content);
+  const processedContent = replaceImagePlaceholders(note.content, note.images);
+  elements.articleContent.innerHTML = marked.parse(processedContent);
 }
 
 // Show Post Detail View
-function showArticleDetail(postId) {
+async function showArticleDetail(postId) {
+  resetTextSize();
   const post = appState.posts.find(p => p.id === postId);
   if (!post) {
     elements.articleTitle.textContent = '글을 찾을 수 없습니다.';
@@ -850,8 +924,22 @@ function showArticleDetail(postId) {
     elements.articleType.style.display = 'none';
   }
   
-  elements.articleTags.innerHTML = post.tags ? post.tags.map(t => `<span class="badge">#${t}</span>`).join('') : '';
-  elements.articleContent.innerHTML = marked.parse(post.content || `# ${post.title}\n\n내용이 비어 있습니다.`);
+  if (!post.content) {
+    elements.articleContent.innerHTML = '<p class="text-center text-muted" style="padding: 2rem;"><i class="fa-solid fa-spinner fa-spin"></i> 내용을 불러오는 중...</p>';
+    try {
+      const res = await fetch(`./${post.filePath}`);
+      if (res.ok) {
+        post.content = await res.text();
+      } else {
+        post.content = `# ${post.title}\n\n내용을 불러오지 못했습니다. (HTTP ${res.status})`;
+      }
+    } catch (e) {
+      post.content = `# ${post.title}\n\n내용을 불러오는 중 오류가 발생했습니다.`;
+    }
+  }
+  
+  const processedContent = replaceImagePlaceholders(post.content, post.images);
+  elements.articleContent.innerHTML = marked.parse(processedContent);
   
   elements.articlePane.style.display = 'block';
   elements.tabPanes.forEach(pane => pane.classList.remove('active'));
@@ -862,6 +950,18 @@ function renderSecurityNews() {
   if (!elements.fullNewsTable) return;
   elements.fullNewsTable.innerHTML = '';
   
+  const isDeleteMode = appState.newsDeleteMode;
+  
+  // Show or hide header checkbox column
+  const deleteHeaders = document.querySelectorAll('.news-delete-col');
+  deleteHeaders.forEach(el => {
+    el.style.display = isDeleteMode ? 'table-cell' : 'none';
+  });
+
+  if (elements.newsSelectAll) {
+    elements.newsSelectAll.checked = false;
+  }
+  
   const newsList = appState.posts.filter(p => {
     if (p.category !== 'News') return false;
     if (appState.newsFilter !== 'all' && p.importance !== appState.newsFilter) return false;
@@ -869,13 +969,16 @@ function renderSecurityNews() {
   }).filter(matchSearch);
   
   if (newsList.length === 0) {
-    elements.fullNewsTable.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding: 2rem;">해당 조건의 보안 뉴스가 존재하지 않습니다.</td></tr>';
+    elements.fullNewsTable.innerHTML = `<tr><td colspan="${isDeleteMode ? 6 : 5}" class="text-center text-muted" style="padding: 2rem;">해당 조건의 보안 뉴스가 존재하지 않습니다.</td></tr>`;
     return;
   }
   
   newsList.forEach(news => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td class="news-delete-col" style="${isDeleteMode ? '' : 'display: none;'} text-align: center;">
+        <input type="checkbox" class="news-item-checkbox" data-id="${news.id}">
+      </td>
       <td><span style="color:#fb923c">${news.importance}</span></td>
       <td><strong class="news-link-btn" style="cursor:pointer">${news.title}</strong></td>
       <td><span class="badge">${news.source}</span></td>
@@ -894,6 +997,7 @@ function getCategoryName(category) {
   const mapping = {
     'Cert': '자격증 공부',
     'CertAnalysis': '보안인증 분석',
+    'Shieldus': '쉴더스 교육',
     'Project': '프로젝트',
     'News': '보안 뉴스'
   };
@@ -904,9 +1008,8 @@ function matchSearch(post) {
   if (!appState.searchQuery) return true;
   const q = appState.searchQuery.toLowerCase();
   const title = post.title.toLowerCase();
-  const tagMatch = post.tags && post.tags.some(t => t.toLowerCase().includes(q));
   const typeMatch = post.type && post.type.toLowerCase().includes(q);
-  return title.includes(q) || tagMatch || typeMatch;
+  return title.includes(q) || typeMatch;
 }
 
 // Unicode-Safe Base64 encoding
@@ -914,55 +1017,39 @@ function utf8ToBase64(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
 
-// GitHub REST API Commit Helper
-async function commitToGitHub(filePath, fileContent, commitMessage) {
-  if (!appState.syncEnabled || !appState.githubPat) {
-    return true; // Sync disabled, treat as local-only success
+// GAS Backend API Communication Helper
+async function sendToGasApi(action, data = {}) {
+  if (!appState.adminPassword) {
+    throw new Error('관리자 인증이 필요합니다. 상단 열쇠(🔑) 버튼을 눌러 인증해 주세요.');
   }
-  
-  showLoader('깃허브 연동 중...', '저장소 파일 정보를 동기화하고 있습니다.');
-  
-  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`;
-  const headers = {
-    'Authorization': `token ${appState.githubPat}`,
-    'Accept': 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json'
-  };
-  
+
+  showLoader('데이터 처리 중...', 'Google Sheets 데이터베이스와 통신하고 있습니다.');
+
   try {
-    // 1. Get current file SHA (if it exists)
-    let sha = null;
-    const getRes = await fetch(url, { headers });
-    if (getRes.status === 200) {
-      const getJson = await getRes.json();
-      sha = getJson.sha;
-    }
-    
-    // 2. Commit file
-    const body = {
-      message: commitMessage,
-      content: utf8ToBase64(fileContent)
+    const payload = {
+      password: appState.adminPassword,
+      action: action,
+      data: data
     };
-    if (sha) {
-      body.sha = sha;
-    }
-    
-    const putRes = await fetch(url, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(body)
+
+    const response = await fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8' // GAS doPost CORS preflight 최적화
+      },
+      body: JSON.stringify(payload)
     });
-    
-    if (!putRes.ok) {
-      const errJson = await putRes.json();
-      throw new Error(errJson.message || 'PUT request failed');
+
+    if (!response.ok) {
+      throw new Error(`서버 응답 오류 (HTTP ${response.status})`);
     }
-    
-    return true;
-  } catch (error) {
-    console.error('GitHub API error:', error);
-    alert(`깃허브 동기화 실패: ${error.message}\n(로컬 저장소에는 기록되었으나 클라우드 배포는 지연됩니다.)`);
-    return false;
+
+    const resJson = await response.json();
+    if (!resJson.success) {
+      throw new Error(resJson.error || '작업 수행 실패');
+    }
+
+    return resJson;
   } finally {
     hideLoader();
   }
@@ -1007,6 +1094,88 @@ function setupEventListeners() {
   
   // Theme Toggle
   elements.themeToggle.addEventListener('click', toggleTheme);
+
+  // Admin Auth Key Button (🔑) Handler
+  elements.adminAuthBtn?.addEventListener('click', () => {
+    if (appState.isAdmin) {
+      elements.adminStatusInfo.style.display = 'block';
+      elements.adminPwdGroup.style.display = 'none';
+      elements.btnLogoutAdmin.style.display = 'inline-block';
+      elements.btnSubmitAdmin.style.display = 'none';
+    } else {
+      elements.adminStatusInfo.style.display = 'none';
+      elements.adminPwdGroup.style.display = 'block';
+      elements.btnLogoutAdmin.style.display = 'none';
+      elements.btnSubmitAdmin.style.display = 'inline-block';
+      elements.adminPasswordInput.value = '';
+    }
+    elements.adminAuthModal.style.display = 'flex';
+  });
+
+  elements.btnCloseAdminModal?.addEventListener('click', () => {
+    elements.adminAuthModal.style.display = 'none';
+  });
+  elements.btnCancelAdmin?.addEventListener('click', () => {
+    elements.adminAuthModal.style.display = 'none';
+  });
+
+  // Admin Auth Form Submit
+  elements.adminAuthForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pwd = elements.adminPasswordInput.value.trim();
+    if (!pwd) {
+      alert('관리자 비밀번호를 입력해 주세요.');
+      return;
+    }
+
+    showLoader('비밀번호 검증 중...', '관리자 권한을 확인하고 있습니다.');
+    try {
+      // Optional cross-validation with GAS if URL reachable
+      let verified = false;
+      try {
+        const testRes = await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ password: pwd, action: 'verifyPassword' })
+        });
+        if (testRes.ok) {
+          const testJson = await testRes.json();
+          if (testJson.success) verified = true;
+        }
+      } catch (err) {
+        // Fallback for offline or pre-deployment phase
+        console.warn('GAS validation skipped or unreachable, accepting client input:', err);
+        verified = true;
+      }
+
+      if (!verified) {
+        throw new Error('관리자 비밀번호가 일치하지 않습니다.');
+      }
+
+      localStorage.setItem('admin_auth_pwd', pwd);
+      appState.isAdmin = true;
+      appState.adminPassword = pwd;
+      updateAdminUI();
+      elements.adminAuthModal.style.display = 'none';
+      alert('관리자 인증이 완료되었습니다. 글 작성, 수정, 삭제 기능이 활성화되었습니다.');
+    } catch (err) {
+      alert('인증 실패: ' + err.message);
+    } finally {
+      hideLoader();
+    }
+  });
+
+  // Admin Logout (Lock)
+  elements.btnLogoutAdmin?.addEventListener('click', () => {
+    if (confirm('관리자 모드를 잠그시겠습니까?')) {
+      localStorage.removeItem('admin_auth_pwd');
+      appState.isAdmin = false;
+      appState.adminPassword = '';
+      updateAdminUI();
+      elements.adminAuthModal.style.display = 'none';
+      alert('관리자 모드가 잠겼습니다.');
+    }
+  });
   
   // Global Search input
   elements.globalSearch.addEventListener('input', (e) => {
@@ -1036,73 +1205,6 @@ function setupEventListeners() {
       const target = btn.getAttribute('data-target-tab');
       window.location.hash = `#/tab/${target}`;
     });
-  });
-  
-  // Settings Modal Handlers
-  elements.btnOpenSettings.addEventListener('click', () => {
-    document.getElementById('sync-toggle').checked = appState.syncEnabled;
-    document.getElementById('github-pat').value = appState.githubPat;
-    elements.settingsModal.style.display = 'flex';
-  });
-  elements.btnCloseSettingsModal.addEventListener('click', () => {
-    elements.settingsModal.style.display = 'none';
-  });
-  elements.btnCancelSettings.addEventListener('click', () => {
-    elements.settingsModal.style.display = 'none';
-  });
-  
-  // Save Settings Form
-  elements.settingsForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const enabled = document.getElementById('sync-toggle').checked;
-    const pat = document.getElementById('github-pat').value.trim();
-    
-    if (enabled) {
-      if (!pat) {
-        alert('동기화를 활성화하려면 GitHub 토큰(PAT)을 입력해야 합니다.');
-        return;
-      }
-      
-      showLoader('토큰 검증 중...', 'GitHub 저장소 권한을 확인하고 있습니다.');
-      try {
-        const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`, {
-          headers: {
-            'Authorization': `token ${pat}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        });
-        
-        if (res.status === 401 || res.status === 403) {
-          throw new Error('유효하지 않은 토큰이거나 권한이 없습니다.');
-        } else if (res.status === 404) {
-          throw new Error('저장소를 찾을 수 없습니다. (토큰 권한 혹은 리포지토리 이름 확인 필요)');
-        } else if (!res.ok) {
-          throw new Error(`검증 실패 (상태 코드: ${res.status})`);
-        }
-        
-        // Check scopes if possible (optional, x-oauth-scopes header)
-        const scopes = res.headers.get('x-oauth-scopes');
-        if (scopes && !scopes.includes('repo')) {
-          console.warn('Token scopes might be insufficient:', scopes);
-        }
-      } catch (err) {
-        alert('깃허브 연동 검증 실패: ' + err.message + '\n토큰 값과 repo 권한 설정을 다시 확인해 주세요.');
-        return;
-      } finally {
-        hideLoader();
-      }
-    }
-    
-    appState.syncEnabled = enabled;
-    appState.githubPat = pat;
-    
-    localStorage.setItem('github_sync_enabled', enabled);
-    localStorage.setItem('github_pat', pat);
-    
-    updateSyncIndicator();
-    elements.settingsModal.style.display = 'none';
-    
-    alert('깃허브 동기화 설정이 성공적으로 저장 및 연동되었습니다!');
   });
   
   // Project Modal Handlers
@@ -1205,13 +1307,25 @@ function setupEventListeners() {
       const post = appState.posts.find(p => p.id === appState.activePostId);
       if (!post) return;
       
-      elements.studyModalTitle.innerHTML = '<i class="fa-solid fa-pen-nib"></i> 스터디 노트 수정';
+      const isNews = post.category === 'News';
+      elements.studyModalTitle.innerHTML = isNews ? '<i class="fa-solid fa-newspaper"></i> 보안 뉴스 수정' : '<i class="fa-solid fa-pen-nib"></i> 스터디 노트 수정';
       elements.studyEditId.value = post.id;
       document.getElementById('study-title').value = post.title;
       document.getElementById('study-category').value = post.category;
-      document.getElementById('study-type').value = post.type;
-      document.getElementById('study-tags').value = post.tags ? post.tags.join(', ') : '';
+      document.getElementById('study-type').value = post.type || '';
       document.getElementById('study-content').value = post.content || '';
+      
+      const newsFields = document.getElementById('news-fields-group');
+      if (newsFields) {
+        newsFields.style.display = isNews ? 'block' : 'none';
+        if (isNews) {
+          document.getElementById('news-importance').value = post.importance || '⭐⭐⭐';
+          document.getElementById('news-source').value = post.source || '';
+          document.getElementById('news-date').value = post.date || '';
+          document.getElementById('news-link').value = post.newsLink || '';
+        }
+      }
+      
       elements.btnSubmitStudy.textContent = '수정하기';
       elements.addStudyModal.style.display = 'flex';
     }
@@ -1221,36 +1335,43 @@ function setupEventListeners() {
     if (!confirm('정말로 이 글을 삭제하시겠습니까?')) return;
     
     if (appState.activePostType === 'projectNote') {
-      appState.projectNotes = appState.projectNotes.filter(n => n.id !== appState.activePostId);
+      const noteId = appState.activePostId;
+      appState.projectNotes = appState.projectNotes.filter(n => n.id !== noteId);
       localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
       
-      if (appState.syncEnabled) {
-        await commitToGitHub('public/posts/projectNotes.json', JSON.stringify(appState.projectNotes, null, 2), 'chore: delete project note via web CMS');
+      if (appState.isAdmin) {
+        try {
+          await sendToGasApi('deletePost', { id: noteId });
+        } catch (err) {
+          console.warn('GAS delete error:', err);
+        }
       }
       
       window.location.hash = `#/project/${appState.activeProjectId}`;
     } else {
       const postToDelete = appState.posts.find(p => p.id === appState.activePostId);
-      appState.posts = appState.posts.filter(p => p.id !== appState.activePostId);
+      const postId = appState.activePostId;
+      appState.posts = appState.posts.filter(p => p.id !== postId);
       localStorage.setItem('posts', JSON.stringify(appState.posts));
       
-      if (appState.syncEnabled && postToDelete) {
-        const cleanPosts = appState.posts.map(p => {
-          const { content, ...rest } = p;
-          return {
-            ...rest,
-            filePath: p.filePath || `posts/${p.id}.md`
-          };
-        });
-        
-        await commitToGitHub('public/posts/posts.json', JSON.stringify(cleanPosts, null, 2), 'chore: remove study note from index via web CMS');
+      const deletedIds = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
+      if (postToDelete && !deletedIds.includes(postToDelete.id)) {
+        deletedIds.push(postToDelete.id);
+        localStorage.setItem('deletedPosts', JSON.stringify(deletedIds));
+      }
+      
+      if (appState.isAdmin && postToDelete) {
+        try {
+          await sendToGasApi('deletePost', { id: postId });
+        } catch (err) {
+          alert('구글 시트 삭제 중 오류 발생: ' + err.message);
+        }
       }
       
       window.location.hash = '#/tab/study';
     }
   });
   
-  // Form Submit: Add/Edit Project
   // Form Submit: Add/Edit Project
   elements.addProjectForm.addEventListener('submit', async (e) => {
     try {
@@ -1280,7 +1401,7 @@ function setupEventListeners() {
         appState.projects.unshift(newProj);
       }
       
-      // Save locally first
+      // Save locally
       localStorage.setItem('projects', JSON.stringify(appState.projects));
       
       renderAll();
@@ -1288,9 +1409,18 @@ function setupEventListeners() {
       elements.addProjectModal.style.display = 'none';
       showProjectDetail(targetId);
       
-      // Sync to GitHub in the background
-      if (appState.syncEnabled) {
-        await commitToGitHub('public/posts/projects.json', JSON.stringify(appState.projects, null, 2), `feat: update project metadata for ${projData.name}`);
+      if (appState.isAdmin) {
+        try {
+          await sendToGasApi('savePost', {
+            id: targetId,
+            category: 'Project',
+            title: projData.name,
+            date: projData.startDate,
+            content: JSON.stringify(projData)
+          });
+        } catch (err) {
+          console.warn('GAS project save error:', err);
+        }
       }
     } catch (err) {
       console.error('Error submitting project form:', err);
@@ -1310,6 +1440,7 @@ function setupEventListeners() {
       };
       
       let noteToSync = null;
+      let targetNoteId = editId;
       if (editId) {
         const index = appState.projectNotes.findIndex(n => n.id === editId);
         if (index !== -1) {
@@ -1321,8 +1452,9 @@ function setupEventListeners() {
         }
       } else {
         if (!appState.activeProjectId) return;
+        targetNoteId = 'note-' + Date.now();
         noteToSync = {
-          id: 'note-' + Date.now(),
+          id: targetNoteId,
           projectId: appState.activeProjectId,
           date: new Date().toISOString().split('T')[0],
           ...noteData
@@ -1330,16 +1462,25 @@ function setupEventListeners() {
         appState.projectNotes.unshift(noteToSync);
       }
       
-      // Save locally first
+      // Save locally
       localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
       
       renderProjectNotes(appState.activeProjectId);
       elements.addNoteForm.reset();
       elements.addNoteModal.style.display = 'none';
       
-      // Sync in background
-      if (appState.syncEnabled) {
-        await commitToGitHub('public/posts/projectNotes.json', JSON.stringify(appState.projectNotes, null, 2), `feat: update project note index for ${noteData.title}`);
+      if (appState.isAdmin && noteToSync) {
+        try {
+          await sendToGasApi('savePost', {
+            id: targetNoteId,
+            category: 'ProjectNote',
+            title: noteData.title,
+            date: noteToSync.date,
+            content: noteData.content
+          });
+        } catch (err) {
+          console.warn('GAS note save error:', err);
+        }
       }
     } catch (err) {
       console.error('Error submitting note form:', err);
@@ -1353,16 +1494,22 @@ function setupEventListeners() {
       e.preventDefault();
       const editId = elements.studyEditId.value;
       
-      const tagsString = document.getElementById('study-tags').value;
-      const tags = tagsString.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      const category = document.getElementById('study-category').value;
+      const isNews = category === 'News';
       
       const studyData = {
         title: document.getElementById('study-title').value,
-        category: document.getElementById('study-category').value,
+        category: category,
         type: document.getElementById('study-type').value,
-        tags: tags,
         content: document.getElementById('study-content').value
       };
+      
+      if (isNews) {
+        studyData.importance = document.getElementById('news-importance').value;
+        studyData.source = document.getElementById('news-source').value;
+        studyData.date = document.getElementById('news-date').value || new Date().toISOString().split('T')[0];
+        studyData.newsLink = document.getElementById('news-link').value;
+      }
       
       let targetPostId = editId;
       if (editId) {
@@ -1371,17 +1518,17 @@ function setupEventListeners() {
           appState.posts[index] = { ...appState.posts[index], ...studyData };
         }
       } else {
-        targetPostId = 'study-' + Date.now();
+        targetPostId = isNews ? 'news-' + Date.now() : 'study-' + Date.now();
         const newPost = {
           id: targetPostId,
-          date: new Date().toISOString().split('T')[0],
+          date: studyData.date || new Date().toISOString().split('T')[0],
           filePath: `posts/${targetPostId}.md`,
           ...studyData
         };
         appState.posts.unshift(newPost);
       }
       
-      // Save locally FIRST
+      // Save locally FIRST for instant rendering
       localStorage.setItem('posts', JSON.stringify(appState.posts));
       
       renderAll();
@@ -1391,26 +1538,123 @@ function setupEventListeners() {
         showArticleDetail(editId);
       }
       
-      // Sync to GitHub in background
-      if (appState.syncEnabled) {
-        const filePath = `public/posts/${targetPostId}.md`;
-        const isContentSyncSuccess = await commitToGitHub(filePath, studyData.content, `feat: publish post content for ${studyData.title}`);
-        
-        if (isContentSyncSuccess) {
-          const cleanPosts = appState.posts.map(p => {
-            const { content, ...rest } = p;
-            return {
-              ...rest,
-              filePath: p.filePath || `posts/${p.id}.md`
-            };
-          });
-          await commitToGitHub('public/posts/posts.json', JSON.stringify(cleanPosts, null, 2), `feat: update posts index for ${studyData.title}`);
-        }
+      // Real-time Sync to Google Sheets via GAS
+      if (appState.isAdmin) {
+        const gasResult = await sendToGasApi('savePost', {
+          id: targetPostId,
+          category: studyData.category,
+          title: studyData.title,
+          date: studyData.date || new Date().toISOString().split('T')[0],
+          content: studyData.content
+        });
+        console.log('[GAS API] Post successfully saved:', gasResult);
       }
     } catch (err) {
       console.error('Error submitting study form:', err);
       alert('스터디 노트 저장 실패: ' + err.message);
     }
+  });
+  elements.studyCategory?.addEventListener('change', (e) => {
+    const isNews = e.target.value === 'News';
+    const newsFields = document.getElementById('news-fields-group');
+    if (newsFields) {
+      newsFields.style.display = isNews ? 'block' : 'none';
+    }
+  });
+
+  // News delete mode buttons
+  elements.btnNewsDeleteMode?.addEventListener('click', () => {
+    appState.newsDeleteMode = true;
+    applyAdminPermissions();
+    renderSecurityNews();
+  });
+
+  elements.btnNewsDeleteCancel?.addEventListener('click', () => {
+    appState.newsDeleteMode = false;
+    applyAdminPermissions();
+    renderSecurityNews();
+  });
+
+  elements.newsSelectAll?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    const checkboxes = elements.fullNewsTable.querySelectorAll('.news-item-checkbox');
+    checkboxes.forEach(cb => cb.checked = checked);
+  });
+
+  elements.btnNewsDeleteConfirm?.addEventListener('click', async () => {
+    const checkboxes = elements.fullNewsTable.querySelectorAll('.news-item-checkbox:checked');
+    const checkedIds = Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
+    
+    if (checkedIds.length === 0) {
+      alert('선택된 보안 뉴스가 없습니다.');
+      return;
+    }
+    
+    if (!confirm(`정말로 선택한 ${checkedIds.length}개의 보안 뉴스를 삭제하시겠습니까?`)) {
+      return;
+    }
+    
+    try {
+      const postsToDelete = appState.posts.filter(p => checkedIds.includes(p.id));
+      appState.posts = appState.posts.filter(p => !checkedIds.includes(p.id));
+      
+      localStorage.setItem('posts', JSON.stringify(appState.posts));
+      
+      const deletedIds = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
+      let addedToDeleted = false;
+      postsToDelete.forEach(p => {
+        if (!deletedIds.includes(p.id)) {
+          deletedIds.push(p.id);
+          addedToDeleted = true;
+        }
+      });
+      if (addedToDeleted) {
+        localStorage.setItem('deletedPosts', JSON.stringify(deletedIds));
+      }
+      
+      appState.newsDeleteMode = false;
+      applyAdminPermissions();
+      renderAll();
+      
+      // Batch delete via GAS Sheets API
+      if (appState.isAdmin) {
+        for (const post of postsToDelete) {
+          try {
+            await sendToGasApi('deletePost', { id: post.id });
+          } catch (err) {
+            console.warn(`[GAS API] Failed to delete ${post.id}:`, err);
+          }
+        }
+      }
+      
+      alert('선택한 보안 뉴스가 정상적으로 삭제되었습니다.');
+    } catch (err) {
+      console.error('Error during batch deletion:', err);
+      alert('삭제 중 오류가 발생했습니다: ' + err.message);
+    }
+  });
+
+  // Text size selector for article details
+  const sizeBtns = document.querySelectorAll('.text-size-btn');
+  sizeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      sizeBtns.forEach(b => {
+        b.classList.remove('active');
+        b.style.background = 'none';
+        b.style.color = 'var(--text-muted)';
+        b.style.fontWeight = 'normal';
+      });
+      btn.classList.add('active');
+      btn.style.background = 'var(--accent-color)';
+      btn.style.color = '#fff';
+      btn.style.fontWeight = '600';
+      
+      const sizeValue = btn.getAttribute('data-size');
+      const contentArea = document.getElementById('article-content');
+      if (contentArea) {
+        contentArea.style.fontSize = sizeValue;
+      }
+    });
   });
 }
 
