@@ -1561,6 +1561,15 @@ function setupEventListeners() {
       }
     }
 
+    // Always ensure Markdown guide banner is collapsed by default
+    if (elements.editorGuideBody) {
+      elements.editorGuideBody.style.display = 'none';
+      const icon = elements.btnToggleGuideBanner?.querySelector('.guide-toggle-icon i');
+      if (icon) {
+        icon.className = 'fa-solid fa-chevron-right';
+      }
+    }
+
     updateEditorWordCount();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -1930,6 +1939,148 @@ function setupEventListeners() {
       }
     });
 
+    // Sync toolbar active button states
+    function updateToolbarState() {
+      const commands = {
+        'bold': 'bold',
+        'italic': 'italic',
+        'underline': 'underline',
+        'strike': 'strikeThrough'
+      };
+      for (const [action, cmd] of Object.entries(commands)) {
+        const btn = document.querySelector(`.editor-toolbar .tool-btn[data-action="${action}"]`);
+        if (btn) {
+          try {
+            if (document.queryCommandState(cmd)) {
+              btn.classList.add('active');
+            } else {
+              btn.classList.remove('active');
+            }
+          } catch (e) {}
+        }
+      }
+
+      // Check code button active state
+      const codeBtn = document.querySelector(`.editor-toolbar .tool-btn[data-action="code-inline"]`);
+      if (codeBtn) {
+        const sel = window.getSelection();
+        if (sel && sel.anchorNode) {
+          const parentCode = sel.anchorNode.nodeType === Node.ELEMENT_NODE 
+            ? sel.anchorNode.closest('code') 
+            : sel.anchorNode.parentElement?.closest('code');
+          if (parentCode && (!parentCode.parentElement || parentCode.parentElement.tagName.toLowerCase() !== 'pre')) {
+            codeBtn.classList.add('active');
+          } else {
+            codeBtn.classList.remove('active');
+          }
+        } else {
+          codeBtn.classList.remove('active');
+        }
+      }
+    }
+
+    // Helper: Apply or toggle inline formatting with Notion-style exit logic
+    function formatInlineStyle(command) {
+      if (!elements.editorWysiwygContent) return;
+      elements.editorWysiwygContent.focus();
+      const sel = window.getSelection();
+      if (!sel || !sel.anchorNode) return;
+
+      if (command === 'code') {
+        // Special handling for inline code
+        const selectedText = sel.toString();
+        if (selectedText) {
+          const range = sel.getRangeAt(0);
+          const codeEl = document.createElement('code');
+          codeEl.textContent = selectedText;
+          range.deleteContents();
+          range.insertNode(codeEl);
+
+          const spaceNode = document.createTextNode('\u00A0');
+          if (codeEl.nextSibling) {
+            codeEl.parentNode.insertBefore(spaceNode, codeEl.nextSibling);
+          } else {
+            codeEl.parentNode.appendChild(spaceNode);
+          }
+
+          const newRange = document.createRange();
+          newRange.setStart(spaceNode, 1);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+        } else {
+          // Collapsed: check if already inside code
+          const parentCode = sel.anchorNode.nodeType === Node.ELEMENT_NODE 
+            ? sel.anchorNode.closest('code') 
+            : sel.anchorNode.parentElement?.closest('code');
+          if (parentCode && (!parentCode.parentElement || parentCode.parentElement.tagName.toLowerCase() !== 'pre')) {
+            // Exit code tag
+            const spaceNode = document.createTextNode('\u00A0');
+            if (parentCode.nextSibling) {
+              parentCode.parentNode.insertBefore(spaceNode, parentCode.nextSibling);
+            } else {
+              parentCode.parentNode.appendChild(spaceNode);
+            }
+            const newRange = document.createRange();
+            newRange.setStart(spaceNode, 1);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+          } else {
+            document.execCommand('insertHTML', false, '<code>\u200B</code>');
+          }
+        }
+        updateToolbarState();
+        updateEditorWordCount();
+        return;
+      }
+
+      const isSelection = !sel.isCollapsed && sel.toString().length > 0;
+      if (isSelection) {
+        // 1. Text is selected: Apply format ONLY to the selected range
+        document.execCommand(command, false, null);
+
+        // Ensure subsequent typed characters are plain normal text
+        const currentSel = window.getSelection();
+        if (currentSel && currentSel.rangeCount > 0) {
+          const range = currentSel.getRangeAt(0);
+          range.collapse(false); // collapse cursor to the end of selection
+
+          // Insert a neutral trailing space node outside/after the formatted tag
+          const spaceNode = document.createTextNode('\u00A0');
+          range.insertNode(spaceNode);
+
+          const newRange = document.createRange();
+          newRange.setStart(spaceNode, 1);
+          newRange.collapse(true);
+          currentSel.removeAllRanges();
+          currentSel.addRange(newRange);
+
+          // If browser still keeps the command active at this position, turn it off
+          if (document.queryCommandState(command)) {
+            document.execCommand(command, false, null);
+          }
+        }
+      } else {
+        // 2. No text selected: Toggle state (active toolbar button & continue in style)
+        document.execCommand(command, false, null);
+      }
+
+      updateToolbarState();
+      updateEditorWordCount();
+    }
+
+    // Sync active toolbar states on selection changes and mouse/key events
+    document.addEventListener('selectionchange', () => {
+      if (document.activeElement === elements.editorWysiwygContent || elements.editorWysiwygContent.contains(document.activeElement)) {
+        updateToolbarState();
+      }
+    });
+
+    elements.editorWysiwygContent.addEventListener('keyup', () => {
+      updateToolbarState();
+    });
+
     elements.editorWysiwygContent.addEventListener('keydown', (e) => {
       const sel = window.getSelection();
       if (!sel || !sel.anchorNode) return;
@@ -1940,55 +2091,35 @@ function setupEventListeners() {
       // Ctrl + Shift + X: Strikethrough (취소선)
       if (isCtrlOrCmd && e.shiftKey && (e.key === 'x' || e.key === 'X')) {
         e.preventDefault();
-        document.execCommand('strikeThrough', false, null);
-        updateEditorWordCount();
+        formatInlineStyle('strikeThrough');
         return;
       }
 
       // Ctrl + B: Bold (굵게)
       if (isCtrlOrCmd && !e.shiftKey && (e.key === 'b' || e.key === 'B')) {
         e.preventDefault();
-        document.execCommand('bold', false, null);
-        updateEditorWordCount();
+        formatInlineStyle('bold');
         return;
       }
 
       // Ctrl + I: Italic (기울임)
       if (isCtrlOrCmd && !e.shiftKey && (e.key === 'i' || e.key === 'I')) {
         e.preventDefault();
-        document.execCommand('italic', false, null);
-        updateEditorWordCount();
+        formatInlineStyle('italic');
         return;
       }
 
       // Ctrl + U: Underline (밑줄)
       if (isCtrlOrCmd && !e.shiftKey && (e.key === 'u' || e.key === 'U')) {
         e.preventDefault();
-        document.execCommand('underline', false, null);
-        updateEditorWordCount();
+        formatInlineStyle('underline');
         return;
       }
 
       // Ctrl + E: Inline Code (인라인 코드)
       if (isCtrlOrCmd && !e.shiftKey && (e.key === 'e' || e.key === 'E')) {
         e.preventDefault();
-        const selectedText = sel.toString();
-        if (selectedText) {
-          // If already inside code, unwrap or insert text
-          const range = sel.getRangeAt(0);
-          const codeEl = document.createElement('code');
-          codeEl.textContent = selectedText;
-          range.deleteContents();
-          range.insertNode(codeEl);
-          // place cursor after code
-          range.setStartAfter(codeEl);
-          range.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(range);
-        } else {
-          document.execCommand('insertHTML', false, '<code>코드</code>&nbsp;');
-        }
-        updateEditorWordCount();
+        formatInlineStyle('code');
         return;
       }
 
@@ -2119,7 +2250,7 @@ function setupEventListeners() {
             
             const bTag = document.createElement('strong');
             bTag.textContent = boldText;
-            const spaceNode = document.createTextNode(' ');
+            const spaceNode = document.createTextNode('\u00A0');
 
             const frag = document.createDocumentFragment();
             if (beforeBold) frag.appendChild(document.createTextNode(beforeBold));
@@ -2134,6 +2265,10 @@ function setupEventListeners() {
             newRange.collapse(true);
             sel.removeAllRanges();
             sel.addRange(newRange);
+            if (document.queryCommandState('bold')) {
+              document.execCommand('bold', false, null);
+            }
+            updateToolbarState();
             return;
           }
 
@@ -2148,7 +2283,7 @@ function setupEventListeners() {
             
             const iTag = document.createElement('em');
             iTag.textContent = italicText;
-            const spaceNode = document.createTextNode(' ');
+            const spaceNode = document.createTextNode('\u00A0');
 
             const frag = document.createDocumentFragment();
             if (beforeItalic) frag.appendChild(document.createTextNode(beforeItalic));
@@ -2163,10 +2298,47 @@ function setupEventListeners() {
             newRange.collapse(true);
             sel.removeAllRanges();
             sel.addRange(newRange);
+            if (document.queryCommandState('italic')) {
+              document.execCommand('italic', false, null);
+            }
+            updateToolbarState();
             return;
           }
 
-          // 9. Inline Strike: ~~word~~ + Space
+          // 9. Inline Underline: <u>word</u> + Space
+          const underlineMatch = textBeforeCursor.match(/<u>([^<]+)<\/u>$/i);
+          if (underlineMatch) {
+            e.preventDefault();
+            const underlineText = underlineMatch[1];
+            const startIdx = underlineMatch.index;
+            const beforeUnderline = node.textContent.substring(0, startIdx);
+            const afterUnderline = node.textContent.substring(sel.anchorOffset);
+            
+            const uTag = document.createElement('u');
+            uTag.textContent = underlineText;
+            const spaceNode = document.createTextNode('\u00A0');
+
+            const frag = document.createDocumentFragment();
+            if (beforeUnderline) frag.appendChild(document.createTextNode(beforeUnderline));
+            frag.appendChild(uTag);
+            frag.appendChild(spaceNode);
+            if (afterUnderline) frag.appendChild(document.createTextNode(afterUnderline));
+
+            node.parentNode.replaceChild(frag, node);
+
+            const newRange = document.createRange();
+            newRange.setStart(spaceNode, 1);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+            if (document.queryCommandState('underline')) {
+              document.execCommand('underline', false, null);
+            }
+            updateToolbarState();
+            return;
+          }
+
+          // 10. Inline Strike: ~~word~~ + Space
           const strikeMatch = textBeforeCursor.match(/~~([^~]+)~~$/);
           if (strikeMatch) {
             e.preventDefault();
@@ -2177,7 +2349,7 @@ function setupEventListeners() {
             
             const sTag = document.createElement('del');
             sTag.textContent = strikeText;
-            const spaceNode = document.createTextNode(' ');
+            const spaceNode = document.createTextNode('\u00A0');
 
             const frag = document.createDocumentFragment();
             if (beforeStrike) frag.appendChild(document.createTextNode(beforeStrike));
@@ -2192,10 +2364,14 @@ function setupEventListeners() {
             newRange.collapse(true);
             sel.removeAllRanges();
             sel.addRange(newRange);
+            if (document.queryCommandState('strikeThrough')) {
+              document.execCommand('strikeThrough', false, null);
+            }
+            updateToolbarState();
             return;
           }
 
-          // 10. Inline Code: `code` + Space
+          // 11. Inline Code: `code` + Space
           const codeMatch = textBeforeCursor.match(/`([^`]+)`$/);
           if (codeMatch) {
             e.preventDefault();
@@ -2206,7 +2382,7 @@ function setupEventListeners() {
             
             const cTag = document.createElement('code');
             cTag.textContent = codeText;
-            const spaceNode = document.createTextNode(' ');
+            const spaceNode = document.createTextNode('\u00A0');
 
             const frag = document.createDocumentFragment();
             if (beforeCode) frag.appendChild(document.createTextNode(beforeCode));
@@ -2221,6 +2397,7 @@ function setupEventListeners() {
             newRange.collapse(true);
             sel.removeAllRanges();
             sel.addRange(newRange);
+            updateToolbarState();
             return;
           }
 
@@ -2399,26 +2576,23 @@ function setupEventListeners() {
           document.execCommand('formatBlock', false, 'H3');
           break;
         case 'bold':
-          document.execCommand('bold', false, null);
+          formatInlineStyle('bold');
           break;
         case 'italic':
-          document.execCommand('italic', false, null);
+          formatInlineStyle('italic');
           break;
         case 'underline':
-          document.execCommand('underline', false, null);
+          formatInlineStyle('underline');
           break;
         case 'strike':
-          document.execCommand('strikeThrough', false, null);
+          formatInlineStyle('strikeThrough');
           break;
         case 'quote':
           document.execCommand('formatBlock', false, 'BLOCKQUOTE');
           break;
-        case 'code-inline': {
-          const sel = window.getSelection();
-          const txt = sel ? sel.toString() : 'code';
-          document.execCommand('insertHTML', false, `<code>${txt || '코드'}</code>`);
+        case 'code-inline':
+          formatInlineStyle('code');
           break;
-        }
         case 'code-block': {
           const sel = window.getSelection();
           const txt = sel ? sel.toString() : '// 코드 작성';

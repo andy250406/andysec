@@ -1886,6 +1886,13 @@ a:hover {
   border-color: var(--border-color);
   color: var(--accent-color);
 }
+.tool-btn.active {
+  background: rgba(0, 242, 254, 0.15);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+  font-weight: 600;
+}
 .tool-btn-primary {
   background: rgba(0, 242, 254, 0.1);
   border-color: rgba(0, 242, 254, 0.3);
