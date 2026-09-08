@@ -548,18 +548,17 @@
           <!-- Compact Markdown Quick Guide Banner -->
           <div class="editor-guide-banner">
             <div class="guide-banner-header" id="btn-toggle-guide-banner">
-              <span><i class="fa-brands fa-markdown"></i> <strong>마크다운 가이드 &amp; 팁</strong></span>
+              <span><i class="fa-brands fa-markdown"></i> <strong>마크다운 가이드 &amp; 팁 (인라인 스마트 변환 지원)</strong></span>
               <span class="guide-toggle-icon"><i class="fa-solid fa-chevron-down"></i></span>
             </div>
             <div class="guide-banner-body" id="editor-guide-body">
               <div class="guide-chips">
-                <div class="guide-chip"><code># 제목 1</code> <code>## 제목 2</code> <code>### 제목 3</code></div>
-                <div class="guide-chip"><code>**굵게**</code> <code>*기울임*</code> <code>~~취소선~~</code></div>
-                <div class="guide-chip"><code>- 목록</code> <code>1. 순서목록</code> <code>&gt; 인용구</code></div>
-                <div class="guide-chip"><code>`코드`</code> <code>```코드블록```</code></div>
-                <div class="guide-chip"><code>[링크](URL)</code> <code>![사진](URL)</code></div>
+                <div class="guide-chip"><code># 제목 1</code> <code>## 제목 2</code> <code>### 제목 3</code> (줄 시작에서 # 후 공백)</div>
+                <div class="guide-chip"><code>**굵게**</code> (Ctrl+B) <code>*기울임*</code> <code>~~취소선~~</code> <code>`코드`</code></div>
+                <div class="guide-chip"><code>- 목록</code> <code>1. 순서목록</code> <code>&gt; 인용구</code> (빈 목록에서 백스페이스 시 일반 글로 복귀)</div>
+                <div class="guide-chip"><code>```코드블록```</code> (``` 입력 후 엔터)</div>
+                <div class="guide-chip"><span class="highlight-code">URL 입력/붙여넣기 시 제목 입력 말풍선 자동 표시 / 이미지 URL 자동 사진화</span></div>
                 <div class="guide-chip"><span class="highlight-code"><code>{{img_1}}</code>, <code>{{img_2}}</code> (시트 이미지 삽입)</span></div>
-                <div class="guide-chip"><code>| 열1 | 열2 |</code> (표 도구 활용 가능)</div>
               </div>
             </div>
           </div>
@@ -573,7 +572,7 @@
             </div>
             <div class="toolbar-separator"></div>
             <div class="toolbar-group">
-              <button type="button" class="tool-btn" data-action="bold" title="굵게 (Bold)"><i class="fa-solid fa-bold"></i></button>
+              <button type="button" class="tool-btn" data-action="bold" title="굵게 (Ctrl+B)"><i class="fa-solid fa-bold"></i></button>
               <button type="button" class="tool-btn" data-action="italic" title="기울임 (Italic)"><i class="fa-solid fa-italic"></i></button>
               <button type="button" class="tool-btn" data-action="strike" title="취소선"><i class="fa-solid fa-strikethrough"></i></button>
             </div>
@@ -601,10 +600,25 @@
           </div>
 
           <!-- Integrated Instant Markdown WYSIWYG Workspace -->
-          <div class="editor-workspace-integrated">
+          <div class="editor-workspace-integrated" style="position: relative;">
+            <!-- Floating URL Title Bubble Popover -->
+            <div id="editor-link-bubble" class="editor-link-bubble" style="display: none;">
+              <div class="link-bubble-header">
+                <i class="fa-solid fa-link"></i> <span id="link-bubble-url-display">URL 인식됨</span>
+              </div>
+              <div class="link-bubble-body">
+                <input type="text" id="link-bubble-title-input" placeholder="표시할 제목/헤드라인 입력 (미입력 시 URL로 표시)">
+                <div class="link-bubble-actions">
+                  <button type="button" class="btn-sm btn-primary" id="btn-link-bubble-apply"><i class="fa-solid fa-check"></i> 적용</button>
+                  <button type="button" class="btn-sm btn-secondary" id="btn-link-bubble-keep-url">URL 유지</button>
+                  <button type="button" class="btn-sm btn-danger" id="btn-link-bubble-close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+              </div>
+            </div>
+
             <div class="editor-integrated-wrapper card">
               <!-- Live Editable Markdown Body Area -->
-              <div id="editor-wysiwyg-content" class="editor-wysiwyg-content markdown-body" contenteditable="true" spellcheck="false" placeholder="이곳에 내용을 입력하세요. (- 목록, # 제목, **굵게** 등의 마크다운을 입력하면 화면에서 즉시 변환되어 적용됩니다.)"></div>
+              <div id="editor-wysiwyg-content" class="editor-wysiwyg-content markdown-body" contenteditable="true" spellcheck="false" placeholder="이곳에 내용을 입력하세요. (- 목록, # 제목, **굵게**, *기울임*, `코드` 등의 마크다운 또는 URL을 입력하면 실시간으로 변환됩니다.)"></div>
               <!-- Hidden textarea for underlying markdown sync and backup -->
               <textarea id="editor-main-textarea" style="display: none;"></textarea>
             </div>

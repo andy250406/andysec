@@ -151,6 +151,14 @@ const elements = {
   editorWysiwygContent: document.getElementById('editor-wysiwyg-content'),
   editorWordCount: document.getElementById('editor-word-count'),
   
+  // Link Title Bubble Popover
+  editorLinkBubble: document.getElementById('editor-link-bubble'),
+  linkBubbleUrlDisplay: document.getElementById('link-bubble-url-display'),
+  linkBubbleTitleInput: document.getElementById('link-bubble-title-input'),
+  btnLinkBubbleApply: document.getElementById('btn-link-bubble-apply'),
+  btnLinkBubbleKeepUrl: document.getElementById('btn-link-bubble-keep-url'),
+  btnLinkBubbleClose: document.getElementById('btn-link-bubble-close'),
+  
   // Table Generator Modal
   tableGeneratorModal: document.getElementById('table-generator-modal'),
   btnOpenTableModal: document.getElementById('btn-open-table-modal'),
@@ -1129,7 +1137,6 @@ function renderStudyCategories() {
     allCats.forEach(cat => {
       selectHtml += `<option value="${cat.id}">${cat.name}</option>`;
     });
-    selectHtml += `<option value="News">보안 뉴스 (News)</option>`;
     selectHtml += `<option value="custom">+ 직접 입력 (새 카테고리)</option>`;
     elements.editorCategorySelect.innerHTML = selectHtml;
     
@@ -1579,6 +1586,14 @@ function setupEventListeners() {
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
 
+    // Handle interactive editor image card
+    if (node.classList && node.classList.contains('editor-img-card')) {
+      const img = node.querySelector('img');
+      const src = img ? (img.getAttribute('src') || '') : '';
+      const alt = img ? (img.getAttribute('alt') || '이미지') : '이미지';
+      return `\n![${alt}](${src})\n\n`;
+    }
+
     const tag = node.tagName.toLowerCase();
     const children = Array.from(node.childNodes).map(htmlNodeToMarkdown).join('');
 
@@ -1630,6 +1645,11 @@ function setupEventListeners() {
       }
       case 'hr':
         return `\n---\n\n`;
+      case 'img': {
+        const src = node.getAttribute('src') || '';
+        const alt = node.getAttribute('alt') || '이미지';
+        return `\n![${alt}](${src})\n\n`;
+      }
       case 'a': {
         const href = node.getAttribute('href') || '';
         return `[${children.trim() || href}](${href})`;
@@ -1668,17 +1688,269 @@ function setupEventListeners() {
     return md;
   }
 
+  // Active Link Anchor for Floating Bubble
+  let activeLinkAnchor = null;
+
+  function showLinkBubble(anchorEl) {
+    if (!elements.editorLinkBubble || !anchorEl) return;
+    activeLinkAnchor = anchorEl;
+    const url = anchorEl.getAttribute('href') || '';
+    
+    if (elements.linkBubbleUrlDisplay) {
+      elements.linkBubbleUrlDisplay.textContent = url.length > 35 ? url.substring(0, 32) + '...' : url;
+      elements.linkBubbleUrlDisplay.title = url;
+    }
+    if (elements.linkBubbleTitleInput) {
+      elements.linkBubbleTitleInput.value = (anchorEl.textContent && anchorEl.textContent !== url) ? anchorEl.textContent : '';
+    }
+
+    // Position bubble near anchor
+    const anchorRect = anchorEl.getBoundingClientRect();
+    const wrapperRect = elements.editorWysiwygContent.getBoundingClientRect();
+    
+    let top = anchorRect.bottom - wrapperRect.top + 8;
+    let left = anchorRect.left - wrapperRect.left;
+    if (left < 10) left = 10;
+    if (left + 360 > wrapperRect.width) left = Math.max(10, wrapperRect.width - 370);
+
+    elements.editorLinkBubble.style.top = `${top}px`;
+    elements.editorLinkBubble.style.left = `${left}px`;
+    elements.editorLinkBubble.style.display = 'block';
+
+    setTimeout(() => {
+      elements.linkBubbleTitleInput?.focus();
+    }, 50);
+  }
+
+  function hideLinkBubble() {
+    if (elements.editorLinkBubble) {
+      elements.editorLinkBubble.style.display = 'none';
+    }
+    activeLinkAnchor = null;
+  }
+
+  // Link Bubble Handlers
+  elements.btnLinkBubbleApply?.addEventListener('click', () => {
+    if (activeLinkAnchor) {
+      const newTitle = elements.linkBubbleTitleInput ? elements.linkBubbleTitleInput.value.trim() : '';
+      const url = activeLinkAnchor.getAttribute('href') || '';
+      activeLinkAnchor.textContent = newTitle || url;
+      activeLinkAnchor.title = `클릭 시 이동: ${url}`;
+    }
+    hideLinkBubble();
+    elements.editorWysiwygContent?.focus();
+    updateEditorWordCount();
+  });
+
+  elements.btnLinkBubbleKeepUrl?.addEventListener('click', () => {
+    if (activeLinkAnchor) {
+      const url = activeLinkAnchor.getAttribute('href') || '';
+      activeLinkAnchor.textContent = url;
+      activeLinkAnchor.title = `클릭 시 이동: ${url}`;
+    }
+    hideLinkBubble();
+    elements.editorWysiwygContent?.focus();
+    updateEditorWordCount();
+  });
+
+  elements.btnLinkBubbleClose?.addEventListener('click', () => {
+    hideLinkBubble();
+    elements.editorWysiwygContent?.focus();
+  });
+
+  elements.linkBubbleTitleInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      elements.btnLinkBubbleApply?.click();
+    } else if (e.key === 'Escape') {
+      hideLinkBubble();
+      elements.editorWysiwygContent?.focus();
+    }
+  });
+
+  // URL Detector & Converter for Text
+  function isImageUrl(url) {
+    if (!url) return false;
+    const cleanUrl = url.split('?')[0].toLowerCase();
+    return /\.(jpeg|jpg|gif|png|webp|svg|bmp)$/.test(cleanUrl) || 
+           url.includes('images.unsplash.com') ||
+           url.includes('imgur.com') ||
+           url.includes('googleusercontent.com');
+  }
+
+  function processUrlInTextNode(textNode, offset) {
+    const text = textNode.textContent;
+    const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
+    let match;
+    let targetMatch = null;
+
+    while ((match = urlRegex.exec(text)) !== null) {
+      const matchStart = match.index;
+      const matchEnd = match.index + match[0].length;
+      if (offset >= matchStart && offset <= matchEnd + 1) {
+        targetMatch = { url: match[0], start: matchStart, end: matchEnd };
+        break;
+      }
+    }
+
+    if (!targetMatch) return false;
+
+    const before = text.substring(0, targetMatch.start);
+    const after = text.substring(targetMatch.end);
+    const parent = textNode.parentNode;
+    if (!parent) return false;
+
+    if (isImageUrl(targetMatch.url)) {
+      // Create image card with hover tooltip & click to open
+      const imgCard = document.createElement('span');
+      imgCard.className = 'editor-img-card';
+      imgCard.title = `이미지 원본: ${targetMatch.url} (클릭 시 새 창 열기)`;
+      imgCard.innerHTML = `<img src="${targetMatch.url}" alt="이미지">`;
+      imgCard.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        window.open(targetMatch.url, '_blank');
+      });
+
+      const frag = document.createDocumentFragment();
+      if (before) frag.appendChild(document.createTextNode(before));
+      frag.appendChild(imgCard);
+      const spaceNode = document.createTextNode(after ? (after.startsWith(' ') ? after : ' ' + after) : '\u00A0');
+      frag.appendChild(spaceNode);
+
+      parent.replaceChild(frag, textNode);
+
+      // Move cursor after image
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.setStart(spaceNode, 1);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return true;
+    } else {
+      // Create clickable anchor tag
+      const anchor = document.createElement('a');
+      anchor.href = targetMatch.url;
+      anchor.target = '_blank';
+      anchor.textContent = targetMatch.url;
+      anchor.title = `클릭 시 이동: ${targetMatch.url}`;
+      anchor.addEventListener('click', (ev) => {
+        if (ev.ctrlKey || ev.metaKey) {
+          window.open(targetMatch.url, '_blank');
+        } else {
+          ev.preventDefault();
+          showLinkBubble(anchor);
+        }
+      });
+
+      const frag = document.createDocumentFragment();
+      if (before) frag.appendChild(document.createTextNode(before));
+      frag.appendChild(anchor);
+      const spaceNode = document.createTextNode(after ? (after.startsWith(' ') ? after : ' ' + after) : '\u00A0');
+      frag.appendChild(spaceNode);
+
+      parent.replaceChild(frag, textNode);
+
+      // Show title input bubble
+      showLinkBubble(anchor);
+
+      // Move cursor after anchor
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.setStart(spaceNode, 1);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return true;
+    }
+  }
+
   // Handle instant Markdown transformations as the user types in contenteditable
   if (elements.editorWysiwygContent) {
     elements.editorWysiwygContent.addEventListener('input', () => {
       updateEditorWordCount();
     });
 
-    elements.editorWysiwygContent.addEventListener('keydown', (e) => {
-      if (e.key === ' ' || e.key === 'Enter') {
-        const sel = window.getSelection();
-        if (!sel || !sel.isCollapsed || !sel.anchorNode) return;
+    // Handle clicks inside editor (open link bubble when clicking existing link)
+    elements.editorWysiwygContent.addEventListener('click', (e) => {
+      const anchor = e.target.closest('a');
+      if (anchor) {
+        e.preventDefault();
+        showLinkBubble(anchor);
+      } else {
+        hideLinkBubble();
+      }
+    });
 
+    // Handle Paste event: Detect URLs and format automatically
+    elements.editorWysiwygContent.addEventListener('paste', (e) => {
+      const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+      if (!pastedText) return;
+
+      const trimmed = pastedText.trim();
+      if (/^https?:\/\/[^\s]+$/.test(trimmed)) {
+        e.preventDefault();
+        if (isImageUrl(trimmed)) {
+          const imgHtml = `<span class="editor-img-card" title="이미지 원본: ${trimmed} (클릭 시 새 창 열기)"><img src="${trimmed}" alt="이미지"></span>&nbsp;`;
+          document.execCommand('insertHTML', false, imgHtml);
+        } else {
+          const linkId = 'link-' + Date.now();
+          const linkHtml = `<a id="${linkId}" href="${trimmed}" target="_blank" title="클릭 시 이동: ${trimmed}">${trimmed}</a>&nbsp;`;
+          document.execCommand('insertHTML', false, linkHtml);
+          const anchor = document.getElementById(linkId);
+          if (anchor) {
+            anchor.removeAttribute('id');
+            showLinkBubble(anchor);
+          }
+        }
+        updateEditorWordCount();
+      }
+    });
+
+    elements.editorWysiwygContent.addEventListener('keydown', (e) => {
+      const sel = window.getSelection();
+      if (!sel || !sel.anchorNode) return;
+
+      // 1. Ctrl+B / Cmd+B Shortcut for Bold
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        document.execCommand('bold', false, null);
+        updateEditorWordCount();
+        return;
+      }
+
+      // 2. Backspace inside List, Blockquote, or Heading to revert to normal paragraph
+      if (e.key === 'Backspace' && sel.isCollapsed) {
+        const anchor = sel.anchorNode;
+        const parentLi = anchor.nodeType === Node.ELEMENT_NODE ? anchor.closest('li') : anchor.parentElement?.closest('li');
+        
+        if (parentLi) {
+          // If cursor is at the very beginning of the li item or li is empty
+          const textContent = parentLi.textContent;
+          if (textContent === '' || textContent === '\n' || sel.anchorOffset === 0) {
+            e.preventDefault();
+            // Outdent list to turn it into normal text line
+            document.execCommand('outdent', false, null);
+            document.execCommand('formatBlock', false, 'p');
+            updateEditorWordCount();
+            return;
+          }
+        }
+
+        const parentQuote = anchor.nodeType === Node.ELEMENT_NODE ? anchor.closest('blockquote') : anchor.parentElement?.closest('blockquote');
+        if (parentQuote) {
+          const textContent = parentQuote.textContent;
+          if (textContent === '' || textContent === '\n' || sel.anchorOffset === 0) {
+            e.preventDefault();
+            document.execCommand('formatBlock', false, 'p');
+            updateEditorWordCount();
+            return;
+          }
+        }
+      }
+
+      // 3. Space or Enter transformations
+      if (e.key === ' ' || e.key === 'Enter') {
         let node = sel.anchorNode;
         if (node.nodeType === Node.ELEMENT_NODE) {
           node = node.childNodes[sel.anchorOffset - 1] || node;
@@ -1687,61 +1959,277 @@ function setupEventListeners() {
 
         const textBeforeCursor = node.textContent.substring(0, sel.anchorOffset);
 
-        // Pattern matching for immediate transformations
-        // 1. List: "- " or "* "
-        if (e.key === ' ' && (textBeforeCursor === '-' || textBeforeCursor === '*')) {
-          e.preventDefault();
-          node.textContent = node.textContent.substring(sel.anchorOffset);
-          document.execCommand('insertUnorderedList', false, null);
-          return;
+        // A. Space triggers
+        if (e.key === ' ') {
+          // Check for URL typing first (e.g. user typed https://... followed by Space)
+          if (/https?:\/\/[^\s]+$/.test(textBeforeCursor)) {
+            const converted = processUrlInTextNode(node, sel.anchorOffset);
+            if (converted) {
+              e.preventDefault();
+              return;
+            }
+          }
+
+          // Strict line-start check: only transform if the cursor is right after the prefix at the start of block
+          // 1. Heading 1: exactly "#"
+          if (textBeforeCursor === '#') {
+            e.preventDefault();
+            node.textContent = node.textContent.substring(sel.anchorOffset);
+            document.execCommand('formatBlock', false, 'H1');
+            return;
+          }
+
+          // 2. Heading 2: exactly "##"
+          if (textBeforeCursor === '##') {
+            e.preventDefault();
+            node.textContent = node.textContent.substring(sel.anchorOffset);
+            document.execCommand('formatBlock', false, 'H2');
+            return;
+          }
+
+          // 3. Heading 3: exactly "###"
+          if (textBeforeCursor === '###') {
+            e.preventDefault();
+            node.textContent = node.textContent.substring(sel.anchorOffset);
+            document.execCommand('formatBlock', false, 'H3');
+            return;
+          }
+
+          // 4. Bullet List: exactly "-" or "*"
+          if (textBeforeCursor === '-' || textBeforeCursor === '*') {
+            e.preventDefault();
+            node.textContent = node.textContent.substring(sel.anchorOffset);
+            document.execCommand('insertUnorderedList', false, null);
+            return;
+          }
+
+          // 5. Ordered List: exactly "1."
+          if (textBeforeCursor === '1.') {
+            e.preventDefault();
+            node.textContent = node.textContent.substring(sel.anchorOffset);
+            document.execCommand('insertOrderedList', false, null);
+            return;
+          }
+
+          // 6. Blockquote: exactly ">"
+          if (textBeforeCursor === '>') {
+            e.preventDefault();
+            node.textContent = node.textContent.substring(sel.anchorOffset);
+            document.execCommand('formatBlock', false, 'BLOCKQUOTE');
+            return;
+          }
+
+          // 7. Inline Bold: **word** + Space
+          const boldMatch = textBeforeCursor.match(/\*\*([^*]+)\*\*$/);
+          if (boldMatch) {
+            e.preventDefault();
+            const boldText = boldMatch[1];
+            const startIdx = boldMatch.index;
+            const beforeBold = node.textContent.substring(0, startIdx);
+            const afterBold = node.textContent.substring(sel.anchorOffset);
+            
+            const bTag = document.createElement('strong');
+            bTag.textContent = boldText;
+            const spaceNode = document.createTextNode(' ');
+
+            const frag = document.createDocumentFragment();
+            if (beforeBold) frag.appendChild(document.createTextNode(beforeBold));
+            frag.appendChild(bTag);
+            frag.appendChild(spaceNode);
+            if (afterBold) frag.appendChild(document.createTextNode(afterBold));
+
+            node.parentNode.replaceChild(frag, node);
+
+            const newRange = document.createRange();
+            newRange.setStart(spaceNode, 1);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+            return;
+          }
+
+          // 8. Inline Italic: *word* + Space (and not **)
+          const italicMatch = textBeforeCursor.match(/(?<!\*)\*([^*]+)\*$/);
+          if (italicMatch) {
+            e.preventDefault();
+            const italicText = italicMatch[1];
+            const startIdx = italicMatch.index;
+            const beforeItalic = node.textContent.substring(0, startIdx);
+            const afterItalic = node.textContent.substring(sel.anchorOffset);
+            
+            const iTag = document.createElement('em');
+            iTag.textContent = italicText;
+            const spaceNode = document.createTextNode(' ');
+
+            const frag = document.createDocumentFragment();
+            if (beforeItalic) frag.appendChild(document.createTextNode(beforeItalic));
+            frag.appendChild(iTag);
+            frag.appendChild(spaceNode);
+            if (afterItalic) frag.appendChild(document.createTextNode(afterItalic));
+
+            node.parentNode.replaceChild(frag, node);
+
+            const newRange = document.createRange();
+            newRange.setStart(spaceNode, 1);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+            return;
+          }
+
+          // 9. Inline Strike: ~~word~~ + Space
+          const strikeMatch = textBeforeCursor.match(/~~([^~]+)~~$/);
+          if (strikeMatch) {
+            e.preventDefault();
+            const strikeText = strikeMatch[1];
+            const startIdx = strikeMatch.index;
+            const beforeStrike = node.textContent.substring(0, startIdx);
+            const afterStrike = node.textContent.substring(sel.anchorOffset);
+            
+            const sTag = document.createElement('del');
+            sTag.textContent = strikeText;
+            const spaceNode = document.createTextNode(' ');
+
+            const frag = document.createDocumentFragment();
+            if (beforeStrike) frag.appendChild(document.createTextNode(beforeStrike));
+            frag.appendChild(sTag);
+            frag.appendChild(spaceNode);
+            if (afterStrike) frag.appendChild(document.createTextNode(afterStrike));
+
+            node.parentNode.replaceChild(frag, node);
+
+            const newRange = document.createRange();
+            newRange.setStart(spaceNode, 1);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+            return;
+          }
+
+          // 10. Inline Code: `code` + Space
+          const codeMatch = textBeforeCursor.match(/`([^`]+)`$/);
+          if (codeMatch) {
+            e.preventDefault();
+            const codeText = codeMatch[1];
+            const startIdx = codeMatch.index;
+            const beforeCode = node.textContent.substring(0, startIdx);
+            const afterCode = node.textContent.substring(sel.anchorOffset);
+            
+            const cTag = document.createElement('code');
+            cTag.textContent = codeText;
+            const spaceNode = document.createTextNode(' ');
+
+            const frag = document.createDocumentFragment();
+            if (beforeCode) frag.appendChild(document.createTextNode(beforeCode));
+            frag.appendChild(cTag);
+            frag.appendChild(spaceNode);
+            if (afterCode) frag.appendChild(document.createTextNode(afterCode));
+
+            node.parentNode.replaceChild(frag, node);
+
+            const newRange = document.createRange();
+            newRange.setStart(spaceNode, 1);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+            return;
+          }
+
+          // 11. Markdown Link: [Title](URL) + Space
+          const linkMatch = textBeforeCursor.match(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+          if (linkMatch) {
+            e.preventDefault();
+            const title = linkMatch[1];
+            const url = linkMatch[2];
+            const startIdx = linkMatch.index;
+            const beforeLink = node.textContent.substring(0, startIdx);
+            const afterLink = node.textContent.substring(sel.anchorOffset);
+
+            const aTag = document.createElement('a');
+            aTag.href = url;
+            aTag.target = '_blank';
+            aTag.textContent = title;
+            aTag.title = `클릭 시 이동: ${url}`;
+            aTag.addEventListener('click', (ev) => {
+              if (ev.ctrlKey || ev.metaKey) {
+                window.open(url, '_blank');
+              } else {
+                ev.preventDefault();
+                showLinkBubble(aTag);
+              }
+            });
+
+            const spaceNode = document.createTextNode(' ');
+            const frag = document.createDocumentFragment();
+            if (beforeLink) frag.appendChild(document.createTextNode(beforeLink));
+            frag.appendChild(aTag);
+            frag.appendChild(spaceNode);
+            if (afterLink) frag.appendChild(document.createTextNode(afterLink));
+
+            node.parentNode.replaceChild(frag, node);
+
+            const newRange = document.createRange();
+            newRange.setStart(spaceNode, 1);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+            return;
+          }
+
+          // 12. Markdown Image: ![Alt](URL) + Space
+          const imgMatch = textBeforeCursor.match(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)$/);
+          if (imgMatch) {
+            e.preventDefault();
+            const alt = imgMatch[1] || '이미지';
+            const url = imgMatch[2];
+            const startIdx = imgMatch.index;
+            const beforeImg = node.textContent.substring(0, startIdx);
+            const afterImg = node.textContent.substring(sel.anchorOffset);
+
+            const card = document.createElement('span');
+            card.className = 'editor-img-card';
+            card.title = `이미지 원본: ${url} (클릭 시 새 창 열기)`;
+            card.innerHTML = `<img src="${url}" alt="${alt}">`;
+            card.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              window.open(url, '_blank');
+            });
+
+            const spaceNode = document.createTextNode(' ');
+            const frag = document.createDocumentFragment();
+            if (beforeImg) frag.appendChild(document.createTextNode(beforeImg));
+            frag.appendChild(card);
+            frag.appendChild(spaceNode);
+            if (afterImg) frag.appendChild(document.createTextNode(afterImg));
+
+            node.parentNode.replaceChild(frag, node);
+
+            const newRange = document.createRange();
+            newRange.setStart(spaceNode, 1);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+            return;
+          }
         }
 
-        // 2. Numbered list: "1. "
-        if (e.key === ' ' && textBeforeCursor === '1.') {
-          e.preventDefault();
-          node.textContent = node.textContent.substring(sel.anchorOffset);
-          document.execCommand('insertOrderedList', false, null);
-          return;
-        }
+        // B. Enter triggers
+        if (e.key === 'Enter') {
+          // Horizontal rule: "---" + Enter
+          if (textBeforeCursor.trim() === '---') {
+            e.preventDefault();
+            node.textContent = '';
+            document.execCommand('insertHorizontalRule', false, null);
+            return;
+          }
 
-        // 3. Heading 1: "# "
-        if (e.key === ' ' && textBeforeCursor === '#') {
-          e.preventDefault();
-          node.textContent = node.textContent.substring(sel.anchorOffset);
-          document.execCommand('formatBlock', false, 'H1');
-          return;
-        }
-
-        // 4. Heading 2: "## "
-        if (e.key === ' ' && textBeforeCursor === '##') {
-          e.preventDefault();
-          node.textContent = node.textContent.substring(sel.anchorOffset);
-          document.execCommand('formatBlock', false, 'H2');
-          return;
-        }
-
-        // 5. Heading 3: "### "
-        if (e.key === ' ' && textBeforeCursor === '###') {
-          e.preventDefault();
-          node.textContent = node.textContent.substring(sel.anchorOffset);
-          document.execCommand('formatBlock', false, 'H3');
-          return;
-        }
-
-        // 6. Blockquote: "> "
-        if (e.key === ' ' && textBeforeCursor === '>') {
-          e.preventDefault();
-          node.textContent = node.textContent.substring(sel.anchorOffset);
-          document.execCommand('formatBlock', false, 'BLOCKQUOTE');
-          return;
-        }
-
-        // 7. Horizontal rule: "---" + Enter
-        if (e.key === 'Enter' && textBeforeCursor.trim() === '---') {
-          e.preventDefault();
-          node.textContent = '';
-          document.execCommand('insertHorizontalRule', false, null);
-          return;
+          // Code block: "```" + Enter
+          if (textBeforeCursor.trim() === '```') {
+            e.preventDefault();
+            node.textContent = '';
+            document.execCommand('insertHTML', false, '<pre><code>// 코드 작성</code></pre><p><br></p>');
+            return;
+          }
         }
       }
     });
@@ -1780,18 +2268,10 @@ function setupEventListeners() {
   elements.editorCategorySelect?.addEventListener('change', (e) => {
     const val = e.target.value;
     const isCustom = val === 'custom';
-    const isNews = val === 'News';
 
     if (elements.editorCustomCategoryInput) {
       elements.editorCustomCategoryInput.style.display = isCustom ? 'block' : 'none';
       if (isCustom) elements.editorCustomCategoryInput.focus();
-    }
-
-    if (elements.editorNewsFieldsGroup) {
-      elements.editorNewsFieldsGroup.style.display = isNews ? 'block' : 'none';
-      if (isNews && !elements.editorNewsDate.value) {
-        elements.editorNewsDate.value = new Date().toISOString().split('T')[0];
-      }
     }
   });
 

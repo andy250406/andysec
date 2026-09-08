@@ -2017,4 +2017,91 @@ a:hover {
   }
 }
 
+/* Floating Link Title Bubble Popover */
+.editor-link-bubble {
+  position: absolute;
+  z-index: 1000;
+  background: var(--bg-card);
+  border: 1px solid var(--border-focus);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  backdrop-filter: blur(12px);
+  animation: fadeIn 0.2s ease-out;
+}
+.link-bubble-header {
+  font-size: 0.75rem;
+  color: var(--accent-color);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  word-break: break-all;
+}
+.link-bubble-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.link-bubble-body input {
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+  font-size: 0.85rem;
+}
+.link-bubble-body input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+.link-bubble-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+.link-bubble-actions button {
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+/* Editor Interactive Images & Link Preview styles */
+.editor-wysiwyg-content .editor-img-card {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0.85rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.2);
+  transition: var(--transition-smooth);
+  cursor: pointer;
+}
+.editor-wysiwyg-content .editor-img-card:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 4px 15px var(--accent-glow);
+}
+.editor-wysiwyg-content .editor-img-card img {
+  display: block;
+  max-width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+.editor-wysiwyg-content a {
+  color: var(--accent-color);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.editor-wysiwyg-content a:hover {
+  filter: brightness(1.2);
+}
+
+
 
