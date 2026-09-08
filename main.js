@@ -2,7 +2,7 @@
 import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
 
 // Constants & API Endpoints
-const TODAY = new Date('2026-06-21'); // Simulated today's date
+const TODAY = new Date(); // Actual current date
 
 // Google Apps Script Web App Deployment URL
 const GAS_API_URL = localStorage.getItem('gas_api_url') || 'https://script.google.com/macros/s/AKfycby_5htUVodm_M16r25fUOyNAkNG7cpx3L1X098TYGtvS6KYN4nv8h8N5-wnNsveytLz8Q/exec';
@@ -690,8 +690,9 @@ function renderDashboard() {
 function renderStudyNotes() {
   elements.studyPostsGrid.innerHTML = '';
   const filtered = appState.posts.filter(p => {
+    if (p.category === 'News' || p.category === 'Project') return false;
     if (appState.studyFilter === 'all') {
-      return (p.category === 'Cert' || p.category === 'CertAnalysis' || p.category === 'Shieldus');
+      return true;
     }
     return p.category === appState.studyFilter;
   }).filter(matchSearch);
@@ -1281,6 +1282,11 @@ function setupEventListeners() {
     elements.studyModalTitle.innerHTML = '<i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성';
     elements.studyEditId.value = '';
     elements.addStudyForm.reset();
+    const customCatInput = document.getElementById('study-custom-category');
+    if (customCatInput) {
+      customCatInput.style.display = 'none';
+      customCatInput.value = '';
+    }
     elements.btnSubmitStudy.textContent = '등록하기';
     elements.addStudyModal.style.display = 'flex';
   });
@@ -1311,7 +1317,24 @@ function setupEventListeners() {
       elements.studyModalTitle.innerHTML = isNews ? '<i class="fa-solid fa-newspaper"></i> 보안 뉴스 수정' : '<i class="fa-solid fa-pen-nib"></i> 스터디 노트 수정';
       elements.studyEditId.value = post.id;
       document.getElementById('study-title').value = post.title;
-      document.getElementById('study-category').value = post.category;
+      const catSelect = document.getElementById('study-category');
+      const customCatInput = document.getElementById('study-custom-category');
+      
+      const knownOptions = ['Cert', 'CertAnalysis', 'Shieldus', 'News'];
+      if (knownOptions.includes(post.category)) {
+        catSelect.value = post.category;
+        if (customCatInput) {
+          customCatInput.style.display = 'none';
+          customCatInput.value = '';
+        }
+      } else {
+        catSelect.value = 'custom';
+        if (customCatInput) {
+          customCatInput.style.display = 'block';
+          customCatInput.value = post.category || '';
+        }
+      }
+      
       document.getElementById('study-type').value = post.type || '';
       document.getElementById('study-content').value = post.content || '';
       
@@ -1494,7 +1517,11 @@ function setupEventListeners() {
       e.preventDefault();
       const editId = elements.studyEditId.value;
       
-      const category = document.getElementById('study-category').value;
+      let category = document.getElementById('study-category').value;
+      if (category === 'custom') {
+        const customVal = document.getElementById('study-custom-category').value.trim();
+        category = customVal || 'General';
+      }
       const isNews = category === 'News';
       
       const studyData = {
@@ -1555,10 +1582,19 @@ function setupEventListeners() {
     }
   });
   elements.studyCategory?.addEventListener('change', (e) => {
-    const isNews = e.target.value === 'News';
+    const val = e.target.value;
+    const isNews = val === 'News';
+    const isCustom = val === 'custom';
+    
     const newsFields = document.getElementById('news-fields-group');
     if (newsFields) {
       newsFields.style.display = isNews ? 'block' : 'none';
+    }
+
+    const customInput = document.getElementById('study-custom-category');
+    if (customInput) {
+      customInput.style.display = isCustom ? 'block' : 'none';
+      if (isCustom) customInput.focus();
     }
   });
 
