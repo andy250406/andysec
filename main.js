@@ -295,6 +295,11 @@ function applyAdminPermissions() {
       if (elements.newsDeleteActions) elements.newsDeleteActions.style.display = appState.newsDeleteMode ? 'flex' : 'none';
     }
   }
+
+  // If viewing project detail view, update project notes lock/unlock view immediately
+  if (appState.activeProjectId && elements.projectDetailView && elements.projectDetailView.style.display !== 'none') {
+    renderProjectNotes(appState.activeProjectId);
+  }
 }
 
 // Router using Hash
@@ -857,14 +862,13 @@ function showProjectDetail(projectId) {
 function renderProjectNotes(projectId) {
   elements.projectNotesGrid.innerHTML = '';
   
-  const isSync = appState.syncEnabled && appState.githubPat;
-  if (!isSync) {
+  if (!appState.isAdmin) {
     elements.projectNotesGrid.innerHTML = `
       <div class="lock-placeholder" style="grid-column: 1/-1; text-align: center; padding: 3rem 2rem; background: rgba(220, 38, 38, 0.04); border: 1px dashed rgba(220, 38, 38, 0.2); border-radius: 8px;">
         <i class="fa-solid fa-lock" style="font-size: 2rem; color: #ef4444; margin-bottom: 1rem; display: block;"></i>
-        <h4 style="font-family: var(--font-header); font-size: 1.1rem; color: var(--text-highlight); margin-bottom: 0.5rem;">프로젝트 기록판 비활성화</h4>
+        <h4 style="font-family: var(--font-header); font-size: 1.1rem; color: var(--text-highlight); margin-bottom: 0.5rem;">프로젝트 기록판 비공개</h4>
         <p class="text-muted" style="font-size: 0.85rem; max-width: 460px; margin: 0 auto; line-height: 1.5;">
-          본 프로젝트의 상세 스터디 및 진단 기록은 보안상 비공개 상태입니다. 접근 권한을 획득하려면 관리자 계정으로 <strong>깃허브 동기화</strong>를 인증하십시오.
+          본 프로젝트의 상세 스터디 및 진단 기록은 보안상 비공개 상태입니다. 접근 권한을 획득하려면 상단 <strong>관리자 열쇠(🔑)</strong> 버튼을 눌러 인증하십시오.
         </p>
       </div>
     `;
@@ -1248,13 +1252,19 @@ async function sendToGasApi(action, data = {}) {
       data: data
     };
 
-    const response = await fetch(GAS_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8' // GAS doPost CORS preflight 최적화
-      },
-      body: JSON.stringify(payload)
-    });
+    let response;
+    try {
+      response = await fetch(GAS_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8' // GAS doPost CORS preflight 최적화
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (netErr) {
+      console.error('[GAS API Network/CORS Error]', netErr);
+      throw new Error(`Google Sheets 통신 실패 (${netErr.message || 'Failed to fetch'}).\n\n[원인]\nGoogle Apps Script 웹 앱 배포 설정의 '액세스 권한이 있는 사용자'가 '모든 사용자(Anyone)'로 설정되지 않아 브라우저 보안에 의해 연결이 거부되었습니다.\n\n[해결 방법]\nApps Script 편집기 > 배포 관리 > ✏️(편집) > '액세스 권한'을 '모든 사용자(Anyone)'로 변경 후 새 버전으로 배포해 주세요.`);
+    }
 
     if (!response.ok) {
       throw new Error(`서버 응답 오류 (HTTP ${response.status})`);
@@ -1462,13 +1472,44 @@ function setupEventListeners() {
       localStorage.setItem('projects', JSON.stringify(appState.projects));
       localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
       
-      // Sync list state to GitHub
-      if (appState.syncEnabled) {
-        await commitToGitHub('public/posts/projects.json', JSON.stringify(appState.projects, null, 2), 'chore: delete project metadata via web CMS');
-        await commitToGitHub('public/posts/projectNotes.json', JSON.stringify(appState.projectNotes, null, 2), 'chore: clean up project notes via web CMS');
-      }
-      
       window.location.hash = '#/tab/projects';
+    }
+  });
+
+  // Form Submit: Add/Edit Project
+  elements.addProjectForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const editId = elements.projectEditId.value;
+    
+    const projData = {
+      name: document.getElementById('project-name').value,
+      client: document.getElementById('project-client').value,
+      startDate: document.getElementById('project-start').value,
+      endDate: document.getElementById('project-end').value,
+      details: document.getElementById('project-details').value
+    };
+    
+    if (editId) {
+      const index = appState.projects.findIndex(p => p.id === editId);
+      if (index !== -1) {
+        appState.projects[index] = { ...appState.projects[index], ...projData };
+      }
+    } else {
+      const newProj = {
+        id: 'project-' + Date.now(),
+        ...projData
+      };
+      appState.projects.unshift(newProj);
+    }
+    
+    localStorage.setItem('projects', JSON.stringify(appState.projects));
+    elements.addProjectForm.reset();
+    elements.addProjectModal.style.display = 'none';
+    
+    renderAll();
+    
+    if (editId) {
+      showProjectDetail(editId);
     }
   });
   
@@ -1490,6 +1531,42 @@ function setupEventListeners() {
   });
   elements.btnCancelNote?.addEventListener('click', () => {
     elements.addNoteModal.style.display = 'none';
+  });
+
+  // Form Submit: Add/Edit Project Note
+  elements.addNoteForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const editId = elements.noteEditId.value;
+    
+    const noteData = {
+      title: document.getElementById('note-title').value,
+      content: document.getElementById('note-content').value,
+    };
+    
+    if (editId) {
+      const index = appState.projectNotes.findIndex(n => n.id === editId);
+      if (index !== -1) {
+        appState.projectNotes[index] = { ...appState.projectNotes[index], ...noteData };
+        if (appState.activePostId === editId) {
+          showLocalNoteDetail(appState.projectNotes[index]);
+        }
+      }
+    } else {
+      if (!appState.activeProjectId) return;
+      const newNote = {
+        id: 'note-' + Date.now(),
+        projectId: appState.activeProjectId,
+        date: new Date().toISOString().split('T')[0],
+        ...noteData
+      };
+      appState.projectNotes.unshift(newNote);
+    }
+    
+    localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
+    elements.addNoteForm.reset();
+    elements.addNoteModal.style.display = 'none';
+    
+    renderProjectNotes(appState.activeProjectId);
   });
   
   // Note Editor Functions
@@ -2800,19 +2877,23 @@ function setupEventListeners() {
       const noteId = appState.activePostId;
       appState.projectNotes = appState.projectNotes.filter(n => n.id !== noteId);
       localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
-      
-      if (appState.isAdmin) {
-        try {
-          await sendToGasApi('deletePost', { id: noteId });
-        } catch (err) {
-          console.warn('GAS delete error:', err);
-        }
-      }
-      
+      renderProjectNotes(appState.activeProjectId);
       window.location.hash = `#/project/${appState.activeProjectId}`;
     } else {
       const postToDelete = appState.posts.find(p => p.id === appState.activePostId);
       const postId = appState.activePostId;
+
+      if (appState.isAdmin && postToDelete) {
+        try {
+          await sendToGasApi('deletePost', { id: postId });
+        } catch (err) {
+          const forceLocal = confirm(err.message + '\n\n원격 구글 시트 DB 삭제에 실패했습니다.\n그래도 현재 브라우저 로컬 캐시에서만 강제로 삭제하시겠습니까?\n(취소를 누르면 글이 보존되며 삭제가 중단됩니다.)');
+          if (!forceLocal) {
+            return; // 취소 시 글 삭제 중단 및 보존
+          }
+        }
+      }
+      
       appState.posts = appState.posts.filter(p => p.id !== postId);
       localStorage.setItem('posts', JSON.stringify(appState.posts));
       
@@ -2822,15 +2903,9 @@ function setupEventListeners() {
         localStorage.setItem('deletedPosts', JSON.stringify(deletedIds));
       }
       
-      if (appState.isAdmin && postToDelete) {
-        try {
-          await sendToGasApi('deletePost', { id: postId });
-        } catch (err) {
-          alert('구글 시트 삭제 중 오류 발생: ' + err.message);
-        }
-      }
-      
-      window.location.hash = '#/tab/study';
+      alert('게시글이 성공적으로 삭제되었습니다.');
+      renderAll();
+      window.location.hash = (postToDelete && postToDelete.category === 'News') ? '#/tab/news' : '#/tab/study';
     }
   });
 
@@ -2890,16 +2965,23 @@ function setupEventListeners() {
       
       // Batch delete via GAS Sheets API
       if (appState.isAdmin) {
+        const failedIds = [];
         for (const post of postsToDelete) {
           try {
             await sendToGasApi('deletePost', { id: post.id });
           } catch (err) {
             console.warn(`[GAS API] Failed to delete ${post.id}:`, err);
+            failedIds.push(post.id);
           }
         }
+        if (failedIds.length > 0) {
+          alert(`로컬 목록은 갱신되었으나, 원격 구글 시트 DB 삭제 중 ${failedIds.length}건의 통신 오류가 발생했습니다.\n\nGoogle Apps Script의 배포 설정을 확인해 주세요.`);
+        } else {
+          alert('선택한 보안 뉴스가 정상적으로 삭제되었습니다.');
+        }
+      } else {
+        alert('선택한 보안 뉴스가 정상적으로 삭제되었습니다.');
       }
-      
-      alert('선택한 보안 뉴스가 정상적으로 삭제되었습니다.');
     } catch (err) {
       console.error('Error during batch deletion:', err);
       alert('삭제 중 오류가 발생했습니다: ' + err.message);

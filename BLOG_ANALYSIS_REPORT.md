@@ -190,5 +190,21 @@
     * **브라우저 창 리사이징 버벅임 및 끊김 제거 (Resize Animation Stopper 도입)**:
       * 30개 이상의 레이아웃 컨테이너(`.app-container`, `.sidebar`, `.main-content`, `.card` 등)에 무분별하게 적용되어 초당 수십 회의 Reflow/Repaint 레이아웃 스래싱을 유발하던 `transition: all`을 레이아웃 요소에서 완전 제거하고, 버튼 및 인터랙티브 요소에만 경량 전환(`transition: color, background-color, border-color 0.2s ease`)으로 분리.
       * `main.js`에 `window.resize` 이벤트 디바운싱 기반의 `initResizeHandler()`를 탑재하여 창 크기를 조절하는 동안에는 `.resize-animation-stopper`를 통해 모든 transition 연산을 일시 중단함으로써, 부드러운 60fps 네이티브 플렉스/그리드 리사이징 성능 확보.
+15. **프로젝트 스터디&기록 게시판 깃허브 인증 잔재 청산 및 구글 시트 DB 삭제 오류(Failed to fetch) 완벽 해결 (2026-09-09 9차 배포)**:
+    * **프로젝트 상세 스터디 & 진단 기록판 깃허브 잔재 제거 및 관리자 열쇠(🔑) 연동**:
+      * `renderProjectNotes()`에서 레거시 `appState.syncEnabled && appState.githubPat` 조건을 완전 제거하고 `appState.isAdmin` 관리자 인증 기반으로 전환.
+      * "깃허브 동기화를 인증하십시오" 안내 문구를 "상단 **관리자 열쇠(🔑)** 버튼을 눌러 인증하십시오"로 전면 교체.
+      * 상단 열쇠 버튼으로 관리자 인증/로그아웃 시 현재 열려 있는 프로젝트 기록판이 즉각 잠금 해제/잠금되도록 `applyAdminPermissions()`에 실시간 갱신 로직 연동.
+      * 글로벌 배포 오버레이 문구(`deploy-overlay`)를 "깃허브 업로드 중..."에서 "데이터 동기화 중..."으로 수정.
+      * 프로젝트 삭제(`btnDeleteProject`) 내 비정상 호출되던 레거시 `commitToGitHub` 잔재 코드 제거.
+      * 누락되었던 프로젝트 등록/수정(`addProjectForm`) 및 프로젝트 기록 등록/수정(`addNoteForm`) submit 이벤트 리스너 정상 구현.
+    * **구글 시트 삭제 중 `Failed to fetch` 오류 원인 규명 및 로직 개편**:
+      * **원인 규명**: 현재 배포된 구글 앱스 스크립트(GAS) 웹 앱의 배포 설정 중 '액세스 권한이 있는 사용자(Who has access)'가 '나만(Only myself)' 또는 'Google 계정이 있는 사용자'로 설정되어 있어, 브라우저 `fetch()` 요청 시 Google 계정 로그인 리다이렉트(302 ➔ accounts.google.com)가 발생하고 브라우저 CORS 정책에 의해 차단(Failed to fetch)된 것이 원인.
+      * **로컬 거짓 삭제(Deceptive Local Deletion) 방지**:
+        * 기존에는 DB 삭제 성공 여부와 무관하게 로컬 `localStorage`에서 글을 먼저 지우고 `posts` 배열을 필터링하여, 사용자가 보기에는 삭제된 것처럼 착각을 유발하고 타 기기/새 브라우저 접속 시 글이 다시 부활하는 혼선이 있었음.
+        * 이를 개편하여 원격 DB 삭제(`sendToGasApi`)를 **먼저 수행**하고, DB 통신 오류 발생 시 원인과 해결책(GAS 배포 설정 가이드)을 명확히 안내하며, 사용자가 명시적으로 로컬 강제 삭제를 선택하지 않는 한 글을 안전하게 보존하도록 로직 수정.
+      * **네트워크/CORS 진단 에러 가이드 강화**:
+        * `sendToGasApi`에 실시간 네트워크 에러 인터셉터를 추가하여, 단순 `Failed to fetch` 대신 Apps Script 배포 설정의 '액세스 권한: 모든 사용자(Anyone)' 변경 방법을 상세히 팝업으로 안내하도록 개선.
+
 
 
