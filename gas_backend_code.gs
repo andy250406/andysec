@@ -20,6 +20,8 @@ function getAdminPassword() {
 const POSTS_SHEET_NAME = 'Posts';
 const PROJECTS_SHEET_NAME = 'Projects';
 const PROJECT_NOTES_SHEET_NAME = 'ProjectNotes';
+const PROFILE_SHEET_NAME = 'Profile';
+const PORTFOLIO_SHEET_NAME = 'Portfolio';
 
 function getSpreadsheet() {
   return SpreadsheetApp.getActiveSpreadsheet();
@@ -51,6 +53,55 @@ function getProjectNotesSheet() {
   if (!sheet) {
     sheet = ss.insertSheet(PROJECT_NOTES_SHEET_NAME);
     sheet.appendRow(['id', 'projectId', 'title', 'date', 'content']);
+  }
+  return sheet;
+}
+
+function getProfileSheet() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(PROFILE_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(PROFILE_SHEET_NAME);
+    sheet.appendRow(['id', 'name', 'title', 'company', 'bio', 'email', 'phone', 'avatarUrl']);
+    sheet.appendRow([
+      'profile-main',
+      '안태경',
+      '보안 컨설턴트',
+      'SK쉴더스 기업컨설팅 2팀',
+      'SK쉴더스 기업컨설팅 2팀 보안 컨설턴트 안태경',
+      'pp0406hh@gmail.com',
+      '010-2224-1060',
+      './profile.jpg'
+    ]);
+  }
+  return sheet;
+}
+
+function getPortfolioSheet() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(PORTFOLIO_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(PORTFOLIO_SHEET_NAME);
+    sheet.appendRow(['id', 'type', 'title', 'date', 'description', 'category', 'level', 'percent', 'sortOrder']);
+    const defaultRows = [
+      ['cert-1', 'cert', 'CPPG (개인정보관리사) 취득', '2026.04', '개인정보보호법 및 망법 등 관련 규정 준수 요건 검토 지식 보유', '', '', '', 1],
+      ['cert-2', 'cert', 'AWS Certified Cloud Practitioner 취득', '2026.03', 'AWS 핵심 클라우드 아키텍처 및 클라우드 보안 공동 책임 모델 지식 검증', '', '', '', 2],
+      ['cert-3', 'cert', '빅데이터분석기사 필기 합격', '2025.10', '대용량 보안 모니터링 로그 및 시계열 기상/재해 데이터 처리 분석 역량', '', '', '', 3],
+      ['cert-4', 'cert', '정보처리기사 취득', '2025.09', '시스템 아키텍처 설계, 네트워크 및 운영체제 전반에 대한 기본 지식 검증', '', '', '', 4],
+      ['proj-1', 'project', '개인정보 보안 컨설팅 수탁사 점검 프로젝트', '2026.04', 'SK Shieldus Rookies 28기 최종 프로젝트로 모의 수탁기업 점검서 수립 및 가이드라인 제시', '', '', '', 1],
+      ['proj-2', 'project', '의료 데이터를 위한 웹 취약점 자동 진단 시스템', '2026.01', '병원 데이터 대상 웹 취약점 자동 스캔 프로그램 및 대응 소스코드 리포트 연동 시스템', '', '', '', 2],
+      ['proj-3', 'project', '산불 발생 데이터 분석 대시보드 구축', '2025.11', 'Streamlit을 활용하여 기온, 풍속 및 산불 발생 피해 면적 연계 시각화 및 예측 인자 분석', '', '', '', 3],
+      ['proj-4', 'project', 'AI를 활용한 자동 틀린 그림 찾기 프로그램', '2021.12', '대학교 졸업 작품으로 OpenCV와 머신러닝 비교 검출 알고리즘 적용', '', '', '', 4],
+      ['career-1', 'career', '여단 통신중대 정보체계운용/정비병 복무', '2023.11 ~ 2025.05', '인트라넷 네트워크 서버 구축 지원 및 군 내부 정보체계 장애 처리/유지보수 담당', '', '', '', 1],
+      ['skill-1', 'skill', '개인정보보호 및 법률 점검', '', '', '보안 & 컨설팅', '중하 (⭐⭐)', 40, 1],
+      ['skill-2', 'skill', '취약점 진단 (Web/System)', '', '', '보안 & 컨설팅', '하 (⭐)', 20, 2],
+      ['skill-3', 'skill', 'ISMS-P 인증 기준 분석', '', '', '보안 & 컨설팅', '하 (⭐)', 20, 3],
+      ['skill-4', 'skill', 'Python', '', '', '개발 & 데이터', '상 (⭐⭐⭐⭐)', 85, 4],
+      ['skill-5', 'skill', 'JAVA, C', '', '', '개발 & 데이터', '중 (⭐⭐⭐)', 60, 5],
+      ['skill-6', 'skill', '클라우드 인프라 (AWS)', '', '', '개발 & 데이터', '하 (⭐)', 20, 6],
+      ['skill-7', 'skill', 'HTML/CSS/JS', '', '', '개발 & 데이터', '중하 (⭐⭐)', 40, 7]
+    ];
+    defaultRows.forEach(function(row) { sheet.appendRow(row); });
   }
   return sheet;
 }
@@ -228,6 +279,67 @@ function getProjectNotesData() {
   return notes;
 }
 
+// 4. Profile (프로필 정보) 데이터 추출
+function getProfileData() {
+  const sheet = getProfileSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return {
+      id: 'profile-main',
+      name: '안태경',
+      title: '보안 컨설턴트',
+      company: 'SK쉴더스 기업컨설팅 2팀',
+      bio: 'SK쉴더스 기업컨설팅 2팀 보안 컨설턴트 안태경',
+      email: 'pp0406hh@gmail.com',
+      phone: '010-2224-1060',
+      avatarUrl: './profile.jpg'
+    };
+  }
+
+  const row = sheet.getRange(2, 1, 1, 8).getValues()[0];
+  return {
+    id: String(row[0] || 'profile-main'),
+    name: String(row[1] || '안태경'),
+    title: String(row[2] || '보안 컨설턴트'),
+    company: String(row[3] || 'SK쉴더스 기업컨설팅 2팀'),
+    bio: String(row[4] || ''),
+    email: String(row[5] || 'pp0406hh@gmail.com'),
+    phone: String(row[6] || '010-2224-1060'),
+    avatarUrl: String(row[7] || './profile.jpg')
+  };
+}
+
+// 5. Portfolio (포트폴리오 자격증, 프로젝트, 경력, 스킬) 데이터 추출
+function getPortfolioData() {
+  const sheet = getPortfolioSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+  const items = [];
+
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    const id = String(row[0] || '').trim();
+    if (!id) continue;
+
+    items.push({
+      id: id,
+      type: String(row[1] || 'cert'),
+      title: String(row[2] || ''),
+      date: String(row[3] || ''),
+      description: String(row[4] || ''),
+      category: String(row[5] || ''),
+      level: String(row[6] || ''),
+      percent: Number(row[7]) || 0,
+      sortOrder: Number(row[8]) || (i + 1)
+    });
+  }
+
+  items.sort((a, b) => a.sortOrder - b.sortOrder);
+  return items;
+}
+
 // =========================================================================
 // GET 요청 처리 (조회 API)
 // =========================================================================
@@ -239,12 +351,18 @@ function doGet(e) {
       return createJsonResponse({ success: true, projects: getProjectsData() });
     } else if (action === 'getProjectNotes') {
       return createJsonResponse({ success: true, projectNotes: getProjectNotesData() });
+    } else if (action === 'getProfile') {
+      return createJsonResponse({ success: true, profile: getProfileData() });
+    } else if (action === 'getPortfolio') {
+      return createJsonResponse({ success: true, portfolio: getPortfolioData() });
     } else if (action === 'getAllData') {
       return createJsonResponse({
         success: true,
         posts: getPostsData(),
         projects: getProjectsData(),
-        projectNotes: getProjectNotesData()
+        projectNotes: getProjectNotesData(),
+        profile: getProfileData(),
+        portfolio: getPortfolioData()
       });
     } else {
       // 기본값: getPosts
@@ -509,6 +627,93 @@ function doPost(e) {
       } else {
         return createJsonResponse({ success: false, error: '해당 ID의 프로젝트 기록을 찾을 수 없습니다.' });
       }
+
+    // 7. Profile (프로필 정보) 저장
+    } else if (action === 'saveProfile') {
+      const sheet = getProfileSheet();
+      const { id, name, title, company, bio, email, phone, avatarUrl } = data;
+      const profId = id || 'profile-main';
+      const profName = String(name || '').trim();
+      const profTitle = String(title || '').trim();
+      const profCompany = String(company || '').trim();
+      const profBio = String(bio || '').trim();
+      const profEmail = String(email || '').trim();
+      const profPhone = String(phone || '').trim();
+      const profAvatar = String(avatarUrl || './profile.jpg').trim();
+
+      const rowData = [profId, profName, profTitle, profCompany, profBio, profEmail, profPhone, profAvatar];
+      const lastRow = sheet.getLastRow();
+
+      let foundRow = -1;
+      if (lastRow > 1) {
+        const idVals = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+        for (let r = 0; r < idVals.length; r++) {
+          if (String(idVals[r][0]) === profId) {
+            foundRow = r + 2;
+            break;
+          }
+        }
+      }
+
+      if (foundRow !== -1) {
+        sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
+      } else {
+        sheet.appendRow(rowData);
+      }
+
+      return createJsonResponse({
+        success: true,
+        message: '프로필 정보가 성공적으로 저장되었습니다.',
+        profile: {
+          id: profId,
+          name: profName,
+          title: profTitle,
+          company: profCompany,
+          bio: profBio,
+          email: profEmail,
+          phone: profPhone,
+          avatarUrl: profAvatar
+        }
+      });
+
+    // 8. Portfolio (포트폴리오 자격증, 프로젝트, 경력, 스킬) 일괄 저장
+    } else if (action === 'savePortfolio') {
+      const sheet = getPortfolioSheet();
+      const { items } = data;
+      if (!Array.isArray(items)) {
+        return createJsonResponse({ success: false, error: '포트폴리오 items 배열이 유효하지 않습니다.' });
+      }
+
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        sheet.deleteRows(2, lastRow - 1);
+      }
+
+      const rows = [];
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        const itemId = it.id || ('item-' + Date.now() + '-' + i);
+        const itemType = String(it.type || 'cert').trim();
+        const itemTitle = String(it.title || '').trim();
+        const itemDate = String(it.date || '').trim();
+        const itemDesc = String(it.description || '').trim();
+        const itemCat = String(it.category || '').trim();
+        const itemLevel = String(it.level || '').trim();
+        const itemPercent = Number(it.percent) || 0;
+        const itemOrder = Number(it.sortOrder) || (i + 1);
+
+        rows.push([itemId, itemType, itemTitle, itemDate, itemDesc, itemCat, itemLevel, itemPercent, itemOrder]);
+      }
+
+      if (rows.length > 0) {
+        sheet.getRange(2, 1, rows.length, 9).setValues(rows);
+      }
+
+      return createJsonResponse({
+        success: true,
+        message: '포트폴리오 항목이 성공적으로 저장되었습니다.',
+        count: rows.length
+      });
 
     } else if (action === 'verifyPassword') {
       // 비밀번호 검증 전용 액션

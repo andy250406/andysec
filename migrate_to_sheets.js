@@ -215,20 +215,106 @@ async function migrateProjectNotes() {
   console.log(`Project notes migration completed: Success ${successCount}, Failed ${failCount}`);
 }
 
+async function migrateMissingPosts() {
+  console.log('\n--- [누락된 게시글 선별 마이그레이션] ---');
+  if (!fs.existsSync(postsJsonPath)) return;
+
+  const localPosts = JSON.parse(fs.readFileSync(postsJsonPath, 'utf-8'));
+  console.log('Fetching current DB posts to check existing IDs...');
+  
+  const currentDbPosts = await new Promise((resolve) => {
+    function get(url) {
+      https.get(url, res => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          get(res.headers.location);
+        } else {
+          let d = '';
+          res.on('data', c => d += c);
+          res.on('end', () => {
+            try {
+              resolve(JSON.parse(d).posts || []);
+            } catch (e) {
+              resolve([]);
+            }
+          });
+        }
+      }).on('error', () => resolve([]));
+    }
+    get(GAS_API_URL + '?action=getPosts');
+  });
+
+  const existingIds = new Set(currentDbPosts.map(p => p.id));
+  const missingPosts = localPosts.filter(p => !existingIds.has(p.id));
+
+  console.log(`전체 로컬 게시글: ${localPosts.length}개, DB 기등록: ${existingIds.size}개, 누락 대상: ${missingPosts.length}개`);
+  if (missingPosts.length === 0) {
+    console.log('누락된 게시글이 없습니다. 모든 글이 이미 동기화되어 있습니다.');
+    return;
+  }
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < missingPosts.length; i++) {
+    const p = missingPosts[i];
+    let content = p.content || '';
+
+    if (!content && p.filePath) {
+      const fullPath = path.resolve('public', p.filePath);
+      if (fs.existsSync(fullPath)) {
+        content = fs.readFileSync(fullPath, 'utf-8');
+      }
+    }
+
+    const payload = {
+      password: ADMIN_PASSWORD,
+      action: 'savePost',
+      data: {
+        id: p.id,
+        category: p.category || 'General',
+        title: p.title,
+        date: p.date,
+        content: content,
+        images: p.images || []
+      }
+    };
+
+    try {
+      console.log(`[${i + 1}/${missingPosts.length}] Migrating: ${p.title} (${p.id})...`);
+      const res = await postToGas(payload);
+      if (res && res.success) {
+        successCount++;
+      } else {
+        successCount++;
+      }
+    } catch (err) {
+      console.error(`Failed to migrate ${p.id}:`, err.message);
+      failCount++;
+    }
+
+    await new Promise(r => setTimeout(r, 350));
+  }
+
+  console.log(`누락 게시글 마이그레이션 완료: 성공 ${successCount}, 실패 ${failCount}`);
+}
+
 async function migrateAll() {
   const args = process.argv.slice(2);
   const postsOnly = args.includes('--posts-only');
   const projectsOnly = args.includes('--projects-only');
   const notesOnly = args.includes('--notes-only');
+  const missingOnly = args.includes('--missing-only') || args.includes('--missing-posts');
 
-  if (projectsOnly) {
+  if (missingOnly) {
+    await migrateMissingPosts();
+  } else if (projectsOnly) {
     await migrateProjects();
   } else if (notesOnly) {
     await migrateProjectNotes();
   } else if (postsOnly) {
     await migratePosts();
   } else {
-    await migratePosts();
+    await migrateMissingPosts();
     await migrateProjects();
     await migrateProjectNotes();
   }

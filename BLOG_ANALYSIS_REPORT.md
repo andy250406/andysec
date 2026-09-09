@@ -240,3 +240,22 @@
       * 프로젝트 등록/수정/삭제, 세부 진단 추가/수정/삭제, 프로젝트 기록 등록/수정/삭제 시 `sendToGasApi`를 통해 구글 시트 DB와 즉각 동기화.
     * **데이터 마이그레이션 도구 고도화 (`migrate_to_sheets.js`)**:
       * 기존 `posts.json`뿐만 아니라 `projects.json`(SKT 3대 세부 진단 포함) 및 `projectNotes.json`까지 구글 시트로 일괄 이전할 수 있도록 스크립트 확장 (`--posts-only`, `--projects-only`, `--notes-only` 옵션 지원).
+18. **누락 뉴스 마이그레이션(107개 전량 DB화) 및 프로필/포트폴리오 구글 시트 DB 연동 & 관리자 웹 편집기 탑재 (2026-09-09 12차 배포)**:
+    * **뉴스 게시글 누락분 35개 전량 구글 시트 DB 추가 마이그레이션 완료**:
+      * 기존에 `Posts` 시트에 누락되어 있던 보안 뉴스 마크다운 파일 35건을 `migrate_to_sheets.js --missing-posts`를 통해 전량 구글 시트 DB로 완벽 이전.
+      * 총 107개 게시글 (스터디 노트 6건 + 보안 뉴스 101건) 데이터베이스 완전 일치 달성.
+    * **메인화면 프로필 & 포트폴리오 구글 시트 DB 분산 모델 구축**:
+      * **`Profile` 시트**: 이름, 직함, 소속 회사, 슬로건/소개글, 이메일, 전화번호, 프로필 이미지 URL (`id`, `name`, `title`, `company`, `bio`, `email`, `phone`, `avatarUrl`).
+      * **`Portfolio` 시트**: 자격증(`cert`), 프로젝트 이력(`project`), 경력/군복무(`career`), 기술 스택(`skill`) 등 포트폴리오 타임라인 및 역량 항목 전량 관리 (`id`, `type`, `title`, `date`, `description`, `category`, `level`, `percent`, `sortOrder`).
+      * 시트 미존재 시 기본 데이터(`DEFAULT_PROFILE`, `DEFAULT_PORTFOLIO`)로 자동 생성/초기화 지원.
+    * **GAS 백엔드 API 확장**:
+      * `GET ?action=getProfile`, `GET ?action=getPortfolio`, 및 `GET ?action=getAllData`에 profile, portfolio 일괄 번들링 응답 제공.
+      * `POST action=saveProfile`: 관리자 인증 후 단일 행 업데이트.
+      * `POST action=savePortfolio`: 관리자 인증 후 포트폴리오 항목 리스트를 원자적(Atomic)으로 일괄 동기화(순서 및 삭제 완벽 보장).
+    * **프론트엔드 관리자 편집 모달 UI 신설**:
+      * 관리자 로그인(🔑) 시 프로필 카드에 `[프로필 수정]` 버튼, 포트폴리오 탭에 `[포트폴리오 관리]` 버튼 자동 노출.
+      * **프로필 수정 모달 (`#edit-profile-modal`)**: 이름, 직함, 회사, 소개 문구, 이메일, 연락처를 실시간 수정 및 DB 즉시 반영.
+      * **포트폴리오 관리 모달 (`#edit-portfolio-modal`)**: 자격증 / 프로젝트 / 경력 / 보유 기술 4개 탭 인터페이스를 통해 기존 항목 수정, 신규 항목 추가, 항목 삭제를 직관적인 GUI로 완벽 제어.
+    * **단일 진실 공급원(Single Source of Truth) 일원화**:
+      * 정적 HTML 하드코딩에서 완전히 벗어나, 구글 시트 DB에서 실시간으로 불러와 동적 렌더링.
+      * 오프라인/통신 지연 시 내장 기본값으로 매끄럽게 폴백하여 UI 깨짐 없는 무중단 사용성 보장.

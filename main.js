@@ -7,11 +7,44 @@ const TODAY = new Date(); // Actual current date
 // Google Apps Script Web App Deployment URL
 const GAS_API_URL = localStorage.getItem('gas_api_url') || 'https://script.google.com/macros/s/AKfycby_5htUVodm_M16r25fUOyNAkNG7cpx3L1X098TYGtvS6KYN4nv8h8N5-wnNsveytLz8Q/exec';
 
+// Default Profile & Portfolio Data (Fallbacks for initial/offline load)
+const DEFAULT_PROFILE = {
+  id: 'profile-main',
+  name: '안태경',
+  title: '보안 컨설턴트',
+  company: 'SK쉴더스 기업컨설팅 2팀',
+  bio: 'SK쉴더스 기업컨설팅 2팀 보안 컨설턴트 안태경',
+  email: 'pp0406hh@gmail.com',
+  phone: '010-2224-1060',
+  avatarUrl: './profile.jpg'
+};
+
+const DEFAULT_PORTFOLIO = [
+  { id: 'cert-1', type: 'cert', title: 'CPPG (개인정보관리사) 취득', date: '2026.04', description: '개인정보보호법 및 망법 등 관련 규정 준수 요건 검토 지식 보유', category: '', level: '', percent: 0, sortOrder: 1 },
+  { id: 'cert-2', type: 'cert', title: 'AWS Certified Cloud Practitioner 취득', date: '2026.03', description: 'AWS 핵심 클라우드 아키텍처 및 클라우드 보안 공동 책임 모델 지식 검증', category: '', level: '', percent: 0, sortOrder: 2 },
+  { id: 'cert-3', type: 'cert', title: '빅데이터분석기사 필기 합격', date: '2025.10', description: '대용량 보안 모니터링 로그 및 시계열 기상/재해 데이터 처리 분석 역량', category: '', level: '', percent: 0, sortOrder: 3 },
+  { id: 'cert-4', type: 'cert', title: '정보처리기사 취득', date: '2025.09', description: '시스템 아키텍처 설계, 네트워크 및 운영체제 전반에 대한 기본 지식 검증', category: '', level: '', percent: 0, sortOrder: 4 },
+  { id: 'proj-1', type: 'project', title: '개인정보 보안 컨설팅 수탁사 점검 프로젝트', date: '2026.04', description: 'SK Shieldus Rookies 28기 최종 프로젝트로 모의 수탁기업 점검서 수립 및 가이드라인 제시', category: '', level: '', percent: 0, sortOrder: 1 },
+  { id: 'proj-2', type: 'project', title: '의료 데이터를 위한 웹 취약점 자동 진단 시스템', date: '2026.01', description: '병원 데이터 대상 웹 취약점 자동 스캔 프로그램 및 대응 소스코드 리포트 연동 시스템', category: '', level: '', percent: 0, sortOrder: 2 },
+  { id: 'proj-3', type: 'project', title: '산불 발생 데이터 분석 대시보드 구축', date: '2025.11', description: 'Streamlit을 활용하여 기온, 풍속 및 산불 발생 피해 면적 연계 시각화 및 예측 인자 분석', category: '', level: '', percent: 0, sortOrder: 3 },
+  { id: 'proj-4', type: 'project', title: 'AI를 활용한 자동 틀린 그림 찾기 프로그램', date: '2021.12', description: '대학교 졸업 작품으로 OpenCV와 머신러닝 비교 검출 알고리즘 적용', category: '', level: '', percent: 0, sortOrder: 4 },
+  { id: 'career-1', type: 'career', title: '여단 통신중대 정보체계운용/정비병 복무', date: '2023.11 ~ 2025.05', description: '인트라넷 네트워크 서버 구축 지원 및 군 내부 정보체계 장애 처리/유지보수 담당', category: '', level: '', percent: 0, sortOrder: 1 },
+  { id: 'skill-1', type: 'skill', title: '개인정보보호 및 법률 점검', date: '', description: '', category: '보안 & 컨설팅', level: '중하 (⭐⭐)', percent: 40, sortOrder: 1 },
+  { id: 'skill-2', type: 'skill', title: '취약점 진단 (Web/System)', date: '', description: '', category: '보안 & 컨설팅', level: '하 (⭐)', percent: 20, sortOrder: 2 },
+  { id: 'skill-3', type: 'skill', title: 'ISMS-P 인증 기준 분석', date: '', description: '', category: '보안 & 컨설팅', level: '하 (⭐)', percent: 20, sortOrder: 3 },
+  { id: 'skill-4', type: 'skill', title: 'Python', date: '', description: '', category: '개발 & 데이터', level: '상 (⭐⭐⭐⭐)', percent: 85, sortOrder: 4 },
+  { id: 'skill-5', type: 'skill', title: 'JAVA, C', date: '', description: '', category: '개발 & 데이터', level: '중 (⭐⭐⭐)', percent: 60, sortOrder: 5 },
+  { id: 'skill-6', type: 'skill', title: '클라우드 인프라 (AWS)', date: '', description: '', category: '개발 & 데이터', level: '하 (⭐)', percent: 20, sortOrder: 6 },
+  { id: 'skill-7', type: 'skill', title: 'HTML/CSS/JS', date: '', description: '', category: '개발 & 데이터', level: '중하 (⭐⭐)', percent: 40, sortOrder: 7 }
+];
+
 // State Store
 let appState = {
   posts: [], // Study notes and News (category: Cert, CertAnalysis, News)
   projects: [], // Projects
   projectNotes: [], // Project-specific notes
+  profile: null, // User profile info (from Google Sheets DB)
+  portfolio: [], // Portfolio items (from Google Sheets DB)
   currentTab: 'dashboard',
   searchQuery: '',
   studyFilter: 'all',
@@ -210,7 +243,61 @@ const elements = {
   tableInputAlign: document.getElementById('table-input-align'),
 
   // More buttons
-  moreBtns: document.querySelectorAll('.btn-more')
+  moreBtns: document.querySelectorAll('.btn-more'),
+
+  // Profile Elements
+  profileDisplayName: document.getElementById('profile-display-name'),
+  profileDisplayTitle: document.getElementById('profile-display-title'),
+  profileDisplaySlogan: document.getElementById('profile-display-slogan'),
+  profileDisplayEmail: document.getElementById('profile-display-email'),
+  profileDisplayPhone: document.getElementById('profile-display-phone'),
+  emailBtn: document.getElementById('email-btn'),
+  phoneBtn: document.getElementById('phone-btn'),
+  btnEditProfile: document.getElementById('btn-edit-profile'),
+
+  // Portfolio Elements
+  btnEditPortfolio: document.getElementById('btn-edit-portfolio'),
+  portfolioQuoteText: document.getElementById('portfolio-quote-text'),
+  portfolioQuoteAuthor: document.getElementById('portfolio-quote-author'),
+  timelineCerts: document.getElementById('timeline-certs'),
+  timelineProjects: document.getElementById('timeline-projects'),
+  timelineCareers: document.getElementById('timeline-careers'),
+  skillsContainer: document.getElementById('skills-container'),
+
+  // Edit Profile Modal
+  editProfileModal: document.getElementById('edit-profile-modal'),
+  editProfileForm: document.getElementById('edit-profile-form'),
+  inputProfileName: document.getElementById('input-profile-name'),
+  inputProfileTitle: document.getElementById('input-profile-title'),
+  inputProfileCompany: document.getElementById('input-profile-company'),
+  inputProfileBio: document.getElementById('input-profile-bio'),
+  inputProfileEmail: document.getElementById('input-profile-email'),
+  inputProfilePhone: document.getElementById('input-profile-phone'),
+  btnCloseEditProfile: document.getElementById('btn-close-edit-profile'),
+  btnCancelEditProfile: document.getElementById('btn-cancel-edit-profile'),
+  btnSubmitEditProfile: document.getElementById('btn-submit-edit-profile'),
+
+  // Edit Portfolio Modal
+  editPortfolioModal: document.getElementById('edit-portfolio-modal'),
+  btnCloseEditPortfolio: document.getElementById('btn-close-edit-portfolio'),
+  btnCancelEditPortfolio: document.getElementById('btn-cancel-edit-portfolio'),
+  btnSubmitAllPortfolio: document.getElementById('btn-submit-all-portfolio'),
+  portModalTabs: document.querySelectorAll('.port-tab-btn'),
+  portItemsManagerList: document.getElementById('portfolio-items-manager-list'),
+  portFormTitle: document.getElementById('port-form-title'),
+  portItemId: document.getElementById('port-item-id'),
+  portItemType: document.getElementById('port-item-type'),
+  portInputTitle: document.getElementById('port-input-title'),
+  portInputDate: document.getElementById('port-input-date'),
+  portInputDesc: document.getElementById('port-input-desc'),
+  portGroupDate: document.getElementById('port-group-date'),
+  portGroupDesc: document.getElementById('port-group-desc'),
+  portGroupSkillFields: document.getElementById('port-group-skill-fields'),
+  portInputCat: document.getElementById('port-input-cat'),
+  portInputLevel: document.getElementById('port-input-level'),
+  portInputPercent: document.getElementById('port-input-percent'),
+  btnResetPortItem: document.getElementById('btn-reset-port-item'),
+  btnSavePortItem: document.getElementById('btn-save-port-item')
 };
 
 // Initialize App
@@ -317,6 +404,8 @@ function applyAdminPermissions() {
   if (elements.btnOpenAddNote) elements.btnOpenAddNote.style.display = isAdmin ? 'block' : 'none';
   if (elements.btnEditArticle) elements.btnEditArticle.style.display = isAdmin ? 'inline-block' : 'none';
   if (elements.btnDeleteArticle) elements.btnDeleteArticle.style.display = isAdmin ? 'inline-block' : 'none';
+  if (elements.btnEditProfile) elements.btnEditProfile.style.display = isAdmin ? 'inline-flex' : 'none';
+  if (elements.btnEditPortfolio) elements.btnEditPortfolio.style.display = isAdmin ? 'inline-flex' : 'none';
   
   // Hide details view metadata action buttons if not admin
   const projectMetaActions = document.querySelector('.project-info-header .meta-actions');
@@ -387,12 +476,14 @@ async function loadData() {
     let serverPosts = [];
     let serverProjects = [];
     let serverNotes = [];
+    let serverProfile = null;
+    let serverPortfolio = [];
     
     // 1. Fetch live data from Google Apps Script (Sheets DB)
     showLoader('데이터 로딩 중...', '구글 시트 데이터베이스와 연결하고 있습니다.');
     let gasLoaded = false;
     try {
-      // First try batch endpoint getAllData (retrieves posts, projects, projectNotes at once)
+      // First try batch endpoint getAllData (retrieves posts, projects, projectNotes, profile, portfolio at once)
       const gasRes = await fetch(`${GAS_API_URL}?action=getAllData`, { method: 'GET' });
       if (gasRes.ok) {
         const gasData = await gasRes.json();
@@ -400,6 +491,8 @@ async function loadData() {
           if (Array.isArray(gasData.posts)) serverPosts = gasData.posts;
           if (Array.isArray(gasData.projects)) serverProjects = gasData.projects;
           if (Array.isArray(gasData.projectNotes)) serverNotes = gasData.projectNotes;
+          if (gasData.profile) serverProfile = gasData.profile;
+          if (Array.isArray(gasData.portfolio)) serverPortfolio = gasData.portfolio;
           gasLoaded = true;
           console.log(`[GAS API] Successfully loaded all data from Sheets DB (${serverPosts.length} posts, ${serverProjects.length} projects, ${serverNotes.length} notes).`);
         }
@@ -521,6 +614,12 @@ async function loadData() {
     appState.projectNotes = mergedNotes;
     localStorage.setItem('projectNotes', JSON.stringify(mergedNotes));
     
+    // 4. Initialize Profile (from Google Sheets DB or local fallback)
+    initProfile(serverProfile);
+
+    // 5. Initialize Portfolio (from Google Sheets DB or local fallback)
+    initPortfolio(serverPortfolio);
+
     renderAll();
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -620,6 +719,166 @@ async function initProjects(gasServerProjects = []) {
   }
 }
 
+// Safe HTML escaping helper
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Initialize Profile State
+function initProfile(serverProfile = null) {
+  if (serverProfile && serverProfile.name) {
+    appState.profile = serverProfile;
+    localStorage.setItem('profile', JSON.stringify(serverProfile));
+  } else {
+    try {
+      const stored = localStorage.getItem('profile');
+      if (stored && stored !== 'undefined') {
+        appState.profile = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Failed to parse local profile:', e);
+    }
+    if (!appState.profile) {
+      appState.profile = { ...DEFAULT_PROFILE };
+    }
+  }
+}
+
+// Initialize Portfolio State
+function initPortfolio(serverPortfolio = []) {
+  if (Array.isArray(serverPortfolio) && serverPortfolio.length > 0) {
+    appState.portfolio = serverPortfolio;
+    localStorage.setItem('portfolio', JSON.stringify(serverPortfolio));
+  } else {
+    try {
+      const stored = localStorage.getItem('portfolio');
+      if (stored && stored !== 'undefined') {
+        appState.portfolio = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Failed to parse local portfolio:', e);
+    }
+    if (!Array.isArray(appState.portfolio) || appState.portfolio.length === 0) {
+      appState.portfolio = [...DEFAULT_PORTFOLIO];
+    }
+  }
+}
+
+// Render Profile in Sidebar & Portfolio Tab Quote
+function renderProfile() {
+  const p = appState.profile || DEFAULT_PROFILE;
+  if (elements.profileDisplayName) elements.profileDisplayName.textContent = p.name || '안태경';
+  if (elements.profileDisplayTitle) elements.profileDisplayTitle.textContent = p.title || '보안 컨설턴트';
+  if (elements.profileDisplaySlogan) elements.profileDisplaySlogan.textContent = p.company || 'SK쉴더스 기업컨설팅 2팀';
+  if (elements.profileDisplayEmail) elements.profileDisplayEmail.textContent = p.email || 'pp0406hh@gmail.com';
+  if (elements.profileDisplayPhone) elements.profileDisplayPhone.textContent = p.phone || '010-2224-1060';
+  if (elements.emailBtn && p.email) elements.emailBtn.href = `mailto:${p.email}`;
+  if (elements.phoneBtn && p.phone) elements.phoneBtn.href = `tel:${p.phone}`;
+
+  // Portfolio quote / intro
+  if (elements.portfolioQuoteText) elements.portfolioQuoteText.textContent = p.bio || p.company || 'SK쉴더스 기업컨설팅 2팀';
+  if (elements.portfolioQuoteAuthor) elements.portfolioQuoteAuthor.textContent = `${p.title || '보안 컨설턴트'} ${p.name || '안태경'}`;
+}
+
+// Render Portfolio items dynamically (Certifications, Projects, Careers, Skills)
+function renderPortfolio() {
+  const items = appState.portfolio || DEFAULT_PORTFOLIO;
+
+  // 1. Certifications
+  const certs = items.filter(i => i.type === 'cert');
+  if (elements.timelineCerts) {
+    if (certs.length === 0) {
+      elements.timelineCerts.innerHTML = '<p class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">등록된 자격증이 없습니다.</p>';
+    } else {
+      elements.timelineCerts.innerHTML = certs.map(c => `
+        <div class="timeline-item">
+          <span class="timeline-date">${escapeHtml(c.date || '')}</span>
+          <div class="timeline-content">
+            <h5>${escapeHtml(c.title || '')}</h5>
+            <p>${escapeHtml(c.description || '')}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // 2. Project History
+  const projects = items.filter(i => i.type === 'project');
+  if (elements.timelineProjects) {
+    if (projects.length === 0) {
+      elements.timelineProjects.innerHTML = '<p class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">등록된 프로젝트 이력이 없습니다.</p>';
+    } else {
+      elements.timelineProjects.innerHTML = projects.map(pr => `
+        <div class="timeline-item">
+          <span class="timeline-date">${escapeHtml(pr.date || '')}</span>
+          <div class="timeline-content">
+            <h5>${escapeHtml(pr.title || '')}</h5>
+            <p>${escapeHtml(pr.description || '')}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // 3. Careers
+  const careers = items.filter(i => i.type === 'career');
+  if (elements.timelineCareers) {
+    if (careers.length === 0) {
+      elements.timelineCareers.innerHTML = '<p class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">등록된 경력 이력이 없습니다.</p>';
+    } else {
+      elements.timelineCareers.innerHTML = careers.map(cr => `
+        <div class="timeline-item">
+          <span class="timeline-date">${escapeHtml(cr.date || '')}</span>
+          <div class="timeline-content">
+            <h5>${escapeHtml(cr.title || '')}</h5>
+            <p>${escapeHtml(cr.description || '')}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // 4. Skills
+  const skills = items.filter(i => i.type === 'skill');
+  if (elements.skillsContainer) {
+    if (skills.length === 0) {
+      elements.skillsContainer.innerHTML = '<p class="text-muted" style="font-size: 0.85rem; padding: 0.5rem 0;">등록된 스킬이 없습니다.</p>';
+    } else {
+      // Group by category
+      const categories = {};
+      skills.forEach(sk => {
+        const cat = sk.category || '기타 역량';
+        if (!categories[cat]) categories[cat] = [];
+        categories[cat].push(sk);
+      });
+
+      let html = '';
+      Object.keys(categories).forEach(cat => {
+        html += `<div class="skill-category-title">${escapeHtml(cat)}</div>`;
+        categories[cat].forEach(sk => {
+          const percent = Math.min(100, Math.max(0, Number(sk.percent) || 0));
+          html += `
+            <div class="skill-item">
+              <div class="skill-info">
+                <span>${escapeHtml(sk.title || '')}</span>
+                <span class="skill-level">${escapeHtml(sk.level || '')}</span>
+              </div>
+              <div class="progress-bar"><div class="progress" style="width: ${percent}%;"></div></div>
+            </div>
+          `;
+        });
+      });
+      elements.skillsContainer.innerHTML = html;
+    }
+  }
+}
+
 // Calculate D-Day
 function calculateDDay(endDateStr) {
   const end = new Date(endDateStr);
@@ -697,6 +956,8 @@ function switchTab(tabId) {
 
 // Render All Components
 function renderAll() {
+  renderProfile();
+  renderPortfolio();
   renderStudyCategories();
   renderActiveProject();
   renderDashboard();
@@ -3580,6 +3841,265 @@ function setupEventListeners() {
         contentArea.style.fontSize = sizeValue;
       }
     });
+  });
+
+  // =========================================================================
+  // Profile Edit Modal Event Listeners
+  // =========================================================================
+  elements.btnEditProfile?.addEventListener('click', () => {
+    const prof = appState.profile || DEFAULT_PROFILE;
+    if (elements.inputProfileName) elements.inputProfileName.value = prof.name || '';
+    if (elements.inputProfileTitle) elements.inputProfileTitle.value = prof.title || '';
+    if (elements.inputProfileCompany) elements.inputProfileCompany.value = prof.company || '';
+    if (elements.inputProfileBio) elements.inputProfileBio.value = prof.bio || '';
+    if (elements.inputProfileEmail) elements.inputProfileEmail.value = prof.email || '';
+    if (elements.inputProfilePhone) elements.inputProfilePhone.value = prof.phone || '';
+    if (elements.editProfileModal) elements.editProfileModal.style.display = 'flex';
+  });
+
+  elements.btnCloseEditProfile?.addEventListener('click', () => {
+    if (elements.editProfileModal) elements.editProfileModal.style.display = 'none';
+  });
+
+  elements.btnCancelEditProfile?.addEventListener('click', () => {
+    if (elements.editProfileModal) elements.editProfileModal.style.display = 'none';
+  });
+
+  elements.editProfileForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const updatedProfile = {
+      id: 'profile-main',
+      name: elements.inputProfileName.value.trim(),
+      title: elements.inputProfileTitle.value.trim(),
+      company: elements.inputProfileCompany.value.trim(),
+      bio: elements.inputProfileBio.value.trim(),
+      email: elements.inputProfileEmail.value.trim(),
+      phone: elements.inputProfilePhone.value.trim(),
+      avatarUrl: (appState.profile && appState.profile.avatarUrl) || './profile.jpg'
+    };
+
+    if (appState.isAdmin && appState.adminPassword) {
+      try {
+        await sendToGasApi('saveProfile', updatedProfile);
+      } catch (err) {
+        alert(err.message);
+        return;
+      }
+    }
+
+    appState.profile = updatedProfile;
+    localStorage.setItem('profile', JSON.stringify(updatedProfile));
+    renderProfile();
+    if (elements.editProfileModal) elements.editProfileModal.style.display = 'none';
+    alert('프로필 정보가 성공적으로 저장되었습니다.');
+  });
+
+  // =========================================================================
+  // Portfolio Manager Modal Event Listeners
+  // =========================================================================
+  let tempPortfolioList = [];
+  let currentPortTab = 'cert';
+
+  function renderPortManagerTab() {
+    if (!elements.portItemsManagerList) return;
+
+    // Update tab button styles
+    elements.portModalTabs?.forEach(btn => {
+      const tab = btn.getAttribute('data-port-tab');
+      if (tab === currentPortTab) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Adjust form fields based on tab
+    if (elements.portItemType) elements.portItemType.value = currentPortTab;
+    if (elements.portFormTitle) {
+      const tabNames = { cert: '자격증', project: '프로젝트 이력', career: '경력', skill: '스킬' };
+      elements.portFormTitle.innerHTML = `<i class="fa-solid fa-plus"></i> 새 ${tabNames[currentPortTab] || '항목'} 추가`;
+    }
+
+    if (currentPortTab === 'skill') {
+      if (elements.portLabelTitle) elements.portLabelTitle.textContent = '스킬명 (기술명)';
+      if (elements.portInputTitle) elements.portInputTitle.placeholder = '예: Python, 취약점 진단';
+      if (elements.portGroupDate) elements.portGroupDate.style.display = 'none';
+      if (elements.portGroupDesc) elements.portGroupDesc.style.display = 'none';
+      if (elements.portGroupSkillFields) elements.portGroupSkillFields.style.display = 'flex';
+    } else {
+      const titleLabels = { cert: '자격증명', project: '프로젝트명', career: '경력 / 부대명' };
+      const titlePlaceholders = {
+        cert: '예: CPPG (개인정보관리사) 취득',
+        project: '예: 개인정보 보안 컨설팅 수탁사 점검 프로젝트',
+        career: '예: 여단 통신중대 정보체계운용/정비병 복무'
+      };
+      if (elements.portLabelTitle) elements.portLabelTitle.textContent = titleLabels[currentPortTab] || '항목명';
+      if (elements.portInputTitle) elements.portInputTitle.placeholder = titlePlaceholders[currentPortTab] || '항목명 입력';
+      if (elements.portGroupDate) elements.portGroupDate.style.display = 'block';
+      if (elements.portGroupDesc) elements.portGroupDesc.style.display = 'block';
+      if (elements.portGroupSkillFields) elements.portGroupSkillFields.style.display = 'none';
+    }
+
+    // Filter items by currentPortTab
+    const filtered = tempPortfolioList.filter(it => it.type === currentPortTab);
+    if (filtered.length === 0) {
+      elements.portItemsManagerList.innerHTML = `
+        <div style="text-align: center; padding: 1.25rem; color: var(--text-muted); font-size: 0.85rem; background: rgba(255,255,255,0.02); border-radius: 6px;">
+          등록된 항목이 없습니다. 아래 양식에서 새 항목을 추가해 주세요.
+        </div>
+      `;
+    } else {
+      elements.portItemsManagerList.innerHTML = filtered.map(it => {
+        const metaStr = it.type === 'skill'
+          ? `<span><i class="fa-solid fa-layer-group"></i> ${escapeHtml(it.category || '기타')}</span><span><i class="fa-solid fa-star"></i> ${escapeHtml(it.level || '')}</span><span><i class="fa-solid fa-chart-simple"></i> ${it.percent}%</span>`
+          : `<span><i class="fa-regular fa-calendar"></i> ${escapeHtml(it.date || '')}</span><span>${escapeHtml(it.description || '')}</span>`;
+
+        return `
+          <div class="port-item-row" data-id="${escapeHtml(it.id)}">
+            <div class="port-item-info">
+              <div class="port-item-title">${escapeHtml(it.title || '')}</div>
+              <div class="port-item-meta">${metaStr}</div>
+            </div>
+            <div class="port-item-actions">
+              <button type="button" class="btn-secondary btn-sm btn-edit-port-item" data-id="${escapeHtml(it.id)}" title="수정"><i class="fa-regular fa-pen-to-square"></i></button>
+              <button type="button" class="btn-danger btn-sm btn-delete-port-item" data-id="${escapeHtml(it.id)}" title="삭제"><i class="fa-regular fa-trash-can"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Attach row button events
+    elements.portItemsManagerList.querySelectorAll('.btn-edit-port-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const target = tempPortfolioList.find(it => it.id === id);
+        if (!target) return;
+
+        if (elements.portItemId) elements.portItemId.value = target.id;
+        if (elements.portInputTitle) elements.portInputTitle.value = target.title || '';
+        if (elements.portInputDate) elements.portInputDate.value = target.date || '';
+        if (elements.portInputDesc) elements.portInputDesc.value = target.description || '';
+        if (elements.portInputCat) elements.portInputCat.value = target.category || '';
+        if (elements.portInputLevel) elements.portInputLevel.value = target.level || '';
+        if (elements.portInputPercent) elements.portInputPercent.value = target.percent || 0;
+
+        if (elements.portFormTitle) {
+          elements.portFormTitle.innerHTML = `<i class="fa-solid fa-pen"></i> 항목 수정 (${escapeHtml(target.title)})`;
+        }
+        if (elements.btnResetPortItem) elements.btnResetPortItem.style.display = 'inline-block';
+      });
+    });
+
+    elements.portItemsManagerList.querySelectorAll('.btn-delete-port-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        if (!confirm('이 항목을 포트폴리오에서 삭제하시겠습니까?')) return;
+        tempPortfolioList = tempPortfolioList.filter(it => it.id !== id);
+        resetPortItemForm();
+        renderPortManagerTab();
+      });
+    });
+  }
+
+  function resetPortItemForm() {
+    if (elements.portItemId) elements.portItemId.value = '';
+    if (elements.portInputTitle) elements.portInputTitle.value = '';
+    if (elements.portInputDate) elements.portInputDate.value = '';
+    if (elements.portInputDesc) elements.portInputDesc.value = '';
+    if (elements.portInputCat) elements.portInputCat.value = '';
+    if (elements.portInputLevel) elements.portInputLevel.value = '';
+    if (elements.portInputPercent) elements.portInputPercent.value = '';
+    if (elements.btnResetPortItem) elements.btnResetPortItem.style.display = 'none';
+    if (elements.portFormTitle) {
+      const tabNames = { cert: '자격증', project: '프로젝트 이력', career: '경력', skill: '스킬' };
+      elements.portFormTitle.innerHTML = `<i class="fa-solid fa-plus"></i> 새 ${tabNames[currentPortTab] || '항목'} 추가`;
+    }
+  }
+
+  elements.btnEditPortfolio?.addEventListener('click', () => {
+    tempPortfolioList = JSON.parse(JSON.stringify(appState.portfolio || DEFAULT_PORTFOLIO));
+    currentPortTab = 'cert';
+    resetPortItemForm();
+    renderPortManagerTab();
+    if (elements.editPortfolioModal) elements.editPortfolioModal.style.display = 'flex';
+  });
+
+  elements.btnCloseEditPortfolio?.addEventListener('click', () => {
+    if (elements.editPortfolioModal) elements.editPortfolioModal.style.display = 'none';
+  });
+
+  elements.btnCancelEditPortfolio?.addEventListener('click', () => {
+    if (elements.editPortfolioModal) elements.editPortfolioModal.style.display = 'none';
+  });
+
+  elements.portModalTabs?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentPortTab = btn.getAttribute('data-port-tab');
+      resetPortItemForm();
+      renderPortManagerTab();
+    });
+  });
+
+  elements.btnResetPortItem?.addEventListener('click', () => {
+    resetPortItemForm();
+  });
+
+  elements.btnSavePortItem?.addEventListener('click', () => {
+    const title = elements.portInputTitle ? elements.portInputTitle.value.trim() : '';
+    if (!title) {
+      alert('항목명은 필수 입력 항목입니다.');
+      return;
+    }
+
+    const editId = elements.portItemId ? elements.portItemId.value : '';
+    if (editId) {
+      const idx = tempPortfolioList.findIndex(it => it.id === editId);
+      if (idx !== -1) {
+        tempPortfolioList[idx] = {
+          ...tempPortfolioList[idx],
+          title: title,
+          date: elements.portInputDate ? elements.portInputDate.value.trim() : '',
+          description: elements.portInputDesc ? elements.portInputDesc.value.trim() : '',
+          category: elements.portInputCat ? elements.portInputCat.value.trim() : '',
+          level: elements.portInputLevel ? elements.portInputLevel.value.trim() : '',
+          percent: elements.portInputPercent ? Number(elements.portInputPercent.value) || 0 : 0
+        };
+      }
+    } else {
+      const newItem = {
+        id: `${currentPortTab}-${Date.now()}`,
+        type: currentPortTab,
+        title: title,
+        date: elements.portInputDate ? elements.portInputDate.value.trim() : '',
+        description: elements.portInputDesc ? elements.portInputDesc.value.trim() : '',
+        category: elements.portInputCat ? elements.portInputCat.value.trim() : '',
+        level: elements.portInputLevel ? elements.portInputLevel.value.trim() : '',
+        percent: elements.portInputPercent ? Number(elements.portInputPercent.value) || 0 : 0,
+        sortOrder: tempPortfolioList.length + 1
+      };
+      tempPortfolioList.push(newItem);
+    }
+
+    resetPortItemForm();
+    renderPortManagerTab();
+  });
+
+  elements.btnSubmitAllPortfolio?.addEventListener('click', async () => {
+    if (appState.isAdmin && appState.adminPassword) {
+      try {
+        await sendToGasApi('savePortfolio', { items: tempPortfolioList });
+      } catch (err) {
+        alert(err.message);
+        return;
+      }
+    }
+
+    appState.portfolio = tempPortfolioList;
+    localStorage.setItem('portfolio', JSON.stringify(tempPortfolioList));
+    renderPortfolio();
+    if (elements.editPortfolioModal) elements.editPortfolioModal.style.display = 'none';
+    alert('포트폴리오가 성공적으로 저장되었습니다.');
   });
 }
 
