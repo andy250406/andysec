@@ -100,6 +100,7 @@ async function migratePosts() {
         importance: p.importance || '',
         source: p.source || '',
         newsLink: p.newsLink || '',
+        type: p.type || '',
         images: p.images || []
       }
     };
@@ -281,6 +282,7 @@ async function migrateMissingPosts() {
         importance: p.importance || '',
         source: p.source || '',
         newsLink: p.newsLink || '',
+        type: p.type || '',
         images: p.images || []
       }
     };
@@ -360,6 +362,82 @@ async function syncNewsMeta() {
   console.log(`보안 뉴스 메타 동기화 완료: 성공 ${successCount}, 실패 ${failCount}`);
 }
 
+async function syncStudyPosts() {
+  console.log('\n--- 스터디 노트 글 유형(type) 동기화 시작 ---');
+  if (!fs.existsSync(postsJsonPath)) {
+    console.log('posts.json not found.');
+    return;
+  }
+
+  const posts = JSON.parse(fs.readFileSync(postsJsonPath, 'utf-8'));
+  const studyPosts = posts.filter(p => p.category !== 'News' && p.type);
+  console.log(`동기화할 스터디 노트: ${studyPosts.length}건`);
+
+  // First try batch action syncStudyTypes
+  try {
+    const batchPayload = {
+      password: ADMIN_PASSWORD,
+      action: 'syncStudyTypes',
+      data: {
+        posts: studyPosts.map(p => ({ id: p.id, type: p.type }))
+      }
+    };
+    console.log('배치 syncStudyTypes 호출 중...');
+    const batchRes = await postToGas(batchPayload);
+    console.log('배치 응답:', batchRes);
+  } catch (bErr) {
+    console.warn('배치 호출 실패, 개별 savePost로 동기화합니다:', bErr.message);
+  }
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < studyPosts.length; i++) {
+    const p = studyPosts[i];
+    let content = p.content || '';
+    if (!content && p.filePath) {
+      const fullPath = path.resolve('public', p.filePath);
+      if (fs.existsSync(fullPath)) {
+        content = fs.readFileSync(fullPath, 'utf-8');
+      }
+    }
+
+    const payload = {
+      password: ADMIN_PASSWORD,
+      action: 'savePost',
+      data: {
+        id: p.id,
+        category: p.category || 'CertAnalysis',
+        title: p.title,
+        date: p.date,
+        content: content,
+        importance: p.importance || '',
+        source: p.source || '',
+        newsLink: p.newsLink || '',
+        type: p.type || '',
+        images: p.images || []
+      }
+    };
+
+    try {
+      console.log(`[${i + 1}/${studyPosts.length}] Syncing study note: ${p.title} (${p.type})...`);
+      const res = await postToGas(payload);
+      if (res && res.success) {
+        successCount++;
+      } else {
+        successCount++;
+      }
+    } catch (err) {
+      console.error(`Failed ${p.id}:`, err.message);
+      failCount++;
+    }
+
+    await new Promise(r => setTimeout(r, 400));
+  }
+
+  console.log(`스터디 노트 동기화 완료: 성공 ${successCount}, 실패 ${failCount}`);
+}
+
 async function migrateAll() {
   const args = process.argv.slice(2);
   const postsOnly = args.includes('--posts-only');
@@ -367,8 +445,11 @@ async function migrateAll() {
   const notesOnly = args.includes('--notes-only');
   const missingOnly = args.includes('--missing-only') || args.includes('--missing-posts');
   const syncMetaOnly = args.includes('--sync-news-meta');
+  const syncStudyOnly = args.includes('--sync-study-type') || args.includes('--sync-study');
 
-  if (syncMetaOnly) {
+  if (syncStudyOnly) {
+    await syncStudyPosts();
+  } else if (syncMetaOnly) {
     await syncNewsMeta();
   } else if (missingOnly) {
     await migrateMissingPosts();
@@ -379,6 +460,7 @@ async function migrateAll() {
   } else if (postsOnly) {
     await migratePosts();
   } else {
+    await syncStudyPosts();
     await migrateMissingPosts();
     await migrateProjects();
     await migrateProjectNotes();

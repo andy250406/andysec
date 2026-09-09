@@ -565,6 +565,25 @@ async function loadData() {
       });
     }
 
+    // Safety mapping & sanitization for study note types (ensures zero 'undefined' badges)
+    const KNOWN_STUDY_TYPES = {
+      'study-1783753819893': '교육',
+      'study-1783132487159': '주요정보통신기반시설',
+      'cert-analysis-isms-p': 'ISMS-P',
+      'cert-cppg-study': 'CPPG',
+      'rookie-vuln-diagnostic': '취약점진단',
+      'cert-aws-ccp': 'AWS CCP'
+    };
+    mergedPosts.forEach(p => {
+      if (p) {
+        if (!p.type && KNOWN_STUDY_TYPES[p.id]) {
+          p.type = KNOWN_STUDY_TYPES[p.id];
+        } else if (!p.type) {
+          p.type = '';
+        }
+      }
+    });
+
     appState.posts = mergedPosts;
     localStorage.setItem('posts', JSON.stringify(mergedPosts));
     appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1126,13 +1145,14 @@ function renderStudyNotes() {
   filtered.forEach(post => {
     const card = document.createElement('div');
     card.className = 'post-card';
+    const typeBadgeHtml = post.type ? `<span class="badge type-badge">${escapeHtml(post.type)}</span>` : '';
     card.innerHTML = `
       <div class="post-card-header">
         <span class="badge ${post.category.toLowerCase()}">${getCategoryName(post.category)}</span>
-        <span class="badge type-badge">${post.type}</span>
+        ${typeBadgeHtml}
       </div>
       <div class="post-card-body">
-        <h4 class="post-card-title">${post.title}</h4>
+        <h4 class="post-card-title">${escapeHtml(post.title)}</h4>
       </div>
       <div class="post-card-footer">
         <span><i class="fa-regular fa-calendar-days"></i> ${post.date}</span>
@@ -3711,6 +3731,7 @@ function setupEventListeners() {
           importance: postData.importance || '',
           source: postData.source || '',
           newsLink: postData.newsLink || '',
+          type: postData.type || '',
           images: postData.images || []
         });
         console.log('[GAS API] Post successfully saved:', gasResult);

@@ -287,3 +287,18 @@
       * **뉴스 전용 에디터 모드 연동**: 버튼 클릭 시 카테고리(`News`), 기사 일자, 중요도(`⭐⭐⭐⭐⭐`~`⭐⭐⭐`), 출처 언론사, 원문 링크 입력 필드가 활성화된 에디터로 즉시 진입.
       * **카테고리 선택 동적 전환**: 에디터 내에서 카테고리를 '보안 뉴스'로 변경 시 뉴스 전용 입력 필드가 자동으로 열리고 타이틀이 동적 전환.
       * **출처 필수 검증 및 GAS DB 영구 저장**: 뉴스 등록 시 출처 입력 여부를 검증하고, `sendToGasApi('savePost')` 호출 시 모든 메타데이터를 구글 시트로 전송하여 실시간 등록/수정/삭제 라이프사이클 완성.
+21. **스터디 노트 글 유형(type) 구글 시트 DB 스키마 공식 편입 및 undefined 렌더링 버그 원천 해결 (2026-09-09 15차 배포)**:
+    * **문제 원인 분석**:
+      * 기존 `Posts` 시트 및 GAS 백엔드 API 설계 시 `importance`, `source`, `newsLink`까지만 헤더(F, G, H열)에 배정되어 있었고, 스터디 노트의 핵심 속성인 `type`(유형: 교육, 주요정보통신기반시설, ISMS-P, CPPG, 취약점진단, AWS CCP) 컬럼이 누락되어 있었음.
+      * 이로 인해 구글 시트 DB를 단일 진실 공급원(SSOT)으로 조회 시 `post.type`이 `undefined`로 전달되었고, 스터디 노트 카드 템플릿(`renderStudyNotes()`)에서 `<span class="badge type-badge">${post.type}</span>`에 의해 문자열 `'undefined'`가 화면에 그대로 출력됨.
+    * **구글 시트 & GAS 백엔드 스키마 공식 확장 (`gas_backend_code.gs`)**:
+      * `Posts` 시트 헤더 9열(I열)에 `type`을 공식 필드로 영구 배정 (`['id', 'category', 'title', 'date', 'content', 'importance', 'source', 'newsLink', 'type', 'image_1', ...]`).
+      * `getPostsData()`: 9열(I열) 또는 헤더 매핑을 통해 `type` 값을 정확히 추출하여 반환 객체에 `type: postType`으로 포함.
+      * `savePost`: `type` 필드를 파라미터로 수신하여 I열(9열)에 기록 및 갱신하도록 처리.
+      * `syncStudyTypes`: 기존 글들의 ID별 유형을 일괄 갱신할 수 있는 원자적 배치 액션 신설.
+    * **프론트엔드 안전 렌더링 및 에디터 연동 (`main.js`)**:
+      * `renderStudyNotes()`: `post.type` 존재 시에만 배지를 렌더링하도록 조건부 렌더링(`typeBadgeHtml`) 및 `escapeHtml()` 적용하여 문자열 `'undefined'` 출력 원천 차단.
+      * `loadData()`: 구글 시트 실시간 데이터를 로드하는 즉시 6개 기존 스터디 노트의 고유 ID별 유형 매핑(`KNOWN_STUDY_TYPES`)을 통해 백엔드 배포 반영 전이라도 클라이언트에서 즉각 올바른 유형 배지(`교육`, `ISMS-P` 등)가 즉시 렌더링되도록 이중 방어선 구축.
+      * 글 작성/수정기(`savePost`): 에디터에서 글 저장 시 `sendToGasApi('savePost')` 페이로드에 `type: postData.type || ''`를 온전히 포함하여 구글 시트 DB로 실시간 전송/보존.
+    * **스터디 노트 데이터 동기화 완료 (`migrate_to_sheets.js`)**:
+      * `syncStudyPosts()` 기능 및 `--sync-study-type` CLI 옵션을 구현하여 기존 6개 스터디 노트의 본문 및 유형 속성 전체를 구글 시트 DB로 100% 성공적으로 이전 완료.

@@ -2,13 +2,17 @@
  * AndySec 블로그 Google Apps Script (GAS) 백엔드 API
  * 
  * 구글 시트 구조 (시트명: 'Posts')
- * 1행(헤더): id | category | title | date | content | image_1 | image_2 | image_3 ...
- * A열: id (예: study-1783753819893, news-36c25a92-...)
- * B열: category (예: CertAnalysis, News, Project)
- * C열: title
- * D열: date (YYYY-MM-DD)
- * E열: content (마크다운 전체 텍스트, 이미지 위치는 {{img_1}}, {{img_2}} 등)
- * F열 이후: 셀 내 삽입된 이미지 또는 이미지 URL 링크
+ * 1행(헤더): id | category | title | date | content | importance | source | newsLink | type | image_1 | image_2 | image_3 ...
+ * A열(1): id (예: study-1783753819893, news-36c25a92-...)
+ * B열(2): category (예: CertAnalysis, News, Project)
+ * C열(3): title (게시글 제목)
+ * D열(4): date (YYYY-MM-DD)
+ * E열(5): content (마크다운 전체 텍스트, 이미지 위치는 {{img_1}}, {{img_2}} 등)
+ * F열(6): importance (보안 뉴스 중요도 별점, 예: ⭐⭐⭐)
+ * G열(7): source (보안 뉴스 출처 언론사, 예: 보안뉴스)
+ * H열(8): newsLink (보안 뉴스 원문 링크)
+ * I열(9): type (글 유형/자격증 구분, 예: 교육, 주요정보통신기반시설, ISMS-P, CPPG, 취약점진단, AWS CCP)
+ * J열(10) 이후: 셀 내 삽입된 이미지 또는 이미지 URL 링크
  */
 
 // 관리자 인증 비밀번호 (기본값 설정 또는 스크립트 속성 ADMIN_PASSWORD 사용)
@@ -32,15 +36,16 @@ function getPostsSheet() {
   let sheet = ss.getSheetByName(POSTS_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(POSTS_SHEET_NAME);
-    sheet.appendRow(['id', 'category', 'title', 'date', 'content', 'importance', 'source', 'newsLink', 'image_1', 'image_2', 'image_3']);
+    sheet.appendRow(['id', 'category', 'title', 'date', 'content', 'importance', 'source', 'newsLink', 'type', 'image_1', 'image_2', 'image_3']);
   } else {
     try {
-      const lastCol = sheet.getLastColumn();
-      if (lastCol >= 5) {
-        const headerCell = sheet.getRange(1, 6).getValue();
-        if (headerCell !== 'importance') {
-          sheet.getRange(1, 6, 1, 3).setValues([['importance', 'source', 'newsLink']]);
-        }
+      const lastCol = Math.max(sheet.getLastColumn(), 9);
+      const headers = sheet.getRange(1, 1, 1, Math.min(lastCol, 12)).getValues()[0];
+      if (headers[5] !== 'importance') {
+        sheet.getRange(1, 6, 1, 3).setValues([['importance', 'source', 'newsLink']]);
+      }
+      if (headers[8] !== 'type') {
+        sheet.getRange(1, 9).setValue('type');
       }
     } catch (e) {}
   }
@@ -133,7 +138,7 @@ function getPostsData() {
   const lastCol = sheet.getLastColumn();
   if (lastRow <= 1) return [];
 
-  const range = sheet.getRange(2, 1, lastRow - 1, Math.max(lastCol, 8));
+  const range = sheet.getRange(2, 1, lastRow - 1, Math.max(lastCol, 9));
   const values = range.getValues();
 
   let cellImages = [];
@@ -145,9 +150,11 @@ function getPostsData() {
 
   // Header inspection
   let hasMetaCols = false;
+  let hasTypeCol = false;
   try {
-    const headers = sheet.getRange(1, 1, 1, Math.max(lastCol, 8)).getValues()[0];
+    const headers = sheet.getRange(1, 1, 1, Math.max(lastCol, 9)).getValues()[0];
     hasMetaCols = (headers[5] === 'importance');
+    hasTypeCol = (headers[8] === 'type');
   } catch (e) {}
 
   const posts = [];
@@ -170,13 +177,15 @@ function getPostsData() {
     let importance = '';
     let source = '';
     let newsLink = '';
-    let imageStartCol = 8;
+    let type = '';
+    let imageStartCol = 9;
 
     if (hasMetaCols) {
       importance = String(row[5] || '');
       source = String(row[6] || '');
       newsLink = String(row[7] || '');
-      imageStartCol = 8;
+      type = hasTypeCol ? String(row[8] || '') : (row[8] && !String(row[8]).startsWith('http') ? String(row[8]) : '');
+      imageStartCol = 9;
     } else {
       // If header is not yet updated, check if col 6 contains star rating
       const col5Val = String(row[5] || '').trim();
@@ -184,7 +193,8 @@ function getPostsData() {
         importance = col5Val;
         source = String(row[6] || '');
         newsLink = String(row[7] || '');
-        imageStartCol = 8;
+        type = String(row[8] || '');
+        imageStartCol = 9;
       } else {
         imageStartCol = 5;
       }
@@ -219,6 +229,7 @@ function getPostsData() {
       importance: importance,
       source: source,
       newsLink: newsLink,
+      type: type,
       images: images
     });
   }
@@ -438,7 +449,7 @@ function doPost(e) {
     const lastRow = sheet.getLastRow();
 
     if (action === 'savePost') {
-      const { id, category, title, date, content, importance, source, newsLink, images } = data;
+      const { id, category, title, date, content, importance, source, newsLink, type, images } = data;
       if (!title) {
         return createJsonResponse({ success: false, error: '제목은 필수 입력 항목입니다.' });
       }
@@ -450,13 +461,18 @@ function doPost(e) {
       const postImportance = importance || '';
       const postSource = source || '';
       const postNewsLink = newsLink || '';
+      const postType = type || '';
       const imgList = Array.isArray(images) ? images : [];
 
-      // Ensure headers at F, G, H
+      // Ensure headers at F, G, H, I
       try {
         const headerCell = sheet.getRange(1, 6).getValue();
         if (headerCell !== 'importance') {
           sheet.getRange(1, 6, 1, 3).setValues([['importance', 'source', 'newsLink']]);
+        }
+        const typeHeader = sheet.getRange(1, 9).getValue();
+        if (typeHeader !== 'type') {
+          sheet.getRange(1, 9).setValue('type');
         }
       } catch (hErr) {}
 
@@ -471,7 +487,7 @@ function doPost(e) {
         }
       }
 
-      const rowData = [postId, postCategory, title, postDate, postContent, postImportance, postSource, postNewsLink, ...imgList];
+      const rowData = [postId, postCategory, title, postDate, postContent, postImportance, postSource, postNewsLink, postType, ...imgList];
 
       if (foundRow !== -1) {
         // 수정 (Update)
@@ -493,8 +509,33 @@ function doPost(e) {
           importance: postImportance,
           source: postSource,
           newsLink: postNewsLink,
+          type: postType,
           images: imgList
         }
+      });
+
+    } else if (action === 'syncStudyTypes') {
+      const { posts: studyTypeMap } = data;
+      const curLastRow = sheet.getLastRow();
+      let updatedCount = 0;
+      try {
+        sheet.getRange(1, 9).setValue('type');
+      } catch (e) {}
+      if (curLastRow > 1 && Array.isArray(studyTypeMap)) {
+        const idValues = sheet.getRange(2, 1, curLastRow - 1, 1).getValues();
+        studyTypeMap.forEach(item => {
+          for (let r = 0; r < idValues.length; r++) {
+            if (String(idValues[r][0]) === item.id) {
+              sheet.getRange(r + 2, 9).setValue(item.type || '');
+              updatedCount++;
+              break;
+            }
+          }
+        });
+      }
+      return createJsonResponse({
+        success: true,
+        message: updatedCount + '건의 게시글 유형(type)이 동기화되었습니다.'
       });
 
     } else if (action === 'deletePost') {
