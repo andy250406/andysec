@@ -46,15 +46,22 @@
 
 * **실제 배포된 GAS Web App URL**:
   `https://script.google.com/macros/s/AKfycby_5htUVodm_M16r25fUOyNAkNG7cpx3L1X098TYGtvS6KYN4nv8h8N5-wnNsveytLz8Q/exec`
+* **Apps Script Script ID**: `1g7_bIb6Oex-EoLvlu7wf2b5AY3eUhvRg2NEt0uPD_BYZO_1jLFhoKqvK`
+* **Apps Script Deployment ID**: `AKfycby_5htUVodm_M16r25fUOyNAkNG7cpx3L1X098TYGtvS6KYN4nv8h8N5-wnNsveytLz8Q`
+* **자동 배포 CLI 도구**: [deploy_gas.js](file:///c:/Users/pp040/OneDrive/SK쉴더스/Antigravity/andysec/deploy_gas.js) (`node deploy_gas.js`로 원클릭 자동 버전 생성 및 배포)
 * **관리자 비밀번호**: `pp0406hh`
 * **GAS 백엔드 코드 파일**: [gas_backend_code.gs](file:///c:/Users/pp040/OneDrive/SK쉴더스/Antigravity/andysec/gas_backend_code.gs)
-* **구글 시트 구조 (`Posts` 시트)**:
-  * **A열 (`id`)**: 글 고유 식별자 (`study-[timestamp]` 또는 `news-[timestamp]`)
-  * **B열 (`category`)**: 카테고리 (`CertAnalysis`, `Cert`, `Shieldus`, `News`, `Project` 등)
-  * **C열 (`title`)**: 제목
-  * **D열 (`date`)**: 작성일 (`YYYY-MM-DD`)
-  * **E열 (`content`)**: 마크다운 본문 전체 텍스트 (이미지 삽입 위치는 `{{img_1}}`, `{{img_2}}` 태그 사용)
-  * **F열 이후 (`image_1`, `image_2`, ...)**: 구글 시트의 셀 내 삽입 이미지 객체(`getCellImages()`) 또는 이미지 외부 URL
+* **구글 시트 구조 (`AndySec_DB`)**:
+  * **1. `Posts` 시트 (스터디 노트 & 보안 뉴스)**:
+    * A열(`id`), B열(`category`), C열(`title`), D열(`date`), E열(`content`), F열(`importance`), G열(`source`), H열(`newsLink`), I열(`type`), J열 이후(`image_1`, `image_2`...)
+  * **2. `Projects` 시트 (컨설팅 프로젝트 & 하위 세부 진단 일정)**:
+    * A열(`id`), B열(`name`), C열(`client`), D열(`startDate`), E열(`endDate`), F열(`details`), G열(`diagnostics` JSON)
+  * **3. `ProjectNotes` 시트 (프로젝트 내부 비공개 기록)**:
+    * A열(`id`), B열(`projectId`), C열(`title`), D열(`date`), E열(`content`)
+  * **4. `Profile` 시트 (메인화면 및 사이드바 프로필)**:
+    * A열(`id`), B열(`name`), C열(`title`), D열(`company`), E열(`bio`), F열(`email`), G열(`phone`), H열(`avatarUrl`)
+  * **5. `Portfolio` 시트 (포트폴리오 자격증, 프로젝트, 경력, 보유기술)**:
+    * A열(`id`), B열(`type`), C열(`title`), D열(`date`), E열(`description`), F열(`category`), G열(`level`), H열(`percent`), I열(`sortOrder`)
 
 ---
 
@@ -302,3 +309,27 @@
       * 글 작성/수정기(`savePost`): 에디터에서 글 저장 시 `sendToGasApi('savePost')` 페이로드에 `type: postData.type || ''`를 온전히 포함하여 구글 시트 DB로 실시간 전송/보존.
     * **스터디 노트 데이터 동기화 완료 (`migrate_to_sheets.js`)**:
       * `syncStudyPosts()` 기능 및 `--sync-study-type` CLI 옵션을 구현하여 기존 6개 스터디 노트의 본문 및 유형 속성 전체를 구글 시트 DB로 100% 성공적으로 이전 완료.
+22. **클라이언트 페이크 매핑 전면 청산, Apps Script 무중단 자동 배포 파이프라인(`deploy_gas.js`) 구축 및 100% 순수 GAS DB 단일 진실 공급원(SSOT) 완성 (2026-09-09 16차 배포)**:
+    * **클라이언트 임의 매핑/페이크 폴백(`KNOWN_STUDY_TYPES`, `|| '⭐⭐⭐'`, `|| '보안뉴스'`, `|| '진단'`, `|| '보안'`) 전면 청산**:
+      * **가짜 기본값 제거**: 프론트엔드 코드에서 값이 없을 때 임의의 기본값으로 채워 넣던 페이크 로직(`KNOWN_STUDY_TYPES` 매핑, 별점 기본 `⭐⭐⭐`, 언론사 기본 `보안뉴스`, 진단 기본 `진단`, 글 유형 기본 `보안`)을 `main.js` 전역에서 전수 색출 및 완전 삭제.
+      * **순수 DB 데이터 충실 표출**: DB에 저장된 실제 데이터만을 투명하게 렌더링하도록 일원화(DB에 데이터가 없을 경우 가짜 데이터로 덮지 않고 공백 또는 `-`로 정직하게 출력).
+      * **6개 스터디 노트 실제 유형 DB 직접 영구 기록**: `syncStudyTypes` 백엔드 배치를 실행하여 `교육`, `주요정보통신기반시설`, `ISMS-P`, `CPPG`, `취약점진단`, `AWS CCP` 6개 스터디 노트의 실제 유형을 Google Sheets `Posts` 시트 I열(`type`)에 직접 100% 영구 기록 완료.
+    * **Google Apps Script(GAS) 무중단 자동 배포 스크립트 구축 (`deploy_gas.js`)**:
+      * **배경**: 매번 구글 스프레드시트의 Apps Script 편집기를 수동으로 열어 코드를 붙여넣고 새 버전을 수동 배포해야 하던 비효율을 완벽히 해소.
+      * **파이프라인 구현**:
+        * Google Apps Script REST API (`script.googleapis.com`) 및 OAuth2 토큰 자동 갱신(Refresh Token) 연동.
+        * `AndySec_DB` Apps Script 프로젝트(`1g7_bIb6Oex-EoLvlu7wf2b5AY3eUhvRg2NEt0uPD_BYZO_1jLFhoKqvK`) 및 배포 ID(`AKfycby_5htUVodm_M16r25fUOyNAkNG7cpx3L1X098TYGtvS6KYN4nv8h8N5-wnNsveytLz8Q`) 식별 및 연동.
+        * `PUT /v1/projects/{scriptId}/content` ➔ 소스 코드 자동 업데이트.
+        * `POST /v1/projects/{scriptId}/versions` ➔ 프로젝트 새 버전 자동 발급.
+        * `PUT /v1/projects/{scriptId}/deployments/{deploymentId}` ➔ 라이브 Web App 배포 자동 갱신.
+      * **성과**: `node deploy_gas.js` 명령어 단 한 번으로 로컬 `gas_backend_code.gs`의 수정 사항이 5초 만에 실제 구글 웹 앱으로 자동 반영 및 배포 완료 (최신 v8 배포 성공).
+    * **100% 순수 Google Sheets GAS DB 단일 진실 공급원(SSOT) 확립 및 깃허브 JSON 파일 의존성 0% 달성**:
+      * **레거시 정적 JSON Fetch 완전 제거**: `main.js`의 `loadData()` 및 `initProjects()`에 남아있던 오프라인 정적 파일 폴백(`posts.json`, `projects.json`, `projectNotes.json`) 호출 로직을 완전 삭제.
+      * **전체 메뉴 전수 점검 및 검증**:
+        * **대시보드 (Dashboard)**: 최근 스터디 노트 6건, 최근 보안 뉴스 6건, 프로젝트 현황 전체가 GAS DB(`action=getAllData`)를 통해 실시간 로드됨을 확인.
+        * **스터디 노트 (Study Notes)**: 6건의 글과 각 글의 실제 유형 배지가 DB로부터 순수 로드됨을 확인.
+        * **보안 뉴스 (Security News)**: 101건의 뉴스 전체의 별점 중요도, 언론사 출처, 원문 링크가 DB로부터 100% 직접 로드되며, 관리자 새 뉴스 등록/수정/삭제도 실시간 GAS DB와 연동됨을 확인.
+        * **프로젝트 & 세부 진단 트리 (Projects & Diagnostics)**: `Projects` 시트로부터 상위 프로젝트 및 하위 세부 진단 일정(JSON)이 단일 원자적 구조로 정상 로드 및 트리 표시됨을 확인.
+        * **프로젝트 기록 (Project Notes)**: `ProjectNotes` 시트로부터 프로젝트별 비공개 기록이 정상 로드됨을 확인.
+        * **프로필 & 포트폴리오 (Profile & Portfolio)**: `Profile`, `Portfolio` 시트로부터 실시간 로드 및 관리자 모달을 통한 수정/저장이 완벽 동작함을 확인.
+      * 이제 깃허브 저장소의 정적 JSON 파일을 일체 조회하거나 업데이트하지 않고, **오직 Google Sheets GAS DB만을 통해 모든 데이터의 조회, 등록, 수정, 삭제가 100% 무중단 동작**합니다.

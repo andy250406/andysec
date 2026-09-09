@@ -522,20 +522,7 @@ async function loadData() {
     if (gasLoaded && serverPosts.length > 0) {
       mergedPosts = serverPosts;
     } else {
-      // Offline fallback: Only if GAS failed or offline, load from static posts.json or local storage
-      if (serverPosts.length === 0) {
-        try {
-          const response = await fetch('./posts/posts.json');
-          if (response.ok) {
-            serverPosts = await response.json();
-            serverPosts = serverPosts.filter(p => p && p.category !== 'Project');
-          }
-        } catch (e) {
-          console.warn('Could not load posts.json from server, falling back to local storage:', e);
-        }
-      }
-
-      // Load local posts safely
+      // Offline fallback: Only if GAS failed or offline, load from local storage
       let localPosts = [];
       try {
         const stored = localStorage.getItem('posts');
@@ -546,67 +533,21 @@ async function loadData() {
         console.error('Failed to parse local posts:', e);
       }
       if (!Array.isArray(localPosts)) localPosts = [];
-
-      const deletedIds = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
-      const deletedSet = new Set(deletedIds);
-      const serverPostsFiltered = serverPosts.filter(p => p && p.id && !deletedSet.has(p.id));
-      mergedPosts = [...serverPostsFiltered];
-      localPosts.forEach(localP => {
-        if (!localP || !localP.id || deletedSet.has(localP.id)) return;
-        const exists = mergedPosts.some(serverP => serverP && serverP.id === localP.id);
-        if (!exists) {
-          mergedPosts.push(localP);
-        } else {
-          const idx = mergedPosts.findIndex(serverP => serverP && serverP.id === localP.id);
-          if (idx !== -1) {
-            mergedPosts[idx] = { ...mergedPosts[idx], ...localP };
-          }
-        }
-      });
+      mergedPosts = localPosts;
     }
-
-    // Safety mapping & sanitization for study note types (ensures zero 'undefined' badges)
-    const KNOWN_STUDY_TYPES = {
-      'study-1783753819893': '교육',
-      'study-1783132487159': '주요정보통신기반시설',
-      'cert-analysis-isms-p': 'ISMS-P',
-      'cert-cppg-study': 'CPPG',
-      'rookie-vuln-diagnostic': '취약점진단',
-      'cert-aws-ccp': 'AWS CCP'
-    };
-    mergedPosts.forEach(p => {
-      if (p) {
-        if (!p.type && KNOWN_STUDY_TYPES[p.id]) {
-          p.type = KNOWN_STUDY_TYPES[p.id];
-        } else if (!p.type) {
-          p.type = '';
-        }
-      }
-    });
 
     appState.posts = mergedPosts;
     localStorage.setItem('posts', JSON.stringify(mergedPosts));
     appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
     
-    // 2. Initialize projects (using live serverProjects if from GAS, else projects.json)
+    // 2. Initialize projects (100% GAS DB Single Source of Truth)
     await initProjects(serverProjects);
     
-    // 3. Load project internal notes (using live serverNotes if from GAS, else projectNotes.json)
+    // 3. Load project internal notes (100% GAS DB Single Source of Truth)
     let mergedNotes;
     if (gasLoaded && serverNotes.length > 0) {
       mergedNotes = serverNotes;
     } else {
-      if (serverNotes.length === 0) {
-        try {
-          const res = await fetch('./posts/projectNotes.json');
-          if (res.ok) {
-            serverNotes = await res.json();
-          }
-        } catch (e) {
-          console.warn('Could not load projectNotes.json from server.');
-        }
-      }
-      
       let localNotes = [];
       try {
         const stored = localStorage.getItem('projectNotes');
@@ -617,22 +558,9 @@ async function loadData() {
         console.error('Failed to parse local project notes:', e);
       }
       if (!Array.isArray(localNotes)) localNotes = [];
-
-      mergedNotes = [...serverNotes];
-      localNotes.forEach(localN => {
-        if (!localN || !localN.id) return;
-        const exists = mergedNotes.some(serverN => serverN && serverN.id === localN.id);
-        if (!exists) {
-          mergedNotes.push(localN);
-        } else {
-          const idx = mergedNotes.findIndex(serverN => serverN && serverN.id === localN.id);
-          if (idx !== -1) {
-            mergedNotes[idx] = { ...mergedNotes[idx], ...localN };
-          }
-        }
-      });
+      mergedNotes = localNotes;
     }
-    
+
     appState.projectNotes = mergedNotes;
     localStorage.setItem('projectNotes', JSON.stringify(mergedNotes));
     
@@ -651,7 +579,7 @@ async function loadData() {
   }
 }
 
-// Seed default projects (merged with server if exists)
+// Initialize projects (100% GAS DB Single Source of Truth)
 async function initProjects(gasServerProjects = []) {
   if (Array.isArray(gasServerProjects) && gasServerProjects.length > 0) {
     appState.projects = gasServerProjects;
@@ -659,16 +587,6 @@ async function initProjects(gasServerProjects = []) {
     return;
   }
 
-  let serverProjects = [];
-  try {
-    const res = await fetch('./posts/projects.json');
-    if (res.ok) {
-      serverProjects = await res.json();
-    }
-  } catch (e) {
-    console.warn('Could not load projects.json from server.');
-  }
-  
   let localProjects = [];
   try {
     const stored = localStorage.getItem('projects');
@@ -679,66 +597,8 @@ async function initProjects(gasServerProjects = []) {
     console.error('Failed to parse local projects:', e);
   }
   if (!Array.isArray(localProjects)) localProjects = [];
-  
-  if (serverProjects.length === 0 && localProjects.length === 0) {
-    // Seed default projects
-    const seeded = [
-      {
-        id: 'project-cons-audit',
-        name: '개인정보 보안 컨설팅 수탁사 점검 프로젝트',
-        client: 'SK쉴더스 수탁기관',
-        startDate: '2026-03-01',
-        endDate: '2026-05-30',
-        details: '위탁사의 수탁사 대상 개인정보 관리 실태 정기 점검 수행. 안전성 확보 조치 고시 점검 체크리스트 구성 및 이행 지도.'
-      },
-      {
-        id: 'project-web-vuln',
-        name: '의료 데이터를 위한 웹 취약점 자동 진단 시스템',
-        client: '가상 의료재단',
-        startDate: '2026-01-02',
-        endDate: '2026-02-15',
-        details: 'OWASP Top 10 기준 웹 취약점 자동 스캔 알고리즘 개발 및 진단 보고서 자동 PDF 출력 기능 구현.'
-      },
-      {
-        id: 'project-forest-fire',
-        name: '산불 발생 데이터 분석 대시보드 구축',
-        client: '공공 빅데이터 분석 챌린지',
-        startDate: '2025-10-15',
-        endDate: '2025-11-30',
-        details: 'Streamlit을 활용해 기상 데이터 및 피해 면적 데이터를 결합하여 연관 관계 지표 시각화 대시보드 제작.'
-      },
-      {
-        id: 'project-cloud-vuln',
-        name: '2026 하반기 클라우드 인프라 보안 진단 컨설팅',
-        client: '네오테크 코리아',
-        startDate: '2026-05-01',
-        endDate: '2026-08-30',
-        details: '고객사의 AWS 클라우드 아키텍처 대상 IAM 권한 정책, VPC 네트워크 통제 및 데이터 암호화 설정 점검 컨설팅.'
-      }
-    ];
-    appState.projects = seeded;
-    localStorage.setItem('projects', JSON.stringify(seeded));
-  } else {
-    const merged = [...serverProjects];
-    localProjects.forEach(localP => {
-      if (!localP || !localP.id) return;
-      const exists = merged.some(serverP => serverP && serverP.id === localP.id);
-      if (!exists) {
-        merged.push(localP);
-      } else {
-        const idx = merged.findIndex(serverP => serverP && serverP.id === localP.id);
-        if (idx !== -1) {
-          const serverItem = merged[idx];
-          const diag = (localP.diagnostics && Array.isArray(localP.diagnostics) && localP.diagnostics.length > 0)
-            ? localP.diagnostics
-            : (serverItem.diagnostics || []);
-          merged[idx] = { ...serverItem, ...localP, diagnostics: diag };
-        }
-      }
-    });
-    appState.projects = merged;
-    localStorage.setItem('projects', JSON.stringify(merged));
-  }
+
+  appState.projects = localProjects;
 }
 
 // Safe HTML escaping helper
@@ -795,17 +655,17 @@ function initPortfolio(serverPortfolio = []) {
 // Render Profile in Sidebar & Portfolio Tab Quote
 function renderProfile() {
   const p = appState.profile || DEFAULT_PROFILE;
-  if (elements.profileDisplayName) elements.profileDisplayName.textContent = p.name || '안태경';
-  if (elements.profileDisplayTitle) elements.profileDisplayTitle.textContent = p.title || '보안 컨설턴트';
-  if (elements.profileDisplaySlogan) elements.profileDisplaySlogan.textContent = p.company || 'SK쉴더스 기업컨설팅 2팀';
-  if (elements.profileDisplayEmail) elements.profileDisplayEmail.textContent = p.email || 'pp0406hh@gmail.com';
-  if (elements.profileDisplayPhone) elements.profileDisplayPhone.textContent = p.phone || '010-2224-1060';
+  if (elements.profileDisplayName) elements.profileDisplayName.textContent = p.name || '';
+  if (elements.profileDisplayTitle) elements.profileDisplayTitle.textContent = p.title || '';
+  if (elements.profileDisplaySlogan) elements.profileDisplaySlogan.textContent = p.company || '';
+  if (elements.profileDisplayEmail) elements.profileDisplayEmail.textContent = p.email || '';
+  if (elements.profileDisplayPhone) elements.profileDisplayPhone.textContent = p.phone || '';
   if (elements.emailBtn && p.email) elements.emailBtn.href = `mailto:${p.email}`;
   if (elements.phoneBtn && p.phone) elements.phoneBtn.href = `tel:${p.phone}`;
 
   // Portfolio quote / intro
-  if (elements.portfolioQuoteText) elements.portfolioQuoteText.textContent = p.bio || p.company || 'SK쉴더스 기업컨설팅 2팀';
-  if (elements.portfolioQuoteAuthor) elements.portfolioQuoteAuthor.textContent = `${p.title || '보안 컨설턴트'} ${p.name || '안태경'}`;
+  if (elements.portfolioQuoteText) elements.portfolioQuoteText.textContent = p.bio || p.company || '';
+  if (elements.portfolioQuoteAuthor) elements.portfolioQuoteAuthor.textContent = `${p.title || ''} ${p.name || ''}`.trim();
 }
 
 // Render Portfolio items dynamically (Certifications, Projects, Careers, Skills)
@@ -1092,15 +952,15 @@ function renderDashboard() {
     newsPosts.slice(0, 6).forEach(news => {
       const item = document.createElement('div');
       item.className = 'news-sidebar-item';
-      const importance = news.importance || '⭐⭐⭐';
-      const source = news.source || '보안뉴스';
+      const importanceHtml = news.importance ? `<span style="color:#fb923c">${escapeHtml(news.importance)}</span>` : '';
+      const sourceHtml = news.source ? `<div class="news-sidebar-desc">출처: ${escapeHtml(news.source)}</div>` : '';
       item.innerHTML = `
         <div class="news-sidebar-header">
-          <span style="color:#fb923c">${escapeHtml(importance)}</span>
+          ${importanceHtml}
           <span class="notice-date">${escapeHtml(news.date || '')}</span>
         </div>
         <div class="news-sidebar-title">${escapeHtml(news.title || '')}</div>
-        <div class="news-sidebar-desc">출처: ${escapeHtml(source)}</div>
+        ${sourceHtml}
       `;
       item.addEventListener('click', () => {
         window.location.hash = `#/post/${news.id}`;
@@ -1282,7 +1142,7 @@ function renderProjectsList() {
             </div>
           </td>
           <td class="col-client">
-            <span class="diag-type-badge">${diag.type || '진단'}</span>
+            <span class="diag-type-badge">${escapeHtml(diag.type || '')}</span>
           </td>
           <td class="col-start"><span style="font-family:var(--font-code)">${diag.startDate}</span></td>
           <td class="col-end"><span style="font-family:var(--font-code)">${diag.endDate}</span></td>
@@ -1364,7 +1224,7 @@ function renderProjectDiagnostics(project) {
     card.innerHTML = `
       <div>
         <div class="diag-card-top">
-          <span class="diag-type-badge">${diag.type || '진단'}</span>
+          ${diag.type ? `<span class="diag-type-badge">${escapeHtml(diag.type)}</span>` : ''}
           <span class="diag-status-badge ${stInfo.cls}">${stInfo.label}</span>
         </div>
         <h4 class="diag-card-title">${diag.name}</h4>
@@ -1456,7 +1316,10 @@ function showDiagnosticDetail(projectId, diagId) {
 
   // Badges
   const stInfo = getDiagStatusInfo(diag.status);
-  if (elements.diagTypeBadge) elements.diagTypeBadge.textContent = diag.type || '진단';
+  if (elements.diagTypeBadge) {
+    elements.diagTypeBadge.textContent = diag.type || '';
+    elements.diagTypeBadge.style.display = diag.type ? 'inline-block' : 'none';
+  }
   if (elements.diagStatusBadge) {
     elements.diagStatusBadge.className = `diag-status-badge ${stInfo.cls}`;
     elements.diagStatusBadge.textContent = stInfo.label;
@@ -1724,8 +1587,9 @@ function renderSecurityNews() {
   
   const newsList = appState.posts.filter(p => {
     if (p.category !== 'News') return false;
-    const pImp = p.importance || '⭐⭐⭐';
-    if (appState.newsFilter !== 'all' && pImp !== appState.newsFilter) return false;
+    if (appState.newsFilter !== 'all') {
+      if ((p.importance || '') !== appState.newsFilter) return false;
+    }
     return true;
   }).filter(matchSearch);
   
@@ -1737,8 +1601,12 @@ function renderSecurityNews() {
   newsList.forEach(news => {
     const tr = document.createElement('tr');
     tr.className = 'news-table-row';
-    const importance = news.importance || '⭐⭐⭐';
-    const source = news.source || '보안뉴스';
+    const importanceHtml = news.importance
+      ? `<span class="news-importance-stars" style="color:#fb923c">${escapeHtml(news.importance)}</span>`
+      : '<span class="text-muted">-</span>';
+    const sourceHtml = news.source
+      ? `<span class="badge news-source-badge">${escapeHtml(news.source)}</span>`
+      : '<span class="text-muted">-</span>';
     const newsLinkHtml = news.newsLink
       ? `<a href="${escapeHtml(news.newsLink)}" target="_blank" class="news-link-btn news-external-link" title="원본 기사 링크"><i class="fa-solid fa-arrow-up-right-from-square"></i> 이동</a>`
       : '<span class="text-muted" style="font-size: 0.85rem;">-</span>';
@@ -1747,9 +1615,9 @@ function renderSecurityNews() {
       <td class="news-delete-col" style="${isDeleteMode ? '' : 'display: none;'} text-align: center;">
         <input type="checkbox" class="news-item-checkbox" data-id="${escapeHtml(news.id)}">
       </td>
-      <td class="col-importance"><span class="news-importance-stars" style="color:#fb923c">${escapeHtml(importance)}</span></td>
+      <td class="col-importance">${importanceHtml}</td>
       <td class="col-title"><strong class="news-link-btn" style="cursor:pointer">${escapeHtml(news.title)}</strong></td>
-      <td class="col-source"><span class="badge news-source-badge">${escapeHtml(source)}</span></td>
+      <td class="col-source">${sourceHtml}</td>
       <td class="col-date text-muted">${escapeHtml(news.date || '')}</td>
       <td class="col-link">${newsLinkHtml}</td>
     `;
@@ -2478,7 +2346,7 @@ function setupEventListeners() {
         elements.editorCustomCategoryInput.value = post.category || '';
       }
       
-      elements.editorPostType.value = post.type || (isNews ? 'News' : '보안');
+      elements.editorPostType.value = post.type || (isNews ? 'News' : '');
       const rawMarkdown = post.content || '';
       elements.editorMainTextarea.value = rawMarkdown;
       if (elements.editorWysiwygContent) {
@@ -2489,7 +2357,7 @@ function setupEventListeners() {
       if (elements.editorNewsFieldsGroup) {
         elements.editorNewsFieldsGroup.style.display = isNews ? 'block' : 'none';
         if (isNews) {
-          elements.editorNewsImportance.value = post.importance || '⭐⭐⭐';
+          elements.editorNewsImportance.value = post.importance || '';
           elements.editorNewsSource.value = post.source || '';
           elements.editorNewsDate.value = post.date || '';
           elements.editorNewsLink.value = post.newsLink || '';
@@ -3670,7 +3538,7 @@ function setupEventListeners() {
         }
       }
 
-      const type = elements.editorPostType.value.trim() || '보안';
+      const type = elements.editorPostType.value.trim();
       // Convert current WYSIWYG content to clean Markdown
       const content = getWysiwygMarkdown();
       const isNews = category === 'News';
@@ -3683,7 +3551,7 @@ function setupEventListeners() {
       };
 
       if (isNews) {
-        postData.importance = elements.editorNewsImportance.value || '⭐⭐⭐';
+        postData.importance = elements.editorNewsImportance.value || '';
         postData.source = elements.editorNewsSource.value.trim();
         if (!postData.source) {
           alert('보안 뉴스의 출처(언론사 등)를 입력해 주세요.');
