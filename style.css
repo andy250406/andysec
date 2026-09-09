@@ -1615,8 +1615,52 @@ a:hover {
   transition: background 0.2s ease;
 }
 
-/* Responsive Design */
-@media (max-width: 1024px) {
+/* =============================================================
+ * RESPONSIVE DESIGN - 3 STAGES ARCHITECTURE
+ * Stage 1: Desktop (> 1180px) - Base styles
+ * Stage 2: Square / Tablet / 1:1 Aspect Ratio (769px ~ 1180px)
+ * Stage 3: Mobile Vertical (<= 768px)
+ * ============================================================= */
+
+/* Global responsive layout transition elements */
+.app-container,
+.sidebar,
+.profile-card,
+.profile-avatar-wrapper,
+.profile-avatar,
+.profile-info,
+.profile-name,
+.profile-title,
+.profile-slogan,
+.profile-contacts,
+.contact-item,
+.nav-menu,
+.nav-btn,
+.main-content,
+.topbar,
+.search-box,
+.topbar-actions,
+.card,
+.dashboard-row,
+.active-project-card,
+.active-project-bar,
+.recent-item,
+.post-card,
+.custom-table,
+.news-table-row,
+.project-table-row,
+.editor-header-bar,
+.editor-meta-card,
+.editor-meta-grid {
+  transition: var(--transition-smooth);
+}
+
+/* -------------------------------------------------------------
+ * [Stage 2] 가로세로 1:1비 정방형 화면 (769px ~ 1180px)
+ * 기존 UI 유지하되, 프로필 상단 영역을 명함(Business Card) 형태로 최적화
+ * 사진(좌) - 이름/직함(중앙) - 연락처 박스(와이드 크기 유지, 우측)
+ * ------------------------------------------------------------- */
+@media (min-width: 769px) and (max-width: 1180px) {
   .app-container {
     flex-direction: column;
   }
@@ -1624,52 +1668,201 @@ a:hover {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
-    padding: 1.5rem;
+    padding: 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
   }
+  /* 명함(Business Card) 형태의 가로 정렬 프로필 카드 */
   .profile-card {
-    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5rem;
+    margin-bottom: 0;
+    text-align: left;
+    width: 100%;
+    max-width: 960px;
+    padding: 0.5rem 1rem;
   }
+  .profile-avatar-wrapper {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+  .profile-avatar {
+    width: 86px;
+    height: 86px;
+  }
+  .profile-info {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    min-width: 180px;
+    max-width: 340px;
+  }
+  .profile-name {
+    margin-bottom: 0.2rem;
+    font-size: 1.45rem;
+  }
+  .profile-title {
+    margin-bottom: 0.35rem;
+    font-size: 0.88rem;
+  }
+  .profile-slogan {
+    padding: 0;
+    font-size: 0.82rem;
+  }
+  /* 가로로 긴 화면의 박스 크기(240px) 그대로 프로필 정보 우측에 배치 */
+  .profile-contacts {
+    width: 240px;
+    min-width: 240px;
+    margin-top: 0;
+    flex-shrink: 0;
+    align-self: center;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* 상단 가로 정렬 내비게이션 메뉴 */
   .nav-menu {
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.5rem;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    max-width: 960px;
+    margin-top: 0.25rem;
   }
+  .nav-btn {
+    padding: 0.65rem 1.15rem;
+    font-size: 0.95rem;
+    justify-content: center;
+  }
+
   .main-content {
     height: auto;
-    padding: 1.5rem;
+    padding: 1.75rem 2rem;
   }
+  
   .dashboard-row, .portfolio-row {
-    flex-direction: column;
+    flex-direction: row;
+    gap: 1.25rem;
   }
-  .editor-split-container {
-    grid-template-columns: 1fr;
+
+  .active-project-bar {
+    flex-wrap: wrap;
+    gap: 1rem;
   }
-  .markdown-cheat-sheet {
-    max-height: 250px;
+  .active-proj-info {
+    min-width: 260px;
+  }
+  .active-proj-progress-section {
+    min-width: 240px;
   }
 }
-@media (max-width: 600px) {
+
+/* -------------------------------------------------------------
+ * [Stage 3] 모바일에 대응되는 세로로 긴 화면 (max-width: 768px)
+ * 연락처 박스는 와이드 화면 박스 크기(240px) 유지
+ * UI 왜곡 요소 4종: 2줄(2-Line) 자연스러운 반응형 구조 개편
+ * ------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.25rem 1rem;
+  }
+  .profile-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 1rem;
+    width: 100%;
+  }
+  .profile-avatar-wrapper {
+    margin-bottom: 0.65rem;
+  }
+  .profile-avatar {
+    width: 78px;
+    height: 78px;
+  }
+  .profile-info {
+    text-align: center;
+    width: 100%;
+  }
+  .profile-name {
+    font-size: 1.3rem;
+  }
+  .profile-title {
+    font-size: 0.85rem;
+    margin-bottom: 0.35rem;
+  }
+  .profile-slogan {
+    font-size: 0.8rem;
+    padding: 0;
+  }
+  /* 모바일에서도 연락처 박스는 와이드 화면 박스 크기(240px) 그대로 유지하여 중앙 정렬 */
+  .profile-contacts {
+    width: 240px;
+    max-width: 240px;
+    margin: 0.85rem auto 0 auto;
+    flex-shrink: 0;
+  }
+
+  /* 모바일 내비게이션 메뉴 그리드 */
+  .nav-menu {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+  }
+  .nav-btn {
+    flex: 1 1 calc(33.333% - 0.4rem);
+    min-width: 95px;
+    padding: 0.55rem 0.4rem;
+    font-size: 0.82rem;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+  .nav-btn i {
+    margin-bottom: 0;
+  }
+
+  .main-content {
+    height: auto;
+    padding: 1rem;
+  }
+
+  /* 탑바 (Top Bar) 최적화 */
   .topbar {
     display: flex;
-    flex-direction: row;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.65rem;
     margin-bottom: 1.25rem;
   }
   .search-box {
-    width: 100%;
     order: 2;
+    width: 100%;
   }
   .topbar-actions {
-    width: 100%;
     order: 1;
+    width: 100%;
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
   }
   .action-btn {
     width: 36px;
@@ -1681,26 +1874,367 @@ a:hover {
     font-size: 0.8rem;
     margin-left: auto;
   }
+
+  /* 대시보드 레이아웃 */
+  .dashboard-row, .portfolio-row {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* 필터 바 래퍼 */
   .filter-bar-wrapper {
     flex-direction: column;
     align-items: stretch;
-    gap: 1rem;
+    gap: 0.75rem;
   }
   .filter-bar {
     overflow-x: auto;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.35rem;
   }
-  .nav-menu {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .nav-btn {
+  #btn-open-add-study-modal {
+    width: 100%;
     justify-content: center;
-    padding: 0.6rem;
-    font-size: 0.85rem;
+    padding: 0.75rem;
   }
-  .nav-btn i {
-    margin-bottom: 2px;
+
+  /* -------------------------------------------------------------
+   * 왜곡 개선 ①: 새 스터디노트 작성란 헤더 2줄 레이아웃
+   * 1행: [< 목록으로] 좌측 + [저장 및 배포] 우측 강조 버튼
+   * 2행: [새 스터디 노트 작성] 전폭 타이틀
+   * ------------------------------------------------------------- */
+  .editor-header-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 0.85rem;
+  }
+  #btn-cancel-editor {
+    order: 1;
+    font-size: 0.82rem;
+    padding: 0.45rem 0.75rem;
+  }
+  .editor-header-actions {
+    order: 2;
+    margin-left: auto;
+  }
+  .editor-header-actions #btn-save-editor {
+    font-size: 0.85rem;
+    padding: 0.48rem 0.95rem;
+    white-space: nowrap;
+  }
+  .editor-title-badge {
+    order: 3;
+    width: 100%;
+    margin-top: 0.25rem;
+  }
+  .editor-title-badge h2 {
+    font-size: 1.15rem;
+    line-height: 1.35;
+    word-break: keep-all;
+  }
+  .editor-meta-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+  .editor-integrated-wrapper {
+    padding: 1rem;
+    min-height: 440px;
+  }
+  .editor-wysiwyg-content {
+    min-height: 400px;
+    font-size: 0.98rem;
+  }
+
+  /* -------------------------------------------------------------
+   * 왜곡 개선 ②: 대시보드 최근 스터디 노트 목록 2줄 레이아웃
+   * 1행: [게시글 제목] 큰 글씨 전폭
+   * 2행: [카테고리 배지 (white-space: nowrap)] + [작성일자]
+   * ------------------------------------------------------------- */
+  .recent-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+    padding: 0.85rem 1rem;
+  }
+  .recent-item-title {
+    width: 100%;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.45;
+    word-break: keep-all;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .recent-item-meta {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.2rem;
+  }
+  .recent-item-meta .badge {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 0.74rem;
+    padding: 0.2rem 0.55rem;
+  }
+  .recent-item-meta .notice-date {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-family: var(--font-code);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .posts-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .post-card {
+    padding: 1.25rem;
+  }
+  .post-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .post-card-header .badge {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* -------------------------------------------------------------
+   * 왜곡 개선 ③: 보안 뉴스 아카이브 목록 모바일 카드형 2줄 레이아웃
+   * 1행: [기사 제목] 큰 글씨 전폭 (체크박스 포함)
+   * 2행: [별 중요도 (컴팩트)] + [출처 배지] + [날짜] + [🔗 원문] 버튼
+   * ------------------------------------------------------------- */
+  #tab-news .custom-table thead {
+    display: none;
+  }
+  #tab-news .custom-table,
+  #tab-news .custom-table tbody {
+    display: block;
+    width: 100%;
+  }
+  #tab-news .news-table-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    padding: 0.9rem 1rem;
+    gap: 0.45rem 0.75rem;
+    transition: var(--transition-smooth);
+  }
+  #tab-news .news-table-row:hover {
+    border-color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.035);
+  }
+  #tab-news .news-table-row td {
+    padding: 0;
+    border: none;
+  }
+  #tab-news .news-table-row .news-delete-col {
+    order: 1;
+    margin-right: 0.4rem;
+  }
+  #tab-news .news-table-row .col-title {
+    order: 2;
+    flex: 1 1 calc(100% - 35px);
+    width: 100%;
+    margin-bottom: 0.25rem;
+  }
+  #tab-news .news-table-row .col-title strong {
+    font-size: 0.98rem;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text-highlight);
+    word-break: keep-all;
+    display: block;
+  }
+  #tab-news .news-table-row .col-importance {
+    order: 3;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #tab-news .news-table-row .col-source {
+    order: 4;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #tab-news .news-table-row .col-source .badge {
+    font-size: 0.72rem;
+    padding: 0.18rem 0.5rem;
+    white-space: nowrap;
+  }
+  #tab-news .news-table-row .col-date {
+    order: 5;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-family: var(--font-code);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #tab-news .news-table-row .col-link {
+    order: 6;
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #tab-news .news-table-row .col-link a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.65rem;
+    background: rgba(0, 242, 254, 0.08);
+    border: 1px solid rgba(0, 242, 254, 0.25);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: var(--accent-color);
+  }
+  #tab-news .news-table-row .col-link a:hover {
+    background: var(--accent-color);
+    color: #000;
+  }
+
+  /* -------------------------------------------------------------
+   * 왜곡 개선 ④: 프로젝트 리스트 모바일 카드형 2줄 레이아웃
+   * 1행: [프로젝트명] (굵은 글씨) + [고객사 배지]
+   * 2행: [일정 (시작 ~ 종료)] + [유동 폭 진행률 바 (%)]
+   * ------------------------------------------------------------- */
+  #tab-projects .custom-table thead {
+    display: none;
+  }
+  #tab-projects .custom-table,
+  #tab-projects .custom-table tbody {
+    display: block;
+    width: 100%;
+  }
+  #tab-projects .project-table-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    padding: 0.9rem 1rem;
+    gap: 0.45rem 0.75rem;
+    transition: var(--transition-smooth);
+  }
+  #tab-projects .project-table-row:hover {
+    border-color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.035);
+  }
+  #tab-projects .project-table-row td {
+    padding: 0;
+    border: none;
+  }
+  #tab-projects .project-table-row .col-proj-name {
+    order: 1;
+    flex: 1 1 calc(100% - 90px);
+  }
+  #tab-projects .project-table-row .col-proj-name strong {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-highlight);
+    word-break: keep-all;
+    display: block;
+  }
+  #tab-projects .project-table-row .col-client {
+    order: 2;
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #tab-projects .project-table-row .col-start {
+    order: 3;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-family: var(--font-code);
+    white-space: nowrap;
+    margin-top: 0.2rem;
+  }
+  #tab-projects .project-table-row .col-start::after {
+    content: " ~ ";
+    margin: 0 0.15rem;
+    color: var(--text-muted);
+  }
+  #tab-projects .project-table-row .col-end {
+    order: 4;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-family: var(--font-code);
+    white-space: nowrap;
+    margin-top: 0.2rem;
+  }
+  #tab-projects .project-table-row .col-progress {
+    order: 5;
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+  }
+  #tab-projects .project-table-row .project-progress-container {
+    width: 120px !important;
+  }
+
+  /* -------------------------------------------------------------
+   * 왜곡 개선 ⑤: 활성 프로젝트 카드 (대시보드 상단 바)
+   * 1행: [D-day 배지] + [프로젝트 제목] + [고객사]
+   * 2행: [일정] + [전폭 진행률 바]
+   * ------------------------------------------------------------- */
+  .active-project-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+  .active-proj-info {
+    min-width: 0;
+    flex: none;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .active-proj-title {
+    max-width: 100%;
+    font-size: 0.98rem;
+    white-space: normal;
+  }
+  .active-proj-progress-section {
+    min-width: 0;
+    flex: none;
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .active-proj-progress-section .project-progress-wrapper {
+    flex: 1;
+    width: auto;
+  }
+
+  /* 프로젝트 상세 화면 헤더 */
+  .project-info-header {
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.25rem;
+  }
+  .project-header-right {
+    align-items: flex-start;
+    width: 100%;
+  }
+  .project-header-right .project-progress-wrapper {
+    width: 100%;
   }
 }
 

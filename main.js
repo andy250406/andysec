@@ -788,14 +788,15 @@ function renderProjectsList() {
   projects.forEach(p => {
     const progressPercent = calculateProgress(p.startDate, p.endDate);
     const tr = document.createElement('tr');
+    tr.className = 'project-table-row';
     tr.style.cursor = 'pointer';
     tr.innerHTML = `
-      <td><strong>${p.name}</strong></td>
-      <td><span class="client-badge" style="margin-bottom:0">${p.client}</span></td>
-      <td><span style="font-family:var(--font-code)">${p.startDate}</span></td>
-      <td><span style="font-family:var(--font-code)">${p.endDate}</span></td>
-      <td>
-        <div style="width: 140px;">
+      <td class="col-proj-name"><strong>${p.name}</strong></td>
+      <td class="col-client"><span class="client-badge" style="margin-bottom:0">${p.client}</span></td>
+      <td class="col-start"><span style="font-family:var(--font-code)">${p.startDate}</span></td>
+      <td class="col-end"><span style="font-family:var(--font-code)">${p.endDate}</span></td>
+      <td class="col-progress">
+        <div class="project-progress-container" style="width: 140px;">
           <div class="progress-lbl-row" style="font-size:0.75rem">
             <span>${progressPercent}%</span>
           </div>
@@ -1020,15 +1021,16 @@ function renderSecurityNews() {
   
   newsList.forEach(news => {
     const tr = document.createElement('tr');
+    tr.className = 'news-table-row';
     tr.innerHTML = `
       <td class="news-delete-col" style="${isDeleteMode ? '' : 'display: none;'} text-align: center;">
         <input type="checkbox" class="news-item-checkbox" data-id="${news.id}">
       </td>
-      <td><span style="color:#fb923c">${news.importance}</span></td>
-      <td><strong class="news-link-btn" style="cursor:pointer">${news.title}</strong></td>
-      <td><span class="badge">${news.source}</span></td>
-      <td class="text-muted">${news.date}</td>
-      <td><a href="${news.newsLink}" target="_blank" class="news-link-btn" title="원본 기사 링크"><i class="fa-solid fa-up-right-from-square"></i> 이동</a></td>
+      <td class="col-importance"><span class="news-importance-stars" style="color:#fb923c">${news.importance}</span></td>
+      <td class="col-title"><strong class="news-link-btn" style="cursor:pointer">${news.title}</strong></td>
+      <td class="col-source"><span class="badge news-source-badge">${news.source}</span></td>
+      <td class="col-date text-muted">${news.date}</td>
+      <td class="col-link"><a href="${news.newsLink}" target="_blank" class="news-link-btn news-external-link" title="원본 기사 링크"><i class="fa-solid fa-up-right-from-square"></i> 이동</a></td>
     `;
     tr.querySelector('strong').addEventListener('click', () => {
       window.location.hash = `#/post/${news.id}`;
