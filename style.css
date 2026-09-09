@@ -2219,6 +2219,54 @@ a:hover {
     width: 120px !important;
   }
 
+  /* 프로젝트 서브트리 진단 일정 모바일 스타일 */
+  #tab-projects .project-table-row.tree-parent-row .col-proj-name {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  #tab-projects .project-table-row.diagnostic-sub-row {
+    margin-left: 1.25rem;
+    width: calc(100% - 1.25rem);
+    background: rgba(0, 240, 255, 0.025);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--accent-color);
+    padding: 0.75rem 0.85rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    gap: 0.4rem 0.5rem;
+  }
+  #tab-projects .diagnostic-sub-row .col-proj-name {
+    order: 1;
+    flex: 1 1 100%;
+  }
+  #tab-projects .diagnostic-sub-row .tree-branch-container {
+    padding-left: 0;
+  }
+  #tab-projects .diagnostic-sub-row .tree-branch-line {
+    display: none;
+  }
+  #tab-projects .diagnostic-sub-row .col-client {
+    order: 2;
+    margin-left: 0;
+  }
+  #tab-projects .diagnostic-sub-row .col-start {
+    order: 3;
+    font-size: 0.75rem;
+  }
+  #tab-projects .diagnostic-sub-row .col-end {
+    order: 4;
+    font-size: 0.75rem;
+  }
+  #tab-projects .diagnostic-sub-row .col-progress {
+    order: 5;
+    margin-left: auto;
+  }
+  #tab-projects .diagnostic-sub-row .diag-sub-status-cell {
+    width: auto;
+    gap: 0.45rem;
+  }
+
   /* -------------------------------------------------------------
    * 왜곡 개선 ⑤: 활성 프로젝트 카드 (대시보드 상단 바)
    * 1행: [D-day 배지] + [프로젝트 제목] + [고객사]
@@ -2267,6 +2315,305 @@ a:hover {
   .project-header-right .project-progress-wrapper {
     width: 100%;
   }
+}
+
+/* =============================================================
+ * PROJECT SUB-DIAGNOSTIC TREE HIERARCHY & DETAIL VIEW
+ * ============================================================= */
+
+/* Tree Parent Row */
+.project-table-row.tree-parent-row td.col-proj-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.tree-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent-color);
+  font-size: 0.82rem;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, transform 0.2s;
+  flex-shrink: 0;
+}
+.tree-toggle-btn:hover {
+  background: rgba(0, 240, 255, 0.12);
+}
+.tree-toggle-btn.expanded i {
+  transform: rotate(90deg);
+}
+.diag-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: rgba(0, 240, 255, 0.08);
+  color: var(--accent-color);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  margin-left: 0.45rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Diagnostic Sub-Row */
+.project-table-row.diagnostic-sub-row {
+  background: rgba(255, 255, 255, 0.012);
+  border-left: 3px solid transparent;
+  transition: var(--transition-smooth);
+}
+.project-table-row.diagnostic-sub-row:hover {
+  background: rgba(0, 240, 255, 0.035);
+  border-left-color: var(--accent-color);
+}
+.tree-branch-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 1.4rem;
+}
+.tree-branch-line {
+  font-family: var(--font-code);
+  font-size: 0.95rem;
+  color: var(--accent-color);
+  opacity: 0.65;
+  user-select: none;
+}
+.tree-diag-icon {
+  color: var(--accent-color);
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+.tree-diag-name {
+  font-weight: 500;
+  color: var(--text-main);
+  transition: color 0.15s;
+}
+.diagnostic-sub-row:hover .tree-diag-name {
+  color: var(--accent-color);
+}
+
+/* Status & Type Badges */
+.diag-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.diag-status-badge.completed {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.diag-status-badge.in-progress {
+  background: rgba(6, 182, 212, 0.12);
+  color: #06b6d4;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+.diag-status-badge.planned {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.diag-type-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.74rem;
+  font-weight: 500;
+  background: rgba(99, 102, 241, 0.12);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  white-space: nowrap;
+}
+
+.diag-sub-status-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 140px;
+}
+.diag-detail-arrow {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  transition: transform 0.2s, color 0.2s;
+  padding: 2px 4px;
+}
+.diagnostic-sub-row:hover .diag-detail-arrow {
+  color: var(--accent-color);
+  transform: translateX(3px);
+}
+
+/* Diagnostic Cards Grid inside Project Detail View */
+.diagnostics-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.15rem;
+}
+.diag-card {
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: var(--transition-smooth);
+}
+.diag-card:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.025);
+}
+.diag-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+}
+.diag-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-highlight);
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+.diag-card-target {
+  font-size: 0.84rem;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+.diag-card-target i {
+  color: var(--accent-color);
+  font-size: 0.8rem;
+}
+.diag-card-desc {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.diag-card-schedule {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-family: var(--font-code);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.diag-card-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-color);
+}
+.btn-diag-view {
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  color: var(--accent-color);
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn-diag-view:hover {
+  background: var(--accent-color);
+  color: #0b0f19;
+}
+
+/* Diagnostic Detail Pane */
+#diagnostic-detail-pane {
+  animation: fadeIn 0.3s ease;
+}
+.diagnostic-info-header {
+  padding: 1.5rem 1.75rem;
+  border-radius: 12px;
+}
+.diag-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.diag-breadcrumb {
+  display: flex;
+  align-items: center;
+  font-size: 0.88rem;
+}
+.diag-breadcrumb span:hover {
+  text-decoration: underline;
+}
+.diag-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.diag-main-title {
+  font-family: var(--font-header);
+}
+.diag-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+.diag-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.diag-meta-lbl {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.diag-meta-val {
+  font-size: 0.92rem;
+  color: var(--text-highlight);
+  font-weight: 500;
+}
+.diag-progress-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 /* =============================================================

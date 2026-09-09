@@ -19,6 +19,8 @@ let appState = {
   activePostId: null,      // ID of post currently viewed in detail
   activePostType: null,    // 'general' or 'projectNote'
   activeProjectId: null,   // ID of project currently viewed in details
+  activeDiagId: null,      // ID of diagnostic currently viewed in detail
+  expandedProjects: new Set(['project-1782022260306']), // Expanded project tree IDs
   isAdmin: false,          // Administrator unlocked status
   adminPassword: ''        // Cached admin password for GAS cross-validation
 };
@@ -57,6 +59,44 @@ const elements = {
   projectNotesGrid: document.getElementById('project-notes-grid'),
   btnEditProject: document.getElementById('btn-edit-project-details'),
   btnDeleteProject: document.getElementById('btn-delete-project-details'),
+  
+  // Project Diagnostic Elements
+  diagnosticDetailPane: document.getElementById('diagnostic-detail-pane'),
+  btnBackToProjectFromDiag: document.getElementById('btn-back-to-project-from-diag'),
+  diagParentProjName: document.getElementById('diag-parent-proj-name'),
+  diagCurrentName: document.getElementById('diag-current-name'),
+  diagTypeBadge: document.getElementById('diag-type-badge'),
+  diagStatusBadge: document.getElementById('diag-status-badge'),
+  detailDiagName: document.getElementById('detail-diag-name'),
+  detailDiagTarget: document.getElementById('detail-diag-target'),
+  detailDiagDesc: document.getElementById('detail-diag-desc'),
+  detailDiagSchedule: document.getElementById('detail-diag-schedule'),
+  detailDiagProgressBar: document.getElementById('detail-diag-progress-bar'),
+  detailDiagPercent: document.getElementById('detail-diag-percent'),
+  diagAdminActions: document.getElementById('diag-admin-actions'),
+  btnEditDiagDetails: document.getElementById('btn-edit-diag-details'),
+  btnDeleteDiagDetails: document.getElementById('btn-delete-diag-details'),
+  diagnosticArticleContent: document.getElementById('diagnostic-article-content'),
+  projectDiagnosticsGrid: document.getElementById('project-diagnostics-grid'),
+  btnOpenAddDiagModal: document.getElementById('btn-open-add-diag-modal'),
+
+  // Diagnostic Modal Elements
+  addDiagnosticModal: document.getElementById('add-diagnostic-modal'),
+  diagModalTitle: document.getElementById('diag-modal-title'),
+  addDiagnosticForm: document.getElementById('add-diagnostic-form'),
+  diagEditId: document.getElementById('diag-edit-id'),
+  diagParentId: document.getElementById('diag-parent-id'),
+  diagName: document.getElementById('diag-name'),
+  diagType: document.getElementById('diag-type'),
+  diagStatus: document.getElementById('diag-status'),
+  diagTarget: document.getElementById('diag-target'),
+  diagStart: document.getElementById('diag-start'),
+  diagEnd: document.getElementById('diag-end'),
+  diagDesc: document.getElementById('diag-desc'),
+  diagContent: document.getElementById('diag-content'),
+  btnCloseDiagModal: document.getElementById('btn-close-diag-modal'),
+  btnCancelDiag: document.getElementById('btn-cancel-diag'),
+  btnSubmitDiag: document.getElementById('btn-submit-diag'),
   
   // Deploy Overlay / Loading Spinner
   deployOverlay: document.getElementById('deploy-overlay'),
@@ -270,8 +310,10 @@ function applyAdminPermissions() {
   
   if (elements.btnOpenAddStudy) elements.btnOpenAddStudy.style.display = isAdmin ? 'block' : 'none';
   if (elements.btnOpenAddProject) elements.btnOpenAddProject.style.display = isAdmin ? 'block' : 'none';
+  if (elements.btnOpenAddDiagModal) elements.btnOpenAddDiagModal.style.display = isAdmin ? 'inline-block' : 'none';
   if (elements.btnEditProject) elements.btnEditProject.style.display = isAdmin ? 'inline-block' : 'none';
   if (elements.btnDeleteProject) elements.btnDeleteProject.style.display = isAdmin ? 'inline-block' : 'none';
+  if (elements.diagAdminActions) elements.diagAdminActions.style.display = isAdmin ? 'flex' : 'none';
   if (elements.btnOpenAddNote) elements.btnOpenAddNote.style.display = isAdmin ? 'block' : 'none';
   if (elements.btnEditArticle) elements.btnEditArticle.style.display = isAdmin ? 'inline-block' : 'none';
   if (elements.btnDeleteArticle) elements.btnDeleteArticle.style.display = isAdmin ? 'inline-block' : 'none';
@@ -296,8 +338,10 @@ function applyAdminPermissions() {
     }
   }
 
-  // If viewing project detail view, update project notes lock/unlock view immediately
+  // If viewing project detail view, update project notes & diagnostics lock/unlock view immediately
   if (appState.activeProjectId && elements.projectDetailView && elements.projectDetailView.style.display !== 'none') {
+    const proj = appState.projects.find(p => p.id === appState.activeProjectId);
+    if (proj) renderProjectDiagnostics(proj);
     renderProjectNotes(appState.activeProjectId);
   }
 }
@@ -309,10 +353,17 @@ function initRouter() {
     
     if (elements.articlePane) elements.articlePane.style.display = 'none';
     if (elements.noteEditorPane) elements.noteEditorPane.style.display = 'none';
+    if (elements.diagnosticDetailPane) elements.diagnosticDetailPane.style.display = 'none';
     
     if (hash.startsWith('#/post/')) {
       const postId = hash.replace('#/post/', '');
       showArticleDetail(postId);
+    } else if (hash.startsWith('#/diagnostic/')) {
+      const path = hash.replace('#/diagnostic/', '');
+      const parts = path.split('/');
+      const projectId = parts[0];
+      const diagId = parts[1];
+      showDiagnosticDetail(projectId, diagId);
     } else if (hash.startsWith('#/project/')) {
       const projectId = hash.replace('#/project/', '');
       showProjectDetail(projectId);
@@ -520,7 +571,11 @@ async function initProjects() {
       } else {
         const idx = merged.findIndex(serverP => serverP && serverP.id === localP.id);
         if (idx !== -1) {
-          merged[idx] = { ...merged[idx], ...localP };
+          const serverItem = merged[idx];
+          const diag = (localP.diagnostics && Array.isArray(localP.diagnostics) && localP.diagnostics.length > 0)
+            ? localP.diagnostics
+            : (serverItem.diagnostics || []);
+          merged[idx] = { ...serverItem, ...localP, diagnostics: diag };
         }
       }
     });
@@ -577,10 +632,12 @@ function switchTab(tabId) {
   appState.activePostId = null;
   appState.activePostType = null;
   appState.activeProjectId = null;
+  appState.activeDiagId = null;
   
   if (elements.articlePane) elements.articlePane.style.display = 'none';
   if (elements.noteEditorPane) elements.noteEditorPane.style.display = 'none';
   if (elements.projectDetailView) elements.projectDetailView.style.display = 'none';
+  if (elements.diagnosticDetailPane) elements.diagnosticDetailPane.style.display = 'none';
   if (elements.projectsListView) elements.projectsListView.style.display = 'block';
   
   elements.navBtns.forEach(btn => {
@@ -787,15 +844,37 @@ function renderStudyNotes() {
   });
 }
 
-// Render Projects Tab Table
+// Helper for diagnostic status badge
+function getDiagStatusInfo(status) {
+  switch (status) {
+    case 'completed':
+      return { label: '완료', cls: 'completed' };
+    case 'in-progress':
+      return { label: '진행중', cls: 'in-progress' };
+    case 'planned':
+      return { label: '예정', cls: 'planned' };
+    default:
+      return { label: status || '진행중', cls: 'in-progress' };
+  }
+}
+
+// Render Projects Tab Table with Tree Hierarchy
 function renderProjectsList() {
   if (!elements.projectsTableBody) return;
   elements.projectsTableBody.innerHTML = '';
   
+  if (!appState.expandedProjects) {
+    appState.expandedProjects = new Set(['project-1782022260306']);
+  }
+  
   const projects = appState.projects.filter(p => {
     if (!appState.searchQuery) return true;
     const q = appState.searchQuery.toLowerCase();
-    return p.name.toLowerCase().includes(q) || p.client.toLowerCase().includes(q) || p.details.toLowerCase().includes(q);
+    const matchesProject = p.name.toLowerCase().includes(q) || p.client.toLowerCase().includes(q) || (p.details && p.details.toLowerCase().includes(q));
+    const matchesDiag = p.diagnostics && p.diagnostics.some(d => 
+      d.name.toLowerCase().includes(q) || (d.target && d.target.toLowerCase().includes(q)) || (d.type && d.type.toLowerCase().includes(q))
+    );
+    return matchesProject || matchesDiag;
   });
   
   if (projects.length === 0) {
@@ -805,11 +884,30 @@ function renderProjectsList() {
   
   projects.forEach(p => {
     const progressPercent = calculateProgress(p.startDate, p.endDate);
+    const hasDiags = Array.isArray(p.diagnostics) && p.diagnostics.length > 0;
+    const isExpanded = appState.expandedProjects.has(p.id);
+
+    // Parent Project Row
     const tr = document.createElement('tr');
-    tr.className = 'project-table-row';
+    tr.className = `project-table-row ${hasDiags ? 'tree-parent-row' : ''}`;
     tr.style.cursor = 'pointer';
+
+    const toggleBtnHtml = hasDiags
+      ? `<button class="tree-toggle-btn ${isExpanded ? 'expanded' : ''}" data-project-id="${p.id}" title="${isExpanded ? '진단 일정 접기' : '진단 일정 펼치기'}">
+           <i class="fa-solid fa-chevron-right"></i>
+         </button>`
+      : `<span style="display:inline-block; width:24px;"></span>`;
+
+    const diagCountBadge = hasDiags
+      ? `<span class="diag-count-badge"><i class="fa-solid fa-list-check"></i> 세부진단 ${p.diagnostics.length}</span>`
+      : '';
+
     tr.innerHTML = `
-      <td class="col-proj-name"><strong>${p.name}</strong></td>
+      <td class="col-proj-name">
+        ${toggleBtnHtml}
+        <strong>${p.name}</strong>
+        ${diagCountBadge}
+      </td>
       <td class="col-client"><span class="client-badge" style="margin-bottom:0">${p.client}</span></td>
       <td class="col-start"><span style="font-family:var(--font-code)">${p.startDate}</span></td>
       <td class="col-end"><span style="font-family:var(--font-code)">${p.endDate}</span></td>
@@ -822,10 +920,67 @@ function renderProjectsList() {
         </div>
       </td>
     `;
+
+    // Toggle button click (stop propagation so it doesn't navigate into project)
+    const toggleBtn = tr.querySelector('.tree-toggle-btn');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (appState.expandedProjects.has(p.id)) {
+          appState.expandedProjects.delete(p.id);
+        } else {
+          appState.expandedProjects.add(p.id);
+        }
+        renderProjectsList();
+      });
+    }
+
+    // Row click: go to project detail
     tr.addEventListener('click', () => {
       window.location.hash = `#/project/${p.id}`;
     });
     elements.projectsTableBody.appendChild(tr);
+
+    // Render Sub-Tree Child Rows if expanded
+    if (hasDiags && isExpanded) {
+      p.diagnostics.forEach((diag, idx) => {
+        const isLast = idx === p.diagnostics.length - 1;
+        const branchSymbol = isLast ? '└──' : '├──';
+        const stInfo = getDiagStatusInfo(diag.status);
+        
+        const subTr = document.createElement('tr');
+        subTr.className = `project-table-row diagnostic-sub-row ${isLast ? 'last-sub-row' : ''}`;
+        subTr.style.cursor = 'pointer';
+        subTr.innerHTML = `
+          <td class="col-proj-name">
+            <div class="tree-branch-container">
+              <span class="tree-branch-line">${branchSymbol}</span>
+              <span class="tree-diag-icon"><i class="fa-solid fa-shield-halved"></i></span>
+              <span class="tree-diag-name">${diag.name}</span>
+            </div>
+          </td>
+          <td class="col-client">
+            <span class="diag-type-badge">${diag.type || '진단'}</span>
+          </td>
+          <td class="col-start"><span style="font-family:var(--font-code)">${diag.startDate}</span></td>
+          <td class="col-end"><span style="font-family:var(--font-code)">${diag.endDate}</span></td>
+          <td class="col-progress">
+            <div class="diag-sub-status-cell">
+              <span class="diag-status-badge ${stInfo.cls}">${stInfo.label}</span>
+              <span class="diag-detail-arrow" title="진단 상세 보기"><i class="fa-solid fa-arrow-right"></i></span>
+            </div>
+          </td>
+        `;
+
+        // Direct navigation to diagnostic detail!
+        subTr.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.location.hash = `#/diagnostic/${p.id}/${diag.id}`;
+        });
+
+        elements.projectsTableBody.appendChild(subTr);
+      });
+    }
   });
 }
 
@@ -840,6 +995,7 @@ function showProjectDetail(projectId) {
   
   appState.activeProjectId = projectId;
   
+  if (elements.diagnosticDetailPane) elements.diagnosticDetailPane.style.display = 'none';
   elements.projectsListView.style.display = 'none';
   elements.projectDetailView.style.display = 'block';
   elements.tabPanes.forEach(pane => pane.classList.remove('active'));
@@ -855,7 +1011,208 @@ function showProjectDetail(projectId) {
   elements.detailProjectPercent.textContent = `${progressPercent}%`;
   elements.detailProjectProgressBar.style.width = `${progressPercent}%`;
   
+  renderProjectDiagnostics(project);
   renderProjectNotes(projectId);
+  applyAdminPermissions();
+}
+
+// Render Sub-Diagnostics inside Project Detail View
+function renderProjectDiagnostics(project) {
+  if (!elements.projectDiagnosticsGrid) return;
+  elements.projectDiagnosticsGrid.innerHTML = '';
+  
+  const diags = project.diagnostics || [];
+  if (diags.length === 0) {
+    elements.projectDiagnosticsGrid.innerHTML = `
+      <div class="card" style="grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--text-muted);">
+        <i class="fa-solid fa-clipboard-list" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+        <p>등록된 세부 진단 과업이 없습니다.</p>
+        ${appState.isAdmin ? '<p style="font-size: 0.85rem; margin-top: 0.5rem;">상단의 [새 진단 일정 추가] 버튼을 눌러 진단을 등록해 보세요.</p>' : ''}
+      </div>
+    `;
+    return;
+  }
+
+  diags.forEach(diag => {
+    const stInfo = getDiagStatusInfo(diag.status);
+    const progressPercent = diag.status === 'completed' ? 100 : calculateProgress(diag.startDate, diag.endDate);
+    
+    const card = document.createElement('div');
+    card.className = 'diag-card';
+    card.innerHTML = `
+      <div>
+        <div class="diag-card-top">
+          <span class="diag-type-badge">${diag.type || '진단'}</span>
+          <span class="diag-status-badge ${stInfo.cls}">${stInfo.label}</span>
+        </div>
+        <h4 class="diag-card-title">${diag.name}</h4>
+        <div class="diag-card-target">
+          <i class="fa-solid fa-bullseye"></i>
+          <span><strong>대상:</strong> ${diag.target || '-'}</span>
+        </div>
+        <p class="diag-card-desc">${diag.details || '상세 설명이 없습니다.'}</p>
+        <div class="diag-card-schedule">
+          <i class="fa-regular fa-calendar"></i>
+          <span>${diag.startDate} ~ ${diag.endDate}</span>
+        </div>
+        <div class="project-progress-wrapper" style="margin-bottom: 1rem;">
+          <div class="progress-lbl-row" style="font-size: 0.75rem;">
+            <span>진행률</span>
+            <span>${progressPercent}%</span>
+          </div>
+          <div class="progress-bar" style="height: 5px;"><div class="progress" style="width: ${progressPercent}%;"></div></div>
+        </div>
+      </div>
+      <div class="diag-card-footer">
+        <button class="btn-diag-view" data-diag-id="${diag.id}">
+          <i class="fa-solid fa-file-lines"></i> 진단 상세 일지 보기
+        </button>
+        ${appState.isAdmin ? `
+          <div class="meta-actions" style="display: flex; gap: 0.4rem;">
+            <button class="btn-secondary btn-sm btn-edit-diag" data-diag-id="${diag.id}" title="진단 수정"><i class="fa-regular fa-pen-to-square"></i></button>
+            <button class="btn-danger btn-sm btn-del-diag" data-diag-id="${diag.id}" title="진단 삭제"><i class="fa-regular fa-trash-can"></i></button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    card.querySelector('.btn-diag-view').addEventListener('click', () => {
+      window.location.hash = `#/diagnostic/${project.id}/${diag.id}`;
+    });
+
+    if (appState.isAdmin) {
+      card.querySelector('.btn-edit-diag')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditDiagnosticModal(project.id, diag.id);
+      });
+      card.querySelector('.btn-del-diag')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteDiagnostic(project.id, diag.id);
+      });
+    }
+
+    elements.projectDiagnosticsGrid.appendChild(card);
+  });
+}
+
+// Show Diagnostic Detail View
+function showDiagnosticDetail(projectId, diagId) {
+  const project = appState.projects.find(p => p.id === projectId);
+  if (!project) {
+    alert('해당 프로젝트를 찾을 수 없습니다.');
+    window.location.hash = '#/tab/projects';
+    return;
+  }
+  const diag = project.diagnostics ? project.diagnostics.find(d => d.id === diagId) : null;
+  if (!diag) {
+    alert('해당 진단 일정을 찾을 수 없습니다.');
+    window.location.hash = `#/project/${projectId}`;
+    return;
+  }
+
+  appState.activeProjectId = projectId;
+  appState.activeDiagId = diagId;
+
+  if (elements.projectsListView) elements.projectsListView.style.display = 'none';
+  if (elements.projectDetailView) elements.projectDetailView.style.display = 'none';
+  if (elements.diagnosticDetailPane) elements.diagnosticDetailPane.style.display = 'block';
+
+  elements.tabPanes.forEach(pane => pane.classList.remove('active'));
+  document.getElementById('tab-projects').classList.add('active');
+
+  // Breadcrumbs & Names
+  if (elements.diagParentProjName) {
+    elements.diagParentProjName.textContent = project.name;
+    elements.diagParentProjName.onclick = () => {
+      window.location.hash = `#/project/${project.id}`;
+    };
+  }
+  if (elements.diagCurrentName) elements.diagCurrentName.textContent = diag.name;
+  if (elements.detailDiagName) elements.detailDiagName.textContent = diag.name;
+  if (elements.detailDiagTarget) elements.detailDiagTarget.textContent = diag.target || '지정되지 않음';
+  if (elements.detailDiagDesc) elements.detailDiagDesc.textContent = diag.details || '';
+
+  // Badges
+  const stInfo = getDiagStatusInfo(diag.status);
+  if (elements.diagTypeBadge) elements.diagTypeBadge.textContent = diag.type || '진단';
+  if (elements.diagStatusBadge) {
+    elements.diagStatusBadge.className = `diag-status-badge ${stInfo.cls}`;
+    elements.diagStatusBadge.textContent = stInfo.label;
+  }
+
+  // Schedule & Progress
+  const progressPercent = diag.status === 'completed' ? 100 : calculateProgress(diag.startDate, diag.endDate);
+  if (elements.detailDiagSchedule) elements.detailDiagSchedule.textContent = `${diag.startDate} ~ ${diag.endDate}`;
+  if (elements.detailDiagProgressBar) elements.detailDiagProgressBar.style.width = `${progressPercent}%`;
+  if (elements.detailDiagPercent) elements.detailDiagPercent.textContent = `${progressPercent}%`;
+
+  // Markdown Content
+  if (elements.diagnosticArticleContent) {
+    if (diag.content && diag.content.trim()) {
+      elements.diagnosticArticleContent.innerHTML = marked.parse(diag.content);
+    } else {
+      elements.diagnosticArticleContent.innerHTML = '<p class="text-muted" style="text-align:center; padding: 2rem;">작성된 진단 상세 일지 및 점검 결과가 없습니다.</p>';
+    }
+  }
+
+  // Admin Actions
+  if (elements.diagAdminActions) {
+    elements.diagAdminActions.style.display = appState.isAdmin ? 'flex' : 'none';
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Open Add/Edit Diagnostic Modal
+function openAddDiagnosticModal(projectId) {
+  if (!elements.addDiagnosticModal) return;
+  elements.diagModalTitle.innerHTML = '<i class="fa-solid fa-list-check"></i> 세부 진단 일정 등록';
+  elements.addDiagnosticForm.reset();
+  elements.diagEditId.value = '';
+  elements.diagParentId.value = projectId;
+  elements.btnSubmitDiag.textContent = '진단 등록';
+  elements.addDiagnosticModal.style.display = 'flex';
+}
+
+function openEditDiagnosticModal(projectId, diagId) {
+  if (!elements.addDiagnosticModal) return;
+  const project = appState.projects.find(p => p.id === projectId);
+  if (!project) return;
+  const diag = project.diagnostics ? project.diagnostics.find(d => d.id === diagId) : null;
+  if (!diag) return;
+
+  elements.diagModalTitle.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> 세부 진단 일정 수정';
+  elements.diagEditId.value = diag.id;
+  elements.diagParentId.value = projectId;
+  elements.diagName.value = diag.name || '';
+  elements.diagType.value = diag.type || '';
+  elements.diagStatus.value = diag.status || 'in-progress';
+  elements.diagTarget.value = diag.target || '';
+  elements.diagStart.value = diag.startDate || '';
+  elements.diagEnd.value = diag.endDate || '';
+  elements.diagDesc.value = diag.details || '';
+  elements.diagContent.value = diag.content || '';
+  elements.btnSubmitDiag.textContent = '변경사항 저장';
+  elements.addDiagnosticModal.style.display = 'flex';
+}
+
+// Delete Diagnostic
+function deleteDiagnostic(projectId, diagId) {
+  if (!confirm('정말로 이 세부 진단 일정을 삭제하시겠습니까?')) return;
+  const project = appState.projects.find(p => p.id === projectId);
+  if (!project || !project.diagnostics) return;
+
+  project.diagnostics = project.diagnostics.filter(d => d.id !== diagId);
+  localStorage.setItem('projects', JSON.stringify(appState.projects));
+
+  if (appState.activeDiagId === diagId) {
+    window.location.hash = `#/project/${projectId}`;
+  } else {
+    renderProjectsList();
+    if (elements.projectDetailView && elements.projectDetailView.style.display !== 'none') {
+      renderProjectDiagnostics(project);
+    }
+  }
 }
 
 // Render Notes associated with specific project
@@ -1516,6 +1873,102 @@ function setupEventListeners() {
   // Project detail back button
   elements.btnBackToProjectsList.addEventListener('click', () => {
     window.location.hash = '#/tab/projects';
+  });
+
+  // Diagnostic Modal and Form Submit
+  elements.btnOpenAddDiagModal?.addEventListener('click', () => {
+    if (appState.activeProjectId) {
+      openAddDiagnosticModal(appState.activeProjectId);
+    }
+  });
+  elements.btnCloseDiagModal?.addEventListener('click', () => {
+    elements.addDiagnosticModal.style.display = 'none';
+  });
+  elements.btnCancelDiag?.addEventListener('click', () => {
+    elements.addDiagnosticModal.style.display = 'none';
+  });
+
+  elements.addDiagnosticForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const projectId = elements.diagParentId.value;
+    const editId = elements.diagEditId.value;
+    const project = appState.projects.find(p => p.id === projectId);
+    if (!project) {
+      alert('프로젝트를 찾을 수 없습니다.');
+      return;
+    }
+    if (!Array.isArray(project.diagnostics)) {
+      project.diagnostics = [];
+    }
+
+    const diagData = {
+      name: elements.diagName.value.trim(),
+      type: elements.diagType.value.trim(),
+      status: elements.diagStatus.value,
+      target: elements.diagTarget.value.trim(),
+      startDate: elements.diagStart.value,
+      endDate: elements.diagEnd.value,
+      details: elements.diagDesc.value.trim(),
+      content: elements.diagContent.value
+    };
+
+    if (editId) {
+      const idx = project.diagnostics.findIndex(d => d.id === editId);
+      if (idx !== -1) {
+        project.diagnostics[idx] = { ...project.diagnostics[idx], ...diagData };
+      }
+    } else {
+      const newDiag = {
+        id: 'diag-' + Date.now(),
+        ...diagData
+      };
+      project.diagnostics.push(newDiag);
+    }
+
+    localStorage.setItem('projects', JSON.stringify(appState.projects));
+    elements.addDiagnosticModal.style.display = 'none';
+    elements.addDiagnosticForm.reset();
+
+    renderProjectsList();
+    if (elements.projectDetailView && elements.projectDetailView.style.display !== 'none') {
+      renderProjectDiagnostics(project);
+    }
+    if (elements.diagnosticDetailPane && elements.diagnosticDetailPane.style.display !== 'none') {
+      showDiagnosticDetail(projectId, editId || project.diagnostics[project.diagnostics.length - 1].id);
+    }
+  });
+
+  // Diagnostic Detail View Buttons
+  elements.btnBackToProjectFromDiag?.addEventListener('click', () => {
+    if (appState.activeProjectId) {
+      window.location.hash = `#/project/${appState.activeProjectId}`;
+    } else {
+      window.location.hash = '#/tab/projects';
+    }
+  });
+
+  elements.btnEditDiagDetails?.addEventListener('click', () => {
+    if (appState.activeProjectId && appState.activeDiagId) {
+      openEditDiagnosticModal(appState.activeProjectId, appState.activeDiagId);
+    }
+  });
+
+  elements.btnDeleteDiagDetails?.addEventListener('click', () => {
+    if (appState.activeProjectId && appState.activeDiagId) {
+      deleteDiagnostic(appState.activeProjectId, appState.activeDiagId);
+    }
+  });
+
+  // Diagnostic Detail Text Size Controls
+  document.querySelectorAll('.diag-size-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.diag-size-btn').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      const size = e.currentTarget.getAttribute('data-size');
+      if (elements.diagnosticArticleContent) {
+        elements.diagnosticArticleContent.style.fontSize = size;
+      }
+    });
   });
   
   // Note Modal (Project Notes)

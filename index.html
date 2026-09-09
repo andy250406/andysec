@@ -224,6 +224,19 @@
               </div>
             </div>
             
+            <!-- Sub-Diagnostics Section inside Project Detail View -->
+            <div class="project-board-section" style="margin-bottom: 2rem;">
+              <div class="board-header">
+                <h3><i class="fa-solid fa-list-check"></i> 세부 진단 과업 및 수행 일정</h3>
+                <button class="btn-primary" id="btn-open-add-diag-modal" style="display: none;">
+                  <i class="fa-solid fa-plus"></i> 새 진단 일정 추가
+                </button>
+              </div>
+              <div class="diagnostics-cards-grid" id="project-diagnostics-grid">
+                <!-- Dynamic Diagnostic Cards -->
+              </div>
+            </div>
+
             <!-- Project Internal Notes/Forum Board -->
             <div class="project-board-section">
               <div class="board-header">
@@ -235,6 +248,72 @@
               
               <div class="notes-grid" id="project-notes-grid">
                 <!-- Dynamic loading -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Diagnostic Detail View Pane -->
+          <div id="diagnostic-detail-pane" style="display: none;">
+            <div class="detail-back-bar">
+              <button class="btn-back" id="btn-back-to-project-from-diag">
+                <i class="fa-solid fa-arrow-left"></i> 프로젝트 목록으로 돌아가기
+              </button>
+            </div>
+            
+            <!-- Diagnostic Info Header Card -->
+            <div class="diagnostic-info-header card">
+              <div class="diag-header-top">
+                <div class="diag-breadcrumb">
+                  <span id="diag-parent-proj-name" style="color:var(--text-muted); cursor:pointer;">프로젝트명</span>
+                  <i class="fa-solid fa-chevron-right" style="font-size:0.75rem; color:var(--text-muted); margin:0 0.4rem;"></i>
+                  <span id="diag-current-name" style="color:var(--accent-color); font-weight:600;">진단명</span>
+                </div>
+                <div class="diag-badges">
+                  <span class="badge" id="diag-type-badge">진단 유형</span>
+                  <span class="diag-status-badge" id="diag-status-badge">진행중</span>
+                </div>
+              </div>
+              
+              <h1 id="detail-diag-name" class="diag-main-title" style="margin: 0.75rem 0 0.5rem 0; font-size: 1.5rem; color: var(--text-highlight);">진단 과업명</h1>
+              <div class="diag-target-box" style="margin-bottom: 0.85rem; color: var(--text-main); font-size: 0.92rem;">
+                <i class="fa-solid fa-bullseye" style="color: var(--accent-color); margin-right: 0.35rem;"></i>
+                <strong>진단 대상:</strong> <span id="detail-diag-target">대상 정보</span>
+              </div>
+              <p id="detail-diag-desc" class="diag-desc" style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; margin-bottom: 1.25rem;">진단 상세 설명</p>
+              
+              <div class="diag-meta-grid">
+                <div class="diag-meta-item">
+                  <span class="diag-meta-lbl"><i class="fa-regular fa-calendar"></i> 진단 일정</span>
+                  <span class="diag-meta-val" id="detail-diag-schedule" style="font-family: var(--font-code);">2026.00.00 ~ 2026.00.00</span>
+                </div>
+                <div class="diag-meta-item">
+                  <span class="diag-meta-lbl"><i class="fa-solid fa-chart-pie"></i> 진단 진행률</span>
+                  <div class="diag-progress-box">
+                    <div class="progress-bar" style="flex:1; height:6px;"><div class="progress" id="detail-diag-progress-bar" style="width: 0%;"></div></div>
+                    <span id="detail-diag-percent" style="font-size: 0.82rem; font-weight:600; color:var(--accent-color);">0%</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="meta-actions" id="diag-admin-actions" style="margin-top: 15px; display: none;">
+                <button class="btn-secondary btn-sm" id="btn-edit-diag-details"><i class="fa-regular fa-pen-to-square"></i> 진단 정보 수정</button>
+                <button class="btn-danger btn-sm" id="btn-delete-diag-details"><i class="fa-regular fa-trash-can"></i> 진단 삭제</button>
+              </div>
+            </div>
+            
+            <!-- Diagnostic Findings / Markdown Content -->
+            <div class="diagnostic-content-card card" style="margin-top: 1.5rem;">
+              <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h3><i class="fa-solid fa-file-shield"></i> 진단 점검 일지 및 상세 결과</h3>
+                <div class="text-size-controls">
+                  <button class="text-size-btn diag-size-btn active" data-size="1em">기본</button>
+                  <button class="text-size-btn diag-size-btn" data-size="1.12em">크게</button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="article-content" id="diagnostic-article-content">
+                  <!-- Rendered Markdown Content -->
+                </div>
               </div>
             </div>
           </div>
@@ -735,6 +814,98 @@ print("Hello Security")
               <pre><code>| 제목1 | 제목2 |
 | |---|---|
 | | 내용1 | 내용2 |</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <!-- ADD/EDIT DIAGNOSTIC MODAL -->
+  <div class="modal" id="add-diagnostic-modal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 id="diag-modal-title"><i class="fa-solid fa-list-check"></i> 세부 진단 일정 등록</h3>
+        <button class="close-btn" id="btn-close-diag-modal">&times;</button>
+      </div>
+      <div class="editor-split-container">
+        <!-- Left: Form -->
+        <form id="add-diagnostic-form" class="editor-main-form">
+          <input type="hidden" id="diag-edit-id">
+          <input type="hidden" id="diag-parent-id">
+          
+          <div class="form-group">
+            <label for="diag-name">진단 과업명 *</label>
+            <input type="text" id="diag-name" required placeholder="예: 주요정보통신기반시설 기술적 취약점 분석·평가">
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="diag-type">진단 분야/유형 *</label>
+              <input type="text" id="diag-type" required placeholder="예: 인프라 진단, 웹/모바일, 개인정보 등">
+            </div>
+            <div class="form-group">
+              <label for="diag-status">진단 상태 *</label>
+              <select id="diag-status" class="custom-select" style="width:100%; height:38px;">
+                <option value="in-progress">진행중</option>
+                <option value="completed">완료</option>
+                <option value="planned">예정</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="diag-target">진단 대상 및 범위 *</label>
+            <input type="text" id="diag-target" required placeholder="예: 코어 서버/NW/보안장비 250대, T-World 웹/앱">
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="diag-start">시작일 *</label>
+              <input type="date" id="diag-start" required>
+            </div>
+            <div class="form-group">
+              <label for="diag-end">종료일 *</label>
+              <input type="date" id="diag-end" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="diag-desc">과업 요약 설명</label>
+            <input type="text" id="diag-desc" placeholder="점검 기준 및 추진 목적 요약">
+          </div>
+
+          <div class="form-group flex-grow-group">
+            <label for="diag-content">진단 점검 일지 및 상세 결과 (Markdown 지원)</label>
+            <textarea id="diag-content" placeholder="점검 항목별 결과, 발견된 취약점 조치 현황 등을 마크다운으로 작성해 보세요."></textarea>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-diag">취소</button>
+            <button type="submit" class="btn-primary" id="btn-submit-diag">진단 등록</button>
+          </div>
+        </form>
+        
+        <!-- Right: Markdown Syntax Cheat Sheet -->
+        <div class="markdown-cheat-sheet">
+          <h4><i class="fa-brands fa-markdown"></i> 진단 일지 작성 가이드</h4>
+          <div class="cheat-sheet-content">
+            <div class="cheat-item">
+              <span class="cheat-label">제목</span>
+              <code># 1. 점검 개요</code> <code>## 2. 점검 항목</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">체크리스트</span>
+              <code>- [x] 양호: U-01 root 원격접속 제한</code><br>
+              <code>- [ ] 취약: U-02 패스워드 복잡도 미비</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">강조 & 코드</span>
+              <code>**조치완료**</code> <code>`CVE-2024-6387`</code>
+            </div>
+            <div class="cheat-item">
+              <span class="cheat-label">결과표</span>
+              <pre><code>| 구분 | 총수량 | 양호 | 취약 |
+|---|---|---|---|
+| 서버 | 120 | 110 | 10 |</code></pre>
             </div>
           </div>
         </div>
