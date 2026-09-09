@@ -177,11 +177,24 @@ const elements = {
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
   initTheme();
+  initResizeHandler();
   loadAdminAuth();
   loadData();
   setupEventListeners();
   initRouter();
 });
+
+// Window Resize Performance Optimizer (suppresses transitions during resize to prevent layout thrashing & stutter)
+function initResizeHandler() {
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    document.body.classList.add('resize-animation-stopper');
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      document.body.classList.remove('resize-animation-stopper');
+    }, 120);
+  });
+}
 
 // Live Clock
 function initClock() {

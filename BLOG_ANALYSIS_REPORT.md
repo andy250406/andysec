@@ -179,4 +179,16 @@
         * 1행에 `[프로젝트명]`(굵은 폰트) + `[고객사 배지]`를 전폭 배치하고, 2행에 `[일정]`과 `[유동 폭 진행률 바]`를 배치하여 프로젝트명이 세로 1글자로 꺾이던 문제 해결.
       * **활성 프로젝트 카드**:
         * D-day 배지와 프로젝트명(1행), 일정과 전폭 진행률 바(2행)의 상하 2단 구조로 자연스럽게 래핑.
+14. **모바일 상단 카테고리 동적 2열 그리드 개편 & 정방형 배지 보호 및 리사이징 버벅임 완벽 해소 (2026-09-09 8차 배포)**:
+    * **모바일(`max-width: 768px`) 상단 카테고리 메뉴 동적 2열 그리드 배치 (`.nav-menu`)**:
+      * **홀수 개 메뉴 시 (현재 5개 기준)**: 1번째 최상단 메뉴(`대시보드`)가 상단 1줄 전체(`grid-column: 1 / -1`)를 차지하고, 나머지 메뉴 4개가 2열씩 2행으로 대칭 배치되어 양옆 빈 공간 없이 시각적 안정감 극대화.
+      * **짝수 개 메뉴 시 (향후 메뉴 추가 대비)**: 모든 메뉴가 2열 그리드로 균등 분할되어 깔끔하게 나열.
+      * CSS 전용 수식 `:first-child:nth-last-child(odd)`를 적용하여 자바스크립트 계산 없이 메뉴 개수 변동에 따라 100% 자동 반응하도록 설계.
+    * **Stage 2(1:1 정방형 화면, `769px ~ 1180px`) 카테고리 배지 세로 꺾임 완벽 방지**:
+      * 모든 `.badge`에 `white-space: nowrap !important; flex-shrink: 0; display: inline-flex;`를 전역 부여.
+      * `.recent-item-title`에 `flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;`를 적용하고, `.recent-item-meta`에 `flex-shrink: 0;`을 적용하여 좁은 화면에서도 텍스트가 줄바꿈되거나 배지를 세로 1글자 단위로 짓누르는 왜곡을 원천 방지.
+    * **브라우저 창 리사이징 버벅임 및 끊김 제거 (Resize Animation Stopper 도입)**:
+      * 30개 이상의 레이아웃 컨테이너(`.app-container`, `.sidebar`, `.main-content`, `.card` 등)에 무분별하게 적용되어 초당 수십 회의 Reflow/Repaint 레이아웃 스래싱을 유발하던 `transition: all`을 레이아웃 요소에서 완전 제거하고, 버튼 및 인터랙티브 요소에만 경량 전환(`transition: color, background-color, border-color 0.2s ease`)으로 분리.
+      * `main.js`에 `window.resize` 이벤트 디바운싱 기반의 `initResizeHandler()`를 탑재하여 창 크기를 조절하는 동안에는 `.resize-animation-stopper`를 통해 모든 transition 연산을 일시 중단함으로써, 부드러운 60fps 네이티브 플렉스/그리드 리사이징 성능 확보.
+
 
