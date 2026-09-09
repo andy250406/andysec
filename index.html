@@ -329,13 +329,23 @@
           <div class="card">
             <div class="card-header">
               <h3>보안 뉴스 아카이브</h3>
-              <div class="table-actions">
+              <div class="table-actions" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                 <select id="news-importance-filter" class="custom-select">
                   <option value="all">모든 중요도</option>
                   <option value="⭐⭐⭐⭐⭐">⭐⭐⭐⭐⭐ (매우 중요)</option>
                   <option value="⭐⭐⭐⭐">⭐⭐⭐⭐ (중요)</option>
                   <option value="⭐⭐⭐">⭐⭐⭐ (보통)</option>
                 </select>
+                <button class="btn-primary btn-sm" id="btn-open-add-news-editor" style="display: none;">
+                  <i class="fa-solid fa-plus"></i> 새 보안 뉴스 작성
+                </button>
+                <button class="btn-danger btn-sm" id="btn-news-delete-mode" style="display: none;">
+                  <i class="fa-regular fa-trash-can"></i> 삭제 모드
+                </button>
+                <div id="news-delete-actions" style="display: none; gap: 6px;">
+                  <button class="btn-danger btn-sm" id="btn-news-delete-confirm">선택 삭제</button>
+                  <button class="btn-secondary btn-sm" id="btn-news-delete-cancel">취소</button>
+                </div>
               </div>
             </div>
             <div class="card-body">

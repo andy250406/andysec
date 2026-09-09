@@ -185,6 +185,7 @@ const elements = {
   // News Tab
   fullNewsTable: document.getElementById('full-news-table'),
   newsImportanceFilter: document.getElementById('news-importance-filter'),
+  btnOpenAddNewsEditor: document.getElementById('btn-open-add-news-editor'),
   btnNewsDeleteMode: document.getElementById('btn-news-delete-mode'),
   newsDeleteActions: document.getElementById('news-delete-actions'),
   btnNewsDeleteConfirm: document.getElementById('btn-news-delete-confirm'),
@@ -406,6 +407,7 @@ function applyAdminPermissions() {
   if (elements.btnDeleteArticle) elements.btnDeleteArticle.style.display = isAdmin ? 'inline-block' : 'none';
   if (elements.btnEditProfile) elements.btnEditProfile.style.display = isAdmin ? 'inline-flex' : 'none';
   if (elements.btnEditPortfolio) elements.btnEditPortfolio.style.display = isAdmin ? 'inline-flex' : 'none';
+  if (elements.btnOpenAddNewsEditor) elements.btnOpenAddNewsEditor.style.display = isAdmin ? 'inline-block' : 'none';
   
   // Hide details view metadata action buttons if not admin
   const projectMetaActions = document.querySelector('.project-info-header .meta-actions');
@@ -515,43 +517,36 @@ async function loadData() {
       hideLoader();
     }
 
-    // Load static posts.json metadata map (used to enrich news posts with importance, source, newsLink)
-    let staticPostsMap = new Map();
-    try {
-      const response = await fetch('./posts/posts.json');
-      if (response.ok) {
-        const staticList = await response.json();
-        if (Array.isArray(staticList)) {
-          staticList.forEach(p => {
-            if (p && p.id) staticPostsMap.set(p.id, p);
-          });
-          // Fallback: If GAS fetch failed for posts, use static posts
-          if (serverPosts.length === 0) {
-            serverPosts = staticList.filter(p => p && p.category !== 'Project');
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Could not load static posts.json metadata, falling back to local storage:', e);
-    }
-    
-    // Load local posts safely
-    let localPosts = [];
-    try {
-      const stored = localStorage.getItem('posts');
-      if (stored && stored !== 'undefined') {
-        localPosts = JSON.parse(stored) || [];
-      }
-    } catch (e) {
-      console.error('Failed to parse local posts:', e);
-    }
-    if (!Array.isArray(localPosts)) localPosts = [];
-    
-    // Merge posts: If live GAS DB was loaded, DB is the single source of truth across all devices!
+    // 1. Merge posts: Live GAS DB is 100% the Single Source of Truth across all devices!
     let mergedPosts;
     if (gasLoaded && serverPosts.length > 0) {
       mergedPosts = serverPosts;
     } else {
+      // Offline fallback: Only if GAS failed or offline, load from static posts.json or local storage
+      if (serverPosts.length === 0) {
+        try {
+          const response = await fetch('./posts/posts.json');
+          if (response.ok) {
+            serverPosts = await response.json();
+            serverPosts = serverPosts.filter(p => p && p.category !== 'Project');
+          }
+        } catch (e) {
+          console.warn('Could not load posts.json from server, falling back to local storage:', e);
+        }
+      }
+
+      // Load local posts safely
+      let localPosts = [];
+      try {
+        const stored = localStorage.getItem('posts');
+        if (stored && stored !== 'undefined') {
+          localPosts = JSON.parse(stored) || [];
+        }
+      } catch (e) {
+        console.error('Failed to parse local posts:', e);
+      }
+      if (!Array.isArray(localPosts)) localPosts = [];
+
       const deletedIds = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
       const deletedSet = new Set(deletedIds);
       const serverPostsFiltered = serverPosts.filter(p => p && p.id && !deletedSet.has(p.id));
@@ -569,22 +564,6 @@ async function loadData() {
         }
       });
     }
-
-    // Enrich and normalize posts with metadata (importance, source, newsLink)
-    mergedPosts.forEach(p => {
-      if (!p) return;
-      const staticMeta = staticPostsMap.get(p.id);
-      if (staticMeta) {
-        if (!p.importance && staticMeta.importance) p.importance = staticMeta.importance;
-        if (!p.source && staticMeta.source) p.source = staticMeta.source;
-        if (!p.newsLink && staticMeta.newsLink) p.newsLink = staticMeta.newsLink;
-      }
-      if (p.category === 'News') {
-        if (!p.importance) p.importance = '⭐⭐⭐';
-        if (!p.source) p.source = '보안뉴스';
-        if (!p.newsLink) p.newsLink = '';
-      }
-    });
 
     appState.posts = mergedPosts;
     localStorage.setItem('posts', JSON.stringify(mergedPosts));
@@ -1861,6 +1840,7 @@ function renderStudyCategories() {
     allCats.forEach(cat => {
       selectHtml += `<option value="${cat.id}">${cat.name}</option>`;
     });
+    selectHtml += `<option value="News">보안 뉴스</option>`;
     selectHtml += `<option value="custom">+ 직접 입력 (새 카테고리)</option>`;
     elements.editorCategorySelect.innerHTML = selectHtml;
     
@@ -2129,6 +2109,11 @@ function setupEventListeners() {
   elements.newsImportanceFilter?.addEventListener('change', (e) => {
     appState.newsFilter = e.target.value;
     renderSecurityNews();
+  });
+
+  // Open News Editor button
+  elements.btnOpenAddNewsEditor?.addEventListener('click', () => {
+    openNoteEditor(null, 'News');
   });
   
   // Dashboard "View More" links
@@ -2430,7 +2415,7 @@ function setupEventListeners() {
   });
   
   // Note Editor Functions
-  function openNoteEditor(postId = null) {
+  function openNoteEditor(postId = null, initialCategory = null) {
     if (!appState.isAdmin) {
       alert('글 작성/수정은 관리자 인증(🔑) 후에만 가능합니다.');
       return;
@@ -2492,20 +2477,21 @@ function setupEventListeners() {
       }
     } else {
       // New post
-      elements.editorViewTitle.innerHTML = '<i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성';
+      const isNews = (initialCategory === 'News');
+      elements.editorViewTitle.innerHTML = isNews ? '<i class="fa-solid fa-newspaper"></i> 새 보안 뉴스 작성' : '<i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성';
       elements.editorPostId.value = '';
       elements.editorPostTitle.value = '';
-      elements.editorCategorySelect.value = 'Cert';
+      elements.editorCategorySelect.value = isNews ? 'News' : 'Cert';
       elements.editorCustomCategoryInput.style.display = 'none';
       elements.editorCustomCategoryInput.value = '';
-      elements.editorPostType.value = '';
+      elements.editorPostType.value = isNews ? 'News' : '';
       elements.editorMainTextarea.value = '';
       if (elements.editorWysiwygContent) {
         elements.editorWysiwygContent.innerHTML = '';
       }
       
       if (elements.editorNewsFieldsGroup) {
-        elements.editorNewsFieldsGroup.style.display = 'none';
+        elements.editorNewsFieldsGroup.style.display = isNews ? 'block' : 'none';
         elements.editorNewsImportance.value = '⭐⭐⭐';
         elements.editorNewsSource.value = '';
         elements.editorNewsDate.value = new Date().toISOString().split('T')[0];
@@ -3486,10 +3472,24 @@ function setupEventListeners() {
   elements.editorCategorySelect?.addEventListener('change', (e) => {
     const val = e.target.value;
     const isCustom = val === 'custom';
+    const isNews = val === 'News';
 
     if (elements.editorCustomCategoryInput) {
       elements.editorCustomCategoryInput.style.display = isCustom ? 'block' : 'none';
       if (isCustom) elements.editorCustomCategoryInput.focus();
+    }
+
+    if (elements.editorNewsFieldsGroup) {
+      elements.editorNewsFieldsGroup.style.display = isNews ? 'block' : 'none';
+      if (isNews && !elements.editorNewsDate.value) {
+        elements.editorNewsDate.value = new Date().toISOString().split('T')[0];
+      }
+    }
+
+    if (elements.editorViewTitle) {
+      elements.editorViewTitle.innerHTML = isNews
+        ? '<i class="fa-solid fa-newspaper"></i> 보안 뉴스 작성/수정'
+        : '<i class="fa-solid fa-pen-nib"></i> 스터디 노트 작성/수정';
     }
   });
 
@@ -3663,8 +3663,13 @@ function setupEventListeners() {
       };
 
       if (isNews) {
-        postData.importance = elements.editorNewsImportance.value;
+        postData.importance = elements.editorNewsImportance.value || '⭐⭐⭐';
         postData.source = elements.editorNewsSource.value.trim();
+        if (!postData.source) {
+          alert('보안 뉴스의 출처(언론사 등)를 입력해 주세요.');
+          elements.editorNewsSource.focus();
+          return;
+        }
         postData.date = elements.editorNewsDate.value || new Date().toISOString().split('T')[0];
         postData.newsLink = elements.editorNewsLink.value.trim();
       }
@@ -3702,7 +3707,11 @@ function setupEventListeners() {
           category: postData.category,
           title: postData.title,
           date: postData.date || new Date().toISOString().split('T')[0],
-          content: postData.content
+          content: postData.content,
+          importance: postData.importance || '',
+          source: postData.source || '',
+          newsLink: postData.newsLink || '',
+          images: postData.images || []
         });
         console.log('[GAS API] Post successfully saved:', gasResult);
       }
