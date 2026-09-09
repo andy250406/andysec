@@ -333,3 +333,17 @@
         * **프로젝트 기록 (Project Notes)**: `ProjectNotes` 시트로부터 프로젝트별 비공개 기록이 정상 로드됨을 확인.
         * **프로필 & 포트폴리오 (Profile & Portfolio)**: `Profile`, `Portfolio` 시트로부터 실시간 로드 및 관리자 모달을 통한 수정/저장이 완벽 동작함을 확인.
       * 이제 깃허브 저장소의 정적 JSON 파일을 일체 조회하거나 업데이트하지 않고, **오직 Google Sheets GAS DB만을 통해 모든 데이터의 조회, 등록, 수정, 삭제가 100% 무중단 동작**합니다.
+23. **프로젝트 내부 새 진단 일정 등록 모달 복구, 상세 화면 목록 복귀 내비게이션 정상화 및 보안 뉴스/스터디 노트 에디터 전용 속성 분리 완성 (2026-09-09 17차 배포)**:
+    * **프로젝트 내부 새 진단 일정 추가 버튼 버그 해결**:
+      * `index.html` 내에서 `#add-note-modal`의 닫는 `</div>` 태그가 누락되어 하위의 `#add-diagnostic-modal`이 숨김 상태의 부모 모달 내부에 중첩되어 있던 HTML 마크업 오류를 수정.
+      * 버튼 클릭 시 `openAddDiagnosticModal()`이 정상적으로 모달을 화면 중앙에 flex 레이아웃으로 팝업하도록 복구 완료.
+    * **프로젝트 기록 및 게시글 상세 화면 '목록으로 돌아가기' 내비게이션 복구**:
+      * `showLocalNoteDetail` 실행 시 URL 해시 변경 없이 `elements.articlePane`만 표시되던 상태에서 `btnBackToList` 클릭 시 기존 해시와 동일하여 `hashchange` 이벤트가 미발생하던 현상 해결.
+      * `elements.btnBackToList`, `elements.btnBackToProjectsList`, `elements.btnBackToProjectFromDiag` 핸들러에서 명시적으로 상세 패널을 숨기고 타겟 뷰 렌더러(`showProjectDetail` 또는 `switchTab`)를 직접 호출하여 어떤 뷰 깊이에서도 확실하게 직전 목록 화면으로 복귀하도록 완벽 보장.
+    * **보안 뉴스 vs 스터디 노트 에디터 스키마 및 UI 완전 분리**:
+      * **스터디 노트 에디터**: 카테고리 드롭다운에서 '보안 뉴스' 선택지를 완전히 제거하여 스터디 노트와 보안 뉴스가 혼재되지 않도록 격리. '유형'(`type`) 필드는 필수 입력으로 유지.
+      * **새 보안 뉴스 작성 / 수정 에디터 (`news-mode`)**:
+        * 카테고리(`category`) 및 유형(`type`) 입력 필드를 완전히 숨김 처리 (`display: none !important;`).
+        * 글 제목 입력 필드를 너비 100%로 시원하게 확장.
+        * 보안 뉴스의 6대 필수/핵심 속성인 **제목 (`title`), 본문 (`content`), 날짜 (`date`), 출처 (`source`), 원문링크 (`newsLink`), 중요도 (`importance`)**만을 정확하게 입력받도록 전용 UI 제공.
+        * `type` 속성은 뉴스 데이터에 불필요하게 묻어나지 않도록 빈 문자열(`''`)로 고정하고, `category`는 내부적으로 `'News'`로 자동 고정하여 GAS DB로 실시간 저장되도록 일원화.

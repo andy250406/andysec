@@ -208,6 +208,9 @@ const elements = {
   btnCancelEditor: document.getElementById('btn-cancel-editor'),
   btnSaveEditor: document.getElementById('btn-save-editor'),
   editorViewTitle: document.getElementById('editor-view-title'),
+  editorTitleGroup: document.getElementById('editor-title-group'),
+  editorCatGroup: document.getElementById('editor-cat-group'),
+  editorTypeGroup: document.getElementById('editor-type-group'),
   editorPostId: document.getElementById('editor-post-id'),
   editorPostTitle: document.getElementById('editor-post-title'),
   editorCategorySelect: document.getElementById('editor-category-select'),
@@ -1728,7 +1731,6 @@ function renderStudyCategories() {
     allCats.forEach(cat => {
       selectHtml += `<option value="${cat.id}">${cat.name}</option>`;
     });
-    selectHtml += `<option value="News">보안 뉴스</option>`;
     selectHtml += `<option value="custom">+ 직접 입력 (새 카테고리)</option>`;
     elements.editorCategorySelect.innerHTML = selectHtml;
     
@@ -1880,15 +1882,33 @@ function setupEventListeners() {
   
   // Back to list button inside Article Pane
   elements.btnBackToList.addEventListener('click', () => {
+    if (elements.articlePane) elements.articlePane.style.display = 'none';
     if (appState.activePostType === 'projectNote') {
-      window.location.hash = `#/project/${appState.activeProjectId}`;
+      if (appState.activeProjectId) {
+        showProjectDetail(appState.activeProjectId);
+        if (window.location.hash !== `#/project/${appState.activeProjectId}`) {
+          window.location.hash = `#/project/${appState.activeProjectId}`;
+        }
+      } else {
+        window.location.hash = '#/tab/projects';
+      }
     } else if (appState.activePostType === 'general') {
       const post = appState.posts.find(p => p.id === appState.activePostId);
-      if (post) {
-        window.location.hash = post.category === 'News' ? '#/tab/news' : '#/tab/study';
+      const targetTab = (post && post.category === 'News') ? 'news' : 'study';
+      const targetHash = `#/tab/${targetTab}`;
+      if (window.location.hash === targetHash) {
+        switchTab(targetTab);
+      } else {
+        window.location.hash = targetHash;
       }
     } else {
-      window.location.hash = `#/tab/${elements.currentTab}`;
+      const targetTab = appState.currentTab || 'study';
+      const targetHash = `#/tab/${targetTab}`;
+      if (window.location.hash === targetHash) {
+        switchTab(targetTab);
+      } else {
+        window.location.hash = targetHash;
+      }
     }
   });
   
@@ -2121,7 +2141,13 @@ function setupEventListeners() {
   
   // Project detail back button
   elements.btnBackToProjectsList.addEventListener('click', () => {
-    window.location.hash = '#/tab/projects';
+    if (elements.projectDetailView) elements.projectDetailView.style.display = 'none';
+    if (elements.projectsListView) elements.projectsListView.style.display = 'block';
+    if (window.location.hash === '#/tab/projects') {
+      switchTab('projects');
+    } else {
+      window.location.hash = '#/tab/projects';
+    }
   });
 
   // Diagnostic Modal and Form Submit
@@ -2203,10 +2229,20 @@ function setupEventListeners() {
 
   // Diagnostic Detail View Buttons
   elements.btnBackToProjectFromDiag?.addEventListener('click', () => {
+    if (elements.diagnosticDetailPane) elements.diagnosticDetailPane.style.display = 'none';
     if (appState.activeProjectId) {
-      window.location.hash = `#/project/${appState.activeProjectId}`;
+      showProjectDetail(appState.activeProjectId);
+      if (window.location.hash !== `#/project/${appState.activeProjectId}`) {
+        window.location.hash = `#/project/${appState.activeProjectId}`;
+      }
     } else {
-      window.location.hash = '#/tab/projects';
+      if (elements.projectDetailView) elements.projectDetailView.style.display = 'none';
+      if (elements.projectsListView) elements.projectsListView.style.display = 'block';
+      if (window.location.hash === '#/tab/projects') {
+        switchTab('projects');
+      } else {
+        window.location.hash = '#/tab/projects';
+      }
     }
   });
 
@@ -2318,72 +2354,76 @@ function setupEventListeners() {
     // Show editor pane
     if (elements.noteEditorPane) elements.noteEditorPane.style.display = 'flex';
 
-    // Populate category dropdown
+    // Populate category dropdown (보안 뉴스 제외됨)
     renderStudyCategories();
 
-    if (postId) {
-      // Editing existing post
-      const post = appState.posts.find(p => p.id === postId);
-      if (!post) {
-        alert('수정할 글을 찾을 수 없습니다.');
-        return;
+    const post = postId ? appState.posts.find(p => p.id === postId) : null;
+    const isNews = (initialCategory === 'News') || (post && post.category === 'News');
+    appState.editorMode = isNews ? 'News' : 'Study';
+
+    if (elements.noteEditorPane) {
+      elements.noteEditorPane.classList.toggle('news-mode', isNews);
+    }
+
+    if (isNews) {
+      // News Mode: Exactly 6 attributes (제목, 본문, 날짜, 출처, 원문링크, 중요도)
+      // Category and Type are completely hidden/disabled in News mode
+      elements.editorViewTitle.innerHTML = postId 
+        ? '<i class="fa-solid fa-newspaper"></i> 보안 뉴스 수정' 
+        : '<i class="fa-solid fa-newspaper"></i> 새 보안 뉴스 작성';
+      elements.editorPostId.value = post ? post.id : '';
+      elements.editorPostTitle.value = post ? (post.title || '') : '';
+      elements.editorPostType.value = '';
+      elements.editorPostType.removeAttribute('required');
+
+      if (elements.editorNewsFieldsGroup) {
+        elements.editorNewsFieldsGroup.style.display = 'block';
+        elements.editorNewsImportance.value = (post && post.importance) ? post.importance : '⭐⭐⭐';
+        elements.editorNewsSource.value = (post && post.source) ? post.source : '';
+        elements.editorNewsDate.value = (post && post.date) ? post.date : new Date().toISOString().split('T')[0];
+        elements.editorNewsLink.value = (post && post.newsLink) ? post.newsLink : '';
       }
-      
-      const isNews = post.category === 'News';
-      elements.editorViewTitle.innerHTML = isNews ? '<i class="fa-solid fa-newspaper"></i> 보안 뉴스 수정' : '<i class="fa-solid fa-pen-nib"></i> 스터디 노트 수정';
-      elements.editorPostId.value = post.id;
-      elements.editorPostTitle.value = post.title || '';
-      
-      // Category selection
-      const existsInSelect = Array.from(elements.editorCategorySelect.options).some(o => o.value === post.category);
-      if (existsInSelect) {
-        elements.editorCategorySelect.value = post.category;
-        elements.editorCustomCategoryInput.style.display = 'none';
-        elements.editorCustomCategoryInput.value = '';
-      } else {
-        elements.editorCategorySelect.value = 'custom';
-        elements.editorCustomCategoryInput.style.display = 'block';
-        elements.editorCustomCategoryInput.value = post.category || '';
-      }
-      
-      elements.editorPostType.value = post.type || (isNews ? 'News' : '');
-      const rawMarkdown = post.content || '';
+
+      const rawMarkdown = post ? (post.content || '') : '';
       elements.editorMainTextarea.value = rawMarkdown;
       if (elements.editorWysiwygContent) {
         elements.editorWysiwygContent.innerHTML = rawMarkdown ? marked.parse(rawMarkdown) : '';
       }
-      
-      // News specific fields
-      if (elements.editorNewsFieldsGroup) {
-        elements.editorNewsFieldsGroup.style.display = isNews ? 'block' : 'none';
-        if (isNews) {
-          elements.editorNewsImportance.value = post.importance || '';
-          elements.editorNewsSource.value = post.source || '';
-          elements.editorNewsDate.value = post.date || '';
-          elements.editorNewsLink.value = post.newsLink || '';
-        }
-      }
     } else {
-      // New post
-      const isNews = (initialCategory === 'News');
-      elements.editorViewTitle.innerHTML = isNews ? '<i class="fa-solid fa-newspaper"></i> 새 보안 뉴스 작성' : '<i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성';
-      elements.editorPostId.value = '';
-      elements.editorPostTitle.value = '';
-      elements.editorCategorySelect.value = isNews ? 'News' : 'Cert';
-      elements.editorCustomCategoryInput.style.display = 'none';
-      elements.editorCustomCategoryInput.value = '';
-      elements.editorPostType.value = isNews ? 'News' : '';
-      elements.editorMainTextarea.value = '';
-      if (elements.editorWysiwygContent) {
-        elements.editorWysiwygContent.innerHTML = '';
-      }
-      
+      // Study Note Mode: Category & Type required, News fields hidden
+      elements.editorViewTitle.innerHTML = postId 
+        ? '<i class="fa-solid fa-pen-nib"></i> 스터디 노트 수정' 
+        : '<i class="fa-solid fa-pen-nib"></i> 새 스터디 노트 작성';
+      elements.editorPostId.value = post ? post.id : '';
+      elements.editorPostTitle.value = post ? (post.title || '') : '';
+      elements.editorPostType.setAttribute('required', 'required');
+      elements.editorPostType.value = post ? (post.type || '') : '';
+
       if (elements.editorNewsFieldsGroup) {
-        elements.editorNewsFieldsGroup.style.display = isNews ? 'block' : 'none';
-        elements.editorNewsImportance.value = '⭐⭐⭐';
-        elements.editorNewsSource.value = '';
-        elements.editorNewsDate.value = new Date().toISOString().split('T')[0];
-        elements.editorNewsLink.value = '';
+        elements.editorNewsFieldsGroup.style.display = 'none';
+      }
+
+      if (post) {
+        const existsInSelect = Array.from(elements.editorCategorySelect.options).some(o => o.value === post.category);
+        if (existsInSelect) {
+          elements.editorCategorySelect.value = post.category;
+          elements.editorCustomCategoryInput.style.display = 'none';
+          elements.editorCustomCategoryInput.value = '';
+        } else {
+          elements.editorCategorySelect.value = 'custom';
+          elements.editorCustomCategoryInput.style.display = 'block';
+          elements.editorCustomCategoryInput.value = post.category || '';
+        }
+      } else {
+        elements.editorCategorySelect.value = initialCategory || (elements.editorCategorySelect.options[0]?.value || 'Cert');
+        elements.editorCustomCategoryInput.style.display = 'none';
+        elements.editorCustomCategoryInput.value = '';
+      }
+
+      const rawMarkdown = post ? (post.content || '') : '';
+      elements.editorMainTextarea.value = rawMarkdown;
+      if (elements.editorWysiwygContent) {
+        elements.editorWysiwygContent.innerHTML = rawMarkdown ? marked.parse(rawMarkdown) : '';
       }
     }
 
@@ -2401,9 +2441,16 @@ function setupEventListeners() {
   }
 
   function closeNoteEditor() {
-    if (elements.noteEditorPane) elements.noteEditorPane.style.display = 'none';
-    const targetTab = appState.currentTab || 'study';
-    switchTab(targetTab);
+    if (elements.noteEditorPane) {
+      elements.noteEditorPane.style.display = 'none';
+      elements.noteEditorPane.classList.remove('news-mode');
+    }
+    const targetTab = (appState.editorMode === 'News') ? 'news' : (appState.currentTab || 'study');
+    if (window.location.hash === `#/tab/${targetTab}`) {
+      switchTab(targetTab);
+    } else {
+      window.location.hash = `#/tab/${targetTab}`;
+    }
   }
 
   function updateEditorWordCount() {
@@ -3520,46 +3567,70 @@ function setupEventListeners() {
         return;
       }
 
-      let category = elements.editorCategorySelect.value;
-      if (category === 'custom') {
-        const customVal = elements.editorCustomCategoryInput.value.trim();
-        if (!customVal) {
-          alert('새 카테고리명을 입력해 주세요.');
-          elements.editorCustomCategoryInput.focus();
-          return;
-        }
-        category = customVal;
-        
-        // Save new custom category
-        let customCats = getCustomCategories();
-        if (!customCats.some(c => c.id === category)) {
-          customCats.push({ id: category, name: category });
-          saveCustomCategories(customCats);
-        }
-      }
-
-      const type = elements.editorPostType.value.trim();
-      // Convert current WYSIWYG content to clean Markdown
+      const isNews = (appState.editorMode === 'News');
       const content = getWysiwygMarkdown();
-      const isNews = category === 'News';
-
-      const postData = {
-        title,
-        category,
-        type,
-        content
-      };
+      let postData = {};
 
       if (isNews) {
-        postData.importance = elements.editorNewsImportance.value || '';
-        postData.source = elements.editorNewsSource.value.trim();
-        if (!postData.source) {
+        // News Mode: Exactly 6 fields (title, content, date, source, newsLink, importance)
+        // No category dropdown, no type attribute
+        const source = elements.editorNewsSource ? elements.editorNewsSource.value.trim() : '';
+        if (!source) {
           alert('보안 뉴스의 출처(언론사 등)를 입력해 주세요.');
-          elements.editorNewsSource.focus();
+          elements.editorNewsSource?.focus();
           return;
         }
-        postData.date = elements.editorNewsDate.value || new Date().toISOString().split('T')[0];
-        postData.newsLink = elements.editorNewsLink.value.trim();
+        const importance = elements.editorNewsImportance ? elements.editorNewsImportance.value : '⭐⭐⭐';
+        const date = elements.editorNewsDate?.value || new Date().toISOString().split('T')[0];
+        const newsLink = elements.editorNewsLink ? elements.editorNewsLink.value.trim() : '';
+
+        postData = {
+          title,
+          category: 'News',
+          type: '',
+          content,
+          date,
+          source,
+          newsLink,
+          importance
+        };
+      } else {
+        // Study Note Mode: title, category, type, content
+        let category = elements.editorCategorySelect.value;
+        if (category === 'custom') {
+          const customVal = elements.editorCustomCategoryInput.value.trim();
+          if (!customVal) {
+            alert('새 카테고리명을 입력해 주세요.');
+            elements.editorCustomCategoryInput.focus();
+            return;
+          }
+          category = customVal;
+          
+          // Save new custom category
+          let customCats = getCustomCategories();
+          if (!customCats.some(c => c.id === category)) {
+            customCats.push({ id: category, name: category });
+            saveCustomCategories(customCats);
+          }
+        }
+
+        const type = elements.editorPostType.value.trim();
+        if (!type) {
+          alert('유형을 입력해 주세요. (예: 주요정보통신기반시설, CPPG, ISMS-P 등)');
+          elements.editorPostType.focus();
+          return;
+        }
+
+        const existingPost = editId ? appState.posts.find(p => p.id === editId) : null;
+        const date = existingPost?.date || new Date().toISOString().split('T')[0];
+
+        postData = {
+          title,
+          category,
+          type,
+          content,
+          date
+        };
       }
 
       let targetPostId = editId;
@@ -3582,10 +3653,21 @@ function setupEventListeners() {
       // Save locally first
       localStorage.setItem('posts', JSON.stringify(appState.posts));
       renderAll();
-      closeNoteEditor();
+
+      if (elements.noteEditorPane) {
+        elements.noteEditorPane.style.display = 'none';
+        elements.noteEditorPane.classList.remove('news-mode');
+      }
 
       if (targetPostId) {
-        showArticleDetail(targetPostId);
+        const targetHash = `#/post/${targetPostId}`;
+        if (window.location.hash === targetHash) {
+          showArticleDetail(targetPostId);
+        } else {
+          window.location.hash = targetHash;
+        }
+      } else {
+        closeNoteEditor();
       }
 
       // Real-time Sync to Google Sheets via GAS
@@ -3645,7 +3727,15 @@ function setupEventListeners() {
       localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
       renderProjectNotes(appState.activeProjectId);
       alert('프로젝트 기록이 삭제되었습니다.');
-      window.location.hash = `#/project/${appState.activeProjectId}`;
+      if (elements.articlePane) elements.articlePane.style.display = 'none';
+      if (appState.activeProjectId) {
+        showProjectDetail(appState.activeProjectId);
+        if (window.location.hash !== `#/project/${appState.activeProjectId}`) {
+          window.location.hash = `#/project/${appState.activeProjectId}`;
+        }
+      } else {
+        window.location.hash = '#/tab/projects';
+      }
     } else {
       const postToDelete = appState.posts.find(p => p.id === appState.activePostId);
       const postId = appState.activePostId;
@@ -3672,7 +3762,14 @@ function setupEventListeners() {
       
       alert('게시글이 성공적으로 삭제되었습니다.');
       renderAll();
-      window.location.hash = (postToDelete && postToDelete.category === 'News') ? '#/tab/news' : '#/tab/study';
+      if (elements.articlePane) elements.articlePane.style.display = 'none';
+      const targetTab = (postToDelete && postToDelete.category === 'News') ? 'news' : 'study';
+      const targetHash = `#/tab/${targetTab}`;
+      if (window.location.hash === targetHash) {
+        switchTab(targetTab);
+      } else {
+        window.location.hash = targetHash;
+      }
     }
   });
 
