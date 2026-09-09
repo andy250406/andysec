@@ -259,3 +259,20 @@
     * **단일 진실 공급원(Single Source of Truth) 일원화**:
       * 정적 HTML 하드코딩에서 완전히 벗어나, 구글 시트 DB에서 실시간으로 불러와 동적 렌더링.
       * 오프라인/통신 지연 시 내장 기본값으로 매끄럽게 폴백하여 UI 깨짐 없는 무중단 사용성 보장.
+19. **보안 뉴스 중요도 및 출처 undefined 표시 버그 완벽 해결 및 메타데이터 듀얼 파이프라인 구축 (2026-09-09 13차 배포)**:
+    * **문제 원인 분석**:
+      * 구글 시트 `Posts` 시트 및 GAS 백엔드에서 `importance`, `source`, `newsLink` 필드가 제외된 상태로 `getAllData`가 반환되어, 프론트엔드 렌더링 시 `${news.importance}` 및 `${news.source}`가 문자열 `'undefined'`로 출력됨.
+      * 또한 `loadData()`에서 구글 시트 실시간 데이터를 수신했을 때 로컬 `posts.json`에 보존되어 있던 풍부한 뉴스 메타데이터(출처, 별점, 원문 링크)를 보강하지 않고 덮어써서 발생.
+    * **프론트엔드 메타데이터 융합 및 방어 렌더링 구현 (`main.js`)**:
+      * `loadData()` 실행 시 `posts.json` 메타데이터 맵(`staticPostsMap`)을 상시 로드하여, 구글 시트 DB에서 넘어온 107개 게시글 각각에 대해 미등록된 `importance`, `source`, `newsLink`를 완벽 보강 융합.
+      * 누락 시 기본값 안전 폴백 적용 (`importance: '⭐⭐⭐'`, `source: '보안뉴스'`).
+      * 보안 뉴스 목록(`renderSecurityNews()`) 및 대시보드 최근 뉴스(`renderDashboard()`) 렌더러에 `escapeHtml()` 및 폴백 삼항 연산자 적용으로 문자열 `'undefined'` 출력 원천 차단.
+      * 원문 링크 버튼도 유효 URL 존재 시에만 클릭 버튼으로 렌더링하고 부재 시 `-`로 단정하게 처리.
+      * 뉴스 상세 조회 화면(`showArticleDetail()`) 헤더에도 `[출처: 연합뉴스]` 배지를 표시하도록 확장.
+      * 검색 필터(`matchSearch()`)에 뉴스 출처(예: '연합뉴스', '보안뉴스') 검색 지원 추가.
+    * **구글 시트 & GAS 백엔드 스키마 확장 (`gas_backend_code.gs`)**:
+      * `Posts` 시트 헤더 6, 7, 8열에 `importance`, `source`, `newsLink` 컬럼 공식 배정.
+      * `getPostsData()`에서 해당 3개 메타데이터 컬럼 자동 감지 및 반환.
+      * `savePost` API에서 관리자가 수정한 뉴스 중요도, 출처, 원문 링크를 구글 시트 F, G, H열에 영구 보존.
+    * **데이터 마이그레이션 도구 지원 (`migrate_to_sheets.js`)**:
+      * `--sync-news-meta` 옵션을 추가하여 기존 시트에 등록된 101개 보안 뉴스의 출처와 중요도를 시트 F, G, H열로 원클릭 일괄 동기화할 수 있도록 지원.

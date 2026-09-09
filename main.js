@@ -515,17 +515,24 @@ async function loadData() {
       hideLoader();
     }
 
-    // Fallback: If GAS fetch failed for posts, fetch static posts.json
-    if (serverPosts.length === 0) {
-      try {
-        const response = await fetch('./posts/posts.json');
-        if (response.ok) {
-          serverPosts = await response.json();
-          serverPosts = serverPosts.filter(p => p.category !== 'Project');
+    // Load static posts.json metadata map (used to enrich news posts with importance, source, newsLink)
+    let staticPostsMap = new Map();
+    try {
+      const response = await fetch('./posts/posts.json');
+      if (response.ok) {
+        const staticList = await response.json();
+        if (Array.isArray(staticList)) {
+          staticList.forEach(p => {
+            if (p && p.id) staticPostsMap.set(p.id, p);
+          });
+          // Fallback: If GAS fetch failed for posts, use static posts
+          if (serverPosts.length === 0) {
+            serverPosts = staticList.filter(p => p && p.category !== 'Project');
+          }
         }
-      } catch (e) {
-        console.warn('Could not load posts.json from server, falling back to local storage.');
       }
+    } catch (e) {
+      console.warn('Could not load static posts.json metadata, falling back to local storage:', e);
     }
     
     // Load local posts safely
@@ -562,6 +569,23 @@ async function loadData() {
         }
       });
     }
+
+    // Enrich and normalize posts with metadata (importance, source, newsLink)
+    mergedPosts.forEach(p => {
+      if (!p) return;
+      const staticMeta = staticPostsMap.get(p.id);
+      if (staticMeta) {
+        if (!p.importance && staticMeta.importance) p.importance = staticMeta.importance;
+        if (!p.source && staticMeta.source) p.source = staticMeta.source;
+        if (!p.newsLink && staticMeta.newsLink) p.newsLink = staticMeta.newsLink;
+      }
+      if (p.category === 'News') {
+        if (!p.importance) p.importance = '⭐⭐⭐';
+        if (!p.source) p.source = '보안뉴스';
+        if (!p.newsLink) p.newsLink = '';
+      }
+    });
+
     appState.posts = mergedPosts;
     localStorage.setItem('posts', JSON.stringify(mergedPosts));
     appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1070,13 +1094,15 @@ function renderDashboard() {
     newsPosts.slice(0, 6).forEach(news => {
       const item = document.createElement('div');
       item.className = 'news-sidebar-item';
+      const importance = news.importance || '⭐⭐⭐';
+      const source = news.source || '보안뉴스';
       item.innerHTML = `
         <div class="news-sidebar-header">
-          <span style="color:#fb923c">${news.importance}</span>
-          <span class="notice-date">${news.date}</span>
+          <span style="color:#fb923c">${escapeHtml(importance)}</span>
+          <span class="notice-date">${escapeHtml(news.date || '')}</span>
         </div>
-        <div class="news-sidebar-title">${news.title}</div>
-        <div class="news-sidebar-desc">출처: ${news.source}</div>
+        <div class="news-sidebar-title">${escapeHtml(news.title || '')}</div>
+        <div class="news-sidebar-desc">출처: ${escapeHtml(source)}</div>
       `;
       item.addEventListener('click', () => {
         window.location.hash = `#/post/${news.id}`;
@@ -1652,6 +1678,9 @@ async function showArticleDetail(postId) {
   if (post.type) {
     elements.articleType.style.display = 'inline-block';
     elements.articleType.textContent = post.type;
+  } else if (post.category === 'News' && post.source) {
+    elements.articleType.style.display = 'inline-block';
+    elements.articleType.textContent = `출처: ${post.source}`;
   } else {
     elements.articleType.style.display = 'none';
   }
@@ -1696,7 +1725,8 @@ function renderSecurityNews() {
   
   const newsList = appState.posts.filter(p => {
     if (p.category !== 'News') return false;
-    if (appState.newsFilter !== 'all' && p.importance !== appState.newsFilter) return false;
+    const pImp = p.importance || '⭐⭐⭐';
+    if (appState.newsFilter !== 'all' && pImp !== appState.newsFilter) return false;
     return true;
   }).filter(matchSearch);
   
@@ -1708,15 +1738,21 @@ function renderSecurityNews() {
   newsList.forEach(news => {
     const tr = document.createElement('tr');
     tr.className = 'news-table-row';
+    const importance = news.importance || '⭐⭐⭐';
+    const source = news.source || '보안뉴스';
+    const newsLinkHtml = news.newsLink
+      ? `<a href="${escapeHtml(news.newsLink)}" target="_blank" class="news-link-btn news-external-link" title="원본 기사 링크"><i class="fa-solid fa-arrow-up-right-from-square"></i> 이동</a>`
+      : '<span class="text-muted" style="font-size: 0.85rem;">-</span>';
+
     tr.innerHTML = `
       <td class="news-delete-col" style="${isDeleteMode ? '' : 'display: none;'} text-align: center;">
-        <input type="checkbox" class="news-item-checkbox" data-id="${news.id}">
+        <input type="checkbox" class="news-item-checkbox" data-id="${escapeHtml(news.id)}">
       </td>
-      <td class="col-importance"><span class="news-importance-stars" style="color:#fb923c">${news.importance}</span></td>
-      <td class="col-title"><strong class="news-link-btn" style="cursor:pointer">${news.title}</strong></td>
-      <td class="col-source"><span class="badge news-source-badge">${news.source}</span></td>
-      <td class="col-date text-muted">${news.date}</td>
-      <td class="col-link"><a href="${news.newsLink}" target="_blank" class="news-link-btn news-external-link" title="원본 기사 링크"><i class="fa-solid fa-up-right-from-square"></i> 이동</a></td>
+      <td class="col-importance"><span class="news-importance-stars" style="color:#fb923c">${escapeHtml(importance)}</span></td>
+      <td class="col-title"><strong class="news-link-btn" style="cursor:pointer">${escapeHtml(news.title)}</strong></td>
+      <td class="col-source"><span class="badge news-source-badge">${escapeHtml(source)}</span></td>
+      <td class="col-date text-muted">${escapeHtml(news.date || '')}</td>
+      <td class="col-link">${newsLinkHtml}</td>
     `;
     tr.querySelector('strong').addEventListener('click', () => {
       window.location.hash = `#/post/${news.id}`;
@@ -1896,9 +1932,10 @@ function deleteCategory(targetCategoryId) {
 function matchSearch(post) {
   if (!appState.searchQuery) return true;
   const q = appState.searchQuery.toLowerCase();
-  const title = post.title.toLowerCase();
+  const title = (post.title || '').toLowerCase();
   const typeMatch = post.type && post.type.toLowerCase().includes(q);
-  return title.includes(q) || typeMatch;
+  const sourceMatch = post.source && post.source.toLowerCase().includes(q);
+  return title.includes(q) || typeMatch || sourceMatch;
 }
 
 // Unicode-Safe Base64 encoding

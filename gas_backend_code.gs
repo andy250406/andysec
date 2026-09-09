@@ -32,7 +32,17 @@ function getPostsSheet() {
   let sheet = ss.getSheetByName(POSTS_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(POSTS_SHEET_NAME);
-    sheet.appendRow(['id', 'category', 'title', 'date', 'content', 'image_1', 'image_2', 'image_3']);
+    sheet.appendRow(['id', 'category', 'title', 'date', 'content', 'importance', 'source', 'newsLink', 'image_1', 'image_2', 'image_3']);
+  } else {
+    try {
+      const lastCol = sheet.getLastColumn();
+      if (lastCol >= 5) {
+        const headerCell = sheet.getRange(1, 6).getValue();
+        if (headerCell !== 'importance') {
+          sheet.getRange(1, 6, 1, 3).setValues([['importance', 'source', 'newsLink']]);
+        }
+      }
+    } catch (e) {}
   }
   return sheet;
 }
@@ -123,7 +133,7 @@ function getPostsData() {
   const lastCol = sheet.getLastColumn();
   if (lastRow <= 1) return [];
 
-  const range = sheet.getRange(2, 1, lastRow - 1, Math.max(lastCol, 5));
+  const range = sheet.getRange(2, 1, lastRow - 1, Math.max(lastCol, 8));
   const values = range.getValues();
 
   let cellImages = [];
@@ -132,6 +142,13 @@ function getPostsData() {
   } catch (err) {
     cellImages = [];
   }
+
+  // Header inspection
+  let hasMetaCols = false;
+  try {
+    const headers = sheet.getRange(1, 1, 1, Math.max(lastCol, 8)).getValues()[0];
+    hasMetaCols = (headers[5] === 'importance');
+  } catch (e) {}
 
   const posts = [];
   for (let i = 0; i < values.length; i++) {
@@ -150,9 +167,32 @@ function getPostsData() {
     }
     const content = String(row[4] || '');
 
+    let importance = '';
+    let source = '';
+    let newsLink = '';
+    let imageStartCol = 8;
+
+    if (hasMetaCols) {
+      importance = String(row[5] || '');
+      source = String(row[6] || '');
+      newsLink = String(row[7] || '');
+      imageStartCol = 8;
+    } else {
+      // If header is not yet updated, check if col 6 contains star rating
+      const col5Val = String(row[5] || '').trim();
+      if (col5Val.includes('⭐')) {
+        importance = col5Val;
+        source = String(row[6] || '');
+        newsLink = String(row[7] || '');
+        imageStartCol = 8;
+      } else {
+        imageStartCol = 5;
+      }
+    }
+
     const images = [];
     const colLimit = Math.max(row.length, (cellImages[i] ? cellImages[i].length : 0));
-    for (let c = 5; c < colLimit; c++) {
+    for (let c = imageStartCol; c < colLimit; c++) {
       let imgUrl = '';
       if (cellImages[i] && cellImages[i][c]) {
         try {
@@ -176,6 +216,9 @@ function getPostsData() {
       title: title,
       date: date,
       content: content,
+      importance: importance,
+      source: source,
+      newsLink: newsLink,
       images: images
     });
   }
@@ -395,7 +438,7 @@ function doPost(e) {
     const lastRow = sheet.getLastRow();
 
     if (action === 'savePost') {
-      const { id, category, title, date, content, images } = data;
+      const { id, category, title, date, content, importance, source, newsLink, images } = data;
       if (!title) {
         return createJsonResponse({ success: false, error: '제목은 필수 입력 항목입니다.' });
       }
@@ -404,7 +447,18 @@ function doPost(e) {
       const postDate = date || Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyy-MM-dd');
       const postCategory = category || 'General';
       const postContent = content || '';
+      const postImportance = importance || '';
+      const postSource = source || '';
+      const postNewsLink = newsLink || '';
       const imgList = Array.isArray(images) ? images : [];
+
+      // Ensure headers at F, G, H
+      try {
+        const headerCell = sheet.getRange(1, 6).getValue();
+        if (headerCell !== 'importance') {
+          sheet.getRange(1, 6, 1, 3).setValues([['importance', 'source', 'newsLink']]);
+        }
+      } catch (hErr) {}
 
       let foundRow = -1;
       if (lastRow > 1) {
@@ -417,7 +471,7 @@ function doPost(e) {
         }
       }
 
-      const rowData = [postId, postCategory, title, postDate, postContent, ...imgList];
+      const rowData = [postId, postCategory, title, postDate, postContent, postImportance, postSource, postNewsLink, ...imgList];
 
       if (foundRow !== -1) {
         // 수정 (Update)
@@ -436,6 +490,9 @@ function doPost(e) {
           title: title,
           date: postDate,
           content: postContent,
+          importance: postImportance,
+          source: postSource,
+          newsLink: postNewsLink,
           images: imgList
         }
       });

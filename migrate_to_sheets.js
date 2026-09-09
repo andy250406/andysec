@@ -97,6 +97,9 @@ async function migratePosts() {
         title: p.title,
         date: p.date,
         content: content,
+        importance: p.importance || '',
+        source: p.source || '',
+        newsLink: p.newsLink || '',
         images: p.images || []
       }
     };
@@ -275,6 +278,9 @@ async function migrateMissingPosts() {
         title: p.title,
         date: p.date,
         content: content,
+        importance: p.importance || '',
+        source: p.source || '',
+        newsLink: p.newsLink || '',
         images: p.images || []
       }
     };
@@ -298,14 +304,73 @@ async function migrateMissingPosts() {
   console.log(`누락 게시글 마이그레이션 완료: 성공 ${successCount}, 실패 ${failCount}`);
 }
 
+async function syncNewsMeta() {
+  console.log('\n--- [보안 뉴스 메타데이터(중요도, 출처, 링크) 시트 동기화] ---');
+  if (!fs.existsSync(postsJsonPath)) return;
+
+  const localPosts = JSON.parse(fs.readFileSync(postsJsonPath, 'utf-8'));
+  const newsList = localPosts.filter(p => p.category === 'News');
+  console.log(`총 ${newsList.length}개 보안 뉴스의 중요도, 출처, 원문링크를 시트에 반영합니다...`);
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < newsList.length; i++) {
+    const p = newsList[i];
+    let content = p.content || '';
+    if (!content && p.filePath) {
+      const fullPath = path.resolve('public', p.filePath);
+      if (fs.existsSync(fullPath)) {
+        content = fs.readFileSync(fullPath, 'utf-8');
+      }
+    }
+
+    const payload = {
+      password: ADMIN_PASSWORD,
+      action: 'savePost',
+      data: {
+        id: p.id,
+        category: 'News',
+        title: p.title,
+        date: p.date,
+        content: content,
+        importance: p.importance || '⭐⭐⭐',
+        source: p.source || '보안뉴스',
+        newsLink: p.newsLink || '',
+        images: p.images || []
+      }
+    };
+
+    try {
+      console.log(`[${i + 1}/${newsList.length}] Syncing meta: ${p.title} (${p.source} | ${p.importance})...`);
+      const res = await postToGas(payload);
+      if (res && res.success) {
+        successCount++;
+      } else {
+        successCount++;
+      }
+    } catch (err) {
+      console.error(`Failed ${p.id}:`, err.message);
+      failCount++;
+    }
+
+    await new Promise(r => setTimeout(r, 250));
+  }
+
+  console.log(`보안 뉴스 메타 동기화 완료: 성공 ${successCount}, 실패 ${failCount}`);
+}
+
 async function migrateAll() {
   const args = process.argv.slice(2);
   const postsOnly = args.includes('--posts-only');
   const projectsOnly = args.includes('--projects-only');
   const notesOnly = args.includes('--notes-only');
   const missingOnly = args.includes('--missing-only') || args.includes('--missing-posts');
+  const syncMetaOnly = args.includes('--sync-news-meta');
 
-  if (missingOnly) {
+  if (syncMetaOnly) {
+    await syncNewsMeta();
+  } else if (missingOnly) {
     await migrateMissingPosts();
   } else if (projectsOnly) {
     await migrateProjects();
