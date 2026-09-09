@@ -381,31 +381,49 @@ function initRouter() {
 }
 
 // Load All Data (GAS Sheets DB Priority + Local Fallback)
+// Load All Data (GAS Sheets DB Priority + Local Fallback)
 async function loadData() {
   try {
     let serverPosts = [];
+    let serverProjects = [];
+    let serverNotes = [];
     
-    // 1. Fetch live posts from Google Apps Script (Sheets DB)
+    // 1. Fetch live data from Google Apps Script (Sheets DB)
     showLoader('데이터 로딩 중...', '구글 시트 데이터베이스와 연결하고 있습니다.');
     let gasLoaded = false;
     try {
-      const gasRes = await fetch(`${GAS_API_URL}?action=getPosts`, { method: 'GET' });
+      // First try batch endpoint getAllData (retrieves posts, projects, projectNotes at once)
+      const gasRes = await fetch(`${GAS_API_URL}?action=getAllData`, { method: 'GET' });
       if (gasRes.ok) {
         const gasData = await gasRes.json();
-        if (gasData && gasData.success && Array.isArray(gasData.posts)) {
-          serverPosts = gasData.posts;
+        if (gasData && gasData.success) {
+          if (Array.isArray(gasData.posts)) serverPosts = gasData.posts;
+          if (Array.isArray(gasData.projects)) serverProjects = gasData.projects;
+          if (Array.isArray(gasData.projectNotes)) serverNotes = gasData.projectNotes;
           gasLoaded = true;
-          console.log(`[GAS API] Successfully loaded ${serverPosts.length} posts from Sheets DB.`);
+          console.log(`[GAS API] Successfully loaded all data from Sheets DB (${serverPosts.length} posts, ${serverProjects.length} projects, ${serverNotes.length} notes).`);
+        }
+      }
+
+      // Fallback: If getAllData returned no posts or wasn't supported, try getPosts
+      if (!gasLoaded || serverPosts.length === 0) {
+        const pRes = await fetch(`${GAS_API_URL}?action=getPosts`, { method: 'GET' });
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          if (pData && pData.success && Array.isArray(pData.posts)) {
+            serverPosts = pData.posts;
+            gasLoaded = true;
+          }
         }
       }
     } catch (gasErr) {
-      console.warn('[GAS API] Live fetch failed or offline, falling back to local posts.json:', gasErr);
+      console.warn('[GAS API] Live fetch failed or offline, falling back to local files:', gasErr);
     } finally {
       hideLoader();
     }
 
-    // Fallback: If GAS fetch failed, fetch static posts.json
-    if (!gasLoaded || serverPosts.length === 0) {
+    // Fallback: If GAS fetch failed for posts, fetch static posts.json
+    if (serverPosts.length === 0) {
       try {
         const response = await fetch('./posts/posts.json');
         if (response.ok) {
@@ -429,66 +447,76 @@ async function loadData() {
     }
     if (!Array.isArray(localPosts)) localPosts = [];
     
-    // Merge them: combine server and local, keeping local custom/edited posts as priority
-    const deletedIds = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
-    const deletedSet = new Set(deletedIds);
-    const serverPostsFiltered = serverPosts.filter(p => p && p.id && !deletedSet.has(p.id));
-    
-    const mergedPosts = [...serverPostsFiltered];
-    localPosts.forEach(localP => {
-      if (!localP || !localP.id || deletedSet.has(localP.id)) return;
-      const exists = mergedPosts.some(serverP => serverP && serverP.id === localP.id);
-      if (!exists) {
-        mergedPosts.push(localP);
-      } else {
-        const idx = mergedPosts.findIndex(serverP => serverP && serverP.id === localP.id);
-        if (idx !== -1) {
-          mergedPosts[idx] = { ...mergedPosts[idx], ...localP };
+    // Merge posts: If live GAS DB was loaded, DB is the single source of truth across all devices!
+    let mergedPosts;
+    if (gasLoaded && serverPosts.length > 0) {
+      mergedPosts = serverPosts;
+    } else {
+      const deletedIds = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
+      const deletedSet = new Set(deletedIds);
+      const serverPostsFiltered = serverPosts.filter(p => p && p.id && !deletedSet.has(p.id));
+      mergedPosts = [...serverPostsFiltered];
+      localPosts.forEach(localP => {
+        if (!localP || !localP.id || deletedSet.has(localP.id)) return;
+        const exists = mergedPosts.some(serverP => serverP && serverP.id === localP.id);
+        if (!exists) {
+          mergedPosts.push(localP);
+        } else {
+          const idx = mergedPosts.findIndex(serverP => serverP && serverP.id === localP.id);
+          if (idx !== -1) {
+            mergedPosts[idx] = { ...mergedPosts[idx], ...localP };
+          }
         }
-      }
-    });
+      });
+    }
     appState.posts = mergedPosts;
     localStorage.setItem('posts', JSON.stringify(mergedPosts));
     appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
     
-    // 2. Initialize projects
-    await initProjects();
+    // 2. Initialize projects (using live serverProjects if from GAS, else projects.json)
+    await initProjects(serverProjects);
     
-    // 3. Load project internal notes (merged with server if available)
-    let serverNotes = [];
-    try {
-      const res = await fetch('./posts/projectNotes.json');
-      if (res.ok) {
-        serverNotes = await res.json();
-      }
-    } catch (e) {
-      console.warn('Could not load projectNotes.json from server.');
-    }
-    
-    let localNotes = [];
-    try {
-      const stored = localStorage.getItem('projectNotes');
-      if (stored && stored !== 'undefined') {
-        localNotes = JSON.parse(stored) || [];
-      }
-    } catch (e) {
-      console.error('Failed to parse local project notes:', e);
-    }
-    if (!Array.isArray(localNotes)) localNotes = [];
-
-    const mergedNotes = [...serverNotes];
-    localNotes.forEach(localN => {
-      if (!localN || !localN.id) return;
-      const exists = mergedNotes.some(serverN => serverN && serverN.id === localN.id);
-      if (!exists) {
-        mergedNotes.push(localN);
-      } else {
-        const idx = mergedNotes.findIndex(serverN => serverN && serverN.id === localN.id);
-        if (idx !== -1) {
-          mergedNotes[idx] = { ...mergedNotes[idx], ...localN };
+    // 3. Load project internal notes (using live serverNotes if from GAS, else projectNotes.json)
+    let mergedNotes;
+    if (gasLoaded && serverNotes.length > 0) {
+      mergedNotes = serverNotes;
+    } else {
+      if (serverNotes.length === 0) {
+        try {
+          const res = await fetch('./posts/projectNotes.json');
+          if (res.ok) {
+            serverNotes = await res.json();
+          }
+        } catch (e) {
+          console.warn('Could not load projectNotes.json from server.');
         }
       }
-    });
+      
+      let localNotes = [];
+      try {
+        const stored = localStorage.getItem('projectNotes');
+        if (stored && stored !== 'undefined') {
+          localNotes = JSON.parse(stored) || [];
+        }
+      } catch (e) {
+        console.error('Failed to parse local project notes:', e);
+      }
+      if (!Array.isArray(localNotes)) localNotes = [];
+
+      mergedNotes = [...serverNotes];
+      localNotes.forEach(localN => {
+        if (!localN || !localN.id) return;
+        const exists = mergedNotes.some(serverN => serverN && serverN.id === localN.id);
+        if (!exists) {
+          mergedNotes.push(localN);
+        } else {
+          const idx = mergedNotes.findIndex(serverN => serverN && serverN.id === localN.id);
+          if (idx !== -1) {
+            mergedNotes[idx] = { ...mergedNotes[idx], ...localN };
+          }
+        }
+      });
+    }
     
     appState.projectNotes = mergedNotes;
     localStorage.setItem('projectNotes', JSON.stringify(mergedNotes));
@@ -496,12 +524,20 @@ async function loadData() {
     renderAll();
   } catch (error) {
     console.error('Error fetching data:', error);
-    elements.recentStudyList.innerHTML = `<p class="error-msg">데이터 로드 실패: ${error.message}</p>`;
+    if (elements.recentStudyList) {
+      elements.recentStudyList.innerHTML = `<p class="error-msg">데이터 로드 실패: ${error.message}</p>`;
+    }
   }
 }
 
 // Seed default projects (merged with server if exists)
-async function initProjects() {
+async function initProjects(gasServerProjects = []) {
+  if (Array.isArray(gasServerProjects) && gasServerProjects.length > 0) {
+    appState.projects = gasServerProjects;
+    localStorage.setItem('projects', JSON.stringify(gasServerProjects));
+    return;
+  }
+
   let serverProjects = [];
   try {
     const res = await fetch('./posts/projects.json');
@@ -1197,12 +1233,27 @@ function openEditDiagnosticModal(projectId, diagId) {
 }
 
 // Delete Diagnostic
-function deleteDiagnostic(projectId, diagId) {
+async function deleteDiagnostic(projectId, diagId) {
   if (!confirm('정말로 이 세부 진단 일정을 삭제하시겠습니까?')) return;
   const project = appState.projects.find(p => p.id === projectId);
   if (!project || !project.diagnostics) return;
 
-  project.diagnostics = project.diagnostics.filter(d => d.id !== diagId);
+  const updatedProject = {
+    ...project,
+    diagnostics: project.diagnostics.filter(d => d.id !== diagId)
+  };
+
+  if (appState.isAdmin && appState.adminPassword) {
+    try {
+      await sendToGasApi('saveProject', updatedProject);
+    } catch (err) {
+      alert(err.message);
+      return;
+    }
+  }
+
+  const pIdx = appState.projects.findIndex(p => p.id === projectId);
+  if (pIdx !== -1) appState.projects[pIdx] = updatedProject;
   localStorage.setItem('projects', JSON.stringify(appState.projects));
 
   if (appState.activeDiagId === diagId) {
@@ -1210,7 +1261,7 @@ function deleteDiagnostic(projectId, diagId) {
   } else {
     renderProjectsList();
     if (elements.projectDetailView && elements.projectDetailView.style.display !== 'none') {
-      renderProjectDiagnostics(project);
+      renderProjectDiagnostics(updatedProject);
     }
   }
 }
@@ -1822,41 +1873,68 @@ function setupEventListeners() {
   });
   
   elements.btnDeleteProject.addEventListener('click', async () => {
-    if (confirm('정말로 이 프로젝트를 삭제하시겠습니까?\n프로젝트 내의 게시판 글도 함께 삭제됩니다.')) {
-      appState.projects = appState.projects.filter(p => p.id !== appState.activeProjectId);
-      appState.projectNotes = appState.projectNotes.filter(n => n.projectId !== appState.activeProjectId);
-      
-      localStorage.setItem('projects', JSON.stringify(appState.projects));
-      localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
-      
-      window.location.hash = '#/tab/projects';
+    if (!confirm('정말로 이 프로젝트를 삭제하시겠습니까?\n프로젝트 내의 게시판 글도 함께 삭제됩니다.')) return;
+    const projId = appState.activeProjectId;
+    if (appState.isAdmin && appState.adminPassword) {
+      try {
+        await sendToGasApi('deleteProject', { id: projId });
+      } catch (err) {
+        const forceLocal = confirm(err.message + '\n\n원격 구글 시트 DB 삭제에 실패했습니다.\n그래도 현재 브라우저 로컬 캐시에서 강제로 삭제하시겠습니까?');
+        if (!forceLocal) return;
+      }
     }
+    appState.projects = appState.projects.filter(p => p.id !== projId);
+    appState.projectNotes = appState.projectNotes.filter(n => n.projectId !== projId);
+    
+    localStorage.setItem('projects', JSON.stringify(appState.projects));
+    localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
+    
+    window.location.hash = '#/tab/projects';
   });
 
   // Form Submit: Add/Edit Project
-  elements.addProjectForm?.addEventListener('submit', (e) => {
+  elements.addProjectForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const editId = elements.projectEditId.value;
     
-    const projData = {
-      name: document.getElementById('project-name').value,
-      client: document.getElementById('project-client').value,
-      startDate: document.getElementById('project-start').value,
-      endDate: document.getElementById('project-end').value,
-      details: document.getElementById('project-details').value
-    };
-    
+    let targetProj;
     if (editId) {
       const index = appState.projects.findIndex(p => p.id === editId);
-      if (index !== -1) {
-        appState.projects[index] = { ...appState.projects[index], ...projData };
-      }
-    } else {
-      const newProj = {
-        id: 'project-' + Date.now(),
-        ...projData
+      if (index === -1) return;
+      targetProj = {
+        ...appState.projects[index],
+        name: document.getElementById('project-name').value.trim(),
+        client: document.getElementById('project-client').value.trim(),
+        startDate: document.getElementById('project-start').value,
+        endDate: document.getElementById('project-end').value,
+        details: document.getElementById('project-details').value.trim()
       };
-      appState.projects.unshift(newProj);
+    } else {
+      targetProj = {
+        id: 'project-' + Date.now(),
+        name: document.getElementById('project-name').value.trim(),
+        client: document.getElementById('project-client').value.trim(),
+        startDate: document.getElementById('project-start').value,
+        endDate: document.getElementById('project-end').value,
+        details: document.getElementById('project-details').value.trim(),
+        diagnostics: []
+      };
+    }
+
+    if (appState.isAdmin && appState.adminPassword) {
+      try {
+        await sendToGasApi('saveProject', targetProj);
+      } catch (err) {
+        alert(err.message);
+        return;
+      }
+    }
+
+    if (editId) {
+      const index = appState.projects.findIndex(p => p.id === editId);
+      if (index !== -1) appState.projects[index] = targetProj;
+    } else {
+      appState.projects.unshift(targetProj);
     }
     
     localStorage.setItem('projects', JSON.stringify(appState.projects));
@@ -1888,7 +1966,7 @@ function setupEventListeners() {
     elements.addDiagnosticModal.style.display = 'none';
   });
 
-  elements.addDiagnosticForm?.addEventListener('submit', (e) => {
+  elements.addDiagnosticForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const projectId = elements.diagParentId.value;
     const editId = elements.diagEditId.value;
@@ -1896,9 +1974,6 @@ function setupEventListeners() {
     if (!project) {
       alert('프로젝트를 찾을 수 없습니다.');
       return;
-    }
-    if (!Array.isArray(project.diagnostics)) {
-      project.diagnostics = [];
     }
 
     const diagData = {
@@ -1912,18 +1987,35 @@ function setupEventListeners() {
       content: elements.diagContent.value
     };
 
+    const updatedProject = {
+      ...project,
+      diagnostics: Array.isArray(project.diagnostics) ? [...project.diagnostics] : []
+    };
+
     if (editId) {
-      const idx = project.diagnostics.findIndex(d => d.id === editId);
+      const idx = updatedProject.diagnostics.findIndex(d => d.id === editId);
       if (idx !== -1) {
-        project.diagnostics[idx] = { ...project.diagnostics[idx], ...diagData };
+        updatedProject.diagnostics[idx] = { ...updatedProject.diagnostics[idx], ...diagData };
       }
     } else {
       const newDiag = {
         id: 'diag-' + Date.now(),
         ...diagData
       };
-      project.diagnostics.push(newDiag);
+      updatedProject.diagnostics.push(newDiag);
     }
+
+    if (appState.isAdmin && appState.adminPassword) {
+      try {
+        await sendToGasApi('saveProject', updatedProject);
+      } catch (err) {
+        alert(err.message);
+        return;
+      }
+    }
+
+    const pIdx = appState.projects.findIndex(p => p.id === projectId);
+    if (pIdx !== -1) appState.projects[pIdx] = updatedProject;
 
     localStorage.setItem('projects', JSON.stringify(appState.projects));
     elements.addDiagnosticModal.style.display = 'none';
@@ -1931,10 +2023,10 @@ function setupEventListeners() {
 
     renderProjectsList();
     if (elements.projectDetailView && elements.projectDetailView.style.display !== 'none') {
-      renderProjectDiagnostics(project);
+      renderProjectDiagnostics(updatedProject);
     }
     if (elements.diagnosticDetailPane && elements.diagnosticDetailPane.style.display !== 'none') {
-      showDiagnosticDetail(projectId, editId || project.diagnostics[project.diagnostics.length - 1].id);
+      showDiagnosticDetail(projectId, editId || updatedProject.diagnostics[updatedProject.diagnostics.length - 1].id);
     }
   });
 
@@ -1987,32 +2079,49 @@ function setupEventListeners() {
   });
 
   // Form Submit: Add/Edit Project Note
-  elements.addNoteForm?.addEventListener('submit', (e) => {
+  elements.addNoteForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const editId = elements.noteEditId.value;
     
-    const noteData = {
-      title: document.getElementById('note-title').value,
-      content: document.getElementById('note-content').value,
-    };
-    
+    let targetNote;
     if (editId) {
       const index = appState.projectNotes.findIndex(n => n.id === editId);
-      if (index !== -1) {
-        appState.projectNotes[index] = { ...appState.projectNotes[index], ...noteData };
-        if (appState.activePostId === editId) {
-          showLocalNoteDetail(appState.projectNotes[index]);
-        }
-      }
+      if (index === -1) return;
+      targetNote = {
+        ...appState.projectNotes[index],
+        title: document.getElementById('note-title').value.trim(),
+        content: document.getElementById('note-content').value
+      };
     } else {
       if (!appState.activeProjectId) return;
-      const newNote = {
+      targetNote = {
         id: 'note-' + Date.now(),
         projectId: appState.activeProjectId,
         date: new Date().toISOString().split('T')[0],
-        ...noteData
+        title: document.getElementById('note-title').value.trim(),
+        content: document.getElementById('note-content').value
       };
-      appState.projectNotes.unshift(newNote);
+    }
+
+    if (appState.isAdmin && appState.adminPassword) {
+      try {
+        await sendToGasApi('saveProjectNote', targetNote);
+      } catch (err) {
+        alert(err.message);
+        return;
+      }
+    }
+
+    if (editId) {
+      const index = appState.projectNotes.findIndex(n => n.id === editId);
+      if (index !== -1) {
+        appState.projectNotes[index] = targetNote;
+        if (appState.activePostId === editId) {
+          showLocalNoteDetail(targetNote);
+        }
+      }
+    } else {
+      appState.projectNotes.unshift(targetNote);
     }
     
     localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
@@ -3328,9 +3437,18 @@ function setupEventListeners() {
     
     if (appState.activePostType === 'projectNote') {
       const noteId = appState.activePostId;
+      if (appState.isAdmin && appState.adminPassword) {
+        try {
+          await sendToGasApi('deleteProjectNote', { id: noteId });
+        } catch (err) {
+          const forceLocal = confirm(err.message + '\n\n원격 구글 시트 DB 삭제에 실패했습니다.\n그래도 현재 브라우저 로컬 캐시에서만 강제로 삭제하시겠습니까?\n(취소를 누르면 글이 보존되며 삭제가 중단됩니다.)');
+          if (!forceLocal) return;
+        }
+      }
       appState.projectNotes = appState.projectNotes.filter(n => n.id !== noteId);
       localStorage.setItem('projectNotes', JSON.stringify(appState.projectNotes));
       renderProjectNotes(appState.activeProjectId);
+      alert('프로젝트 기록이 삭제되었습니다.');
       window.location.hash = `#/project/${appState.activeProjectId}`;
     } else {
       const postToDelete = appState.posts.find(p => p.id === appState.activePostId);

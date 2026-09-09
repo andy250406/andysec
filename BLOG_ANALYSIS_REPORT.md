@@ -223,6 +223,20 @@
     * **3단계 반응형(Stage 1, 2, 3) 완벽 지원**:
       * 와이드 PC(Stage 1) 및 태블릿(Stage 2)에서는 5열 트리 테이블 형태로 표시.
       * 모바일(Stage 3 <= 768px)에서는 부모 프로젝트 카드 하단에 인덴트된 서브 카드 형태로 진단 일정들이 표시되며, 터치 한 번으로 진단 상세 화면으로 매끄럽게 전환.
-
-
-
+17. **프로젝트, 세부진단, 프로젝트 기록 게시물 전면 구글 시트 DB 연동 및 멀티 디바이스 실시간 동기화 (2026-09-09 11차 배포)**:
+    * **Google Sheets 3개 시트 기반 분산 NoSQL 데이터베이스 모델 구축**:
+      * **`Posts` 시트**: 스터디 노트 및 보안 뉴스 저장 (`id`, `category`, `title`, `date`, `content`, `images`)
+      * **`Projects` 시트**: 상위 프로젝트 및 원자적(Atomic) 하위 세부 진단 배열 저장 (`id`, `name`, `client`, `startDate`, `endDate`, `details`, `diagnostics` JSON)
+      * **`ProjectNotes` 시트**: 각 프로젝트에 소속된 비공개 기록 게시판 저장 (`id`, `projectId`, `title`, `date`, `content`)
+      * *시트 자동 생성 및 초기화*: `gas_backend_code.gs` 실행 시 해당 시트들이 없으면 자동으로 탭과 헤더를 생성하여 런타임 오류 방지.
+    * **Google Apps Script(GAS) REST 백엔드 풀 CRUD 및 일괄 조회(Batch Query) API 확장**:
+      * **일괄 조회 엔드포인트 (`GET ?action=getAllData`)**: 1회의 HTTP 요청으로 게시글, 프로젝트, 프로젝트 기록 전체를 한 번에 수신하여 클라이언트 로딩 지연 최소화 (`getProjects`, `getProjectNotes` 개별 조회도 지원).
+      * **`saveProject` & `deleteProject`**: 상위 프로젝트와 하위 진단 일정(배열)을 즉시 시트에 추가/수정/삭제. 프로젝트 삭제 시 해당 프로젝트에 소속된 `ProjectNotes`도 연쇄(Cascading) 자동 삭제.
+      * **`saveProjectNote` & `deleteProjectNote`**: 프로젝트 내부 기록의 등록, 수정, 삭제 처리.
+    * **프론트엔드(`main.js`) 실시간 DB 동기화 및 타 기기 접속 시 삭제 글 부활(Zombie Item) 원천 방지**:
+      * `loadData()` 개편: `getAllData`를 통해 구글 시트 DB의 실시간 데이터를 최우선으로 수신.
+      * GAS DB가 정상 로드되었을 경우(`gasLoaded = true`), 구글 시트 DB를 단일 진실 공급원(Single Source of Truth)으로 삼아 타 기기의 오래된 `localStorage` 캐시가 삭제된 글을 부활시키는 현상을 원천 차단.
+      * 네트워크 오프라인이나 GAS 장애 시에만 안전하게 `localStorage` 및 정적 `.json` 파일로 자동 폴백.
+      * 프로젝트 등록/수정/삭제, 세부 진단 추가/수정/삭제, 프로젝트 기록 등록/수정/삭제 시 `sendToGasApi`를 통해 구글 시트 DB와 즉각 동기화.
+    * **데이터 마이그레이션 도구 고도화 (`migrate_to_sheets.js`)**:
+      * 기존 `posts.json`뿐만 아니라 `projects.json`(SKT 3대 세부 진단 포함) 및 `projectNotes.json`까지 구글 시트로 일괄 이전할 수 있도록 스크립트 확장 (`--posts-only`, `--projects-only`, `--notes-only` 옵션 지원).

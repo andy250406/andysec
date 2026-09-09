@@ -17,7 +17,9 @@ function getAdminPassword() {
   return prop || 'pp0406hh';
 }
 
-const SHEET_NAME = 'Posts';
+const POSTS_SHEET_NAME = 'Posts';
+const PROJECTS_SHEET_NAME = 'Projects';
+const PROJECT_NOTES_SHEET_NAME = 'ProjectNotes';
 
 function getSpreadsheet() {
   return SpreadsheetApp.getActiveSpreadsheet();
@@ -25,10 +27,30 @@ function getSpreadsheet() {
 
 function getPostsSheet() {
   const ss = getSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
+  let sheet = ss.getSheetByName(POSTS_SHEET_NAME);
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
+    sheet = ss.insertSheet(POSTS_SHEET_NAME);
     sheet.appendRow(['id', 'category', 'title', 'date', 'content', 'image_1', 'image_2', 'image_3']);
+  }
+  return sheet;
+}
+
+function getProjectsSheet() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(PROJECTS_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(PROJECTS_SHEET_NAME);
+    sheet.appendRow(['id', 'name', 'client', 'startDate', 'endDate', 'details', 'diagnostics']);
+  }
+  return sheet;
+}
+
+function getProjectNotesSheet() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(PROJECT_NOTES_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(PROJECT_NOTES_SHEET_NAME);
+    sheet.appendRow(['id', 'projectId', 'title', 'date', 'content']);
   }
   return sheet;
 }
@@ -39,91 +61,195 @@ function createJsonResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// GET 요청 처리 (데이터 조회)
+// =========================================================================
+// 데이터 추출 함수군
+// =========================================================================
+
+// 1. Posts (스터디 노트 & 보안 뉴스) 데이터 추출
+function getPostsData() {
+  const sheet = getPostsSheet();
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow <= 1) return [];
+
+  const range = sheet.getRange(2, 1, lastRow - 1, Math.max(lastCol, 5));
+  const values = range.getValues();
+
+  let cellImages = [];
+  try {
+    cellImages = range.getCellImages();
+  } catch (err) {
+    cellImages = [];
+  }
+
+  const posts = [];
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    const id = String(row[0] || '').trim();
+    if (!id) continue;
+
+    const category = String(row[1] || 'General');
+    const title = String(row[2] || '');
+    const dateVal = row[3];
+    let date = '';
+    if (dateVal instanceof Date) {
+      date = Utilities.formatDate(dateVal, Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyy-MM-dd');
+    } else {
+      date = String(dateVal || '');
+    }
+    const content = String(row[4] || '');
+
+    const images = [];
+    const colLimit = Math.max(row.length, (cellImages[i] ? cellImages[i].length : 0));
+    for (let c = 5; c < colLimit; c++) {
+      let imgUrl = '';
+      if (cellImages[i] && cellImages[i][c]) {
+        try {
+          imgUrl = cellImages[i][c].getContentUrl() || '';
+        } catch (e) {
+          imgUrl = '';
+        }
+      }
+      if (!imgUrl && row[c]) {
+        const val = String(row[c]).trim();
+        if (val.startsWith('http')) {
+          imgUrl = val;
+        }
+      }
+      if (imgUrl) images.push(imgUrl);
+    }
+
+    posts.push({
+      id: id,
+      category: category,
+      title: title,
+      date: date,
+      content: content,
+      images: images
+    });
+  }
+  posts.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return posts;
+}
+
+// 2. Projects (프로젝트 및 하위 세부 진단 일정) 데이터 추출
+function getProjectsData() {
+  const sheet = getProjectsSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+  const projects = [];
+
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    const id = String(row[0] || '').trim();
+    if (!id) continue;
+
+    const name = String(row[1] || '');
+    const client = String(row[2] || '');
+    
+    let startDate = row[3];
+    if (startDate instanceof Date) {
+      startDate = Utilities.formatDate(startDate, Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyy-MM-dd');
+    } else {
+      startDate = String(startDate || '');
+    }
+
+    let endDate = row[4];
+    if (endDate instanceof Date) {
+      endDate = Utilities.formatDate(endDate, Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyy-MM-dd');
+    } else {
+      endDate = String(endDate || '');
+    }
+
+    const details = String(row[5] || '');
+    let diagnostics = [];
+    try {
+      const rawDiag = String(row[6] || '').trim();
+      if (rawDiag) {
+        diagnostics = JSON.parse(rawDiag);
+      }
+    } catch (e) {
+      diagnostics = [];
+    }
+
+    projects.push({
+      id: id,
+      name: name,
+      client: client,
+      startDate: startDate,
+      endDate: endDate,
+      details: details,
+      diagnostics: Array.isArray(diagnostics) ? diagnostics : []
+    });
+  }
+
+  projects.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+  return projects;
+}
+
+// 3. ProjectNotes (프로젝트 내부 스터디 & 기록 게시물) 데이터 추출
+function getProjectNotesData() {
+  const sheet = getProjectNotesSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+  const notes = [];
+
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    const id = String(row[0] || '').trim();
+    if (!id) continue;
+
+    const projectId = String(row[1] || '');
+    const title = String(row[2] || '');
+    
+    let date = row[3];
+    if (date instanceof Date) {
+      date = Utilities.formatDate(date, Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyy-MM-dd');
+    } else {
+      date = String(date || '');
+    }
+
+    const content = String(row[4] || '');
+
+    notes.push({
+      id: id,
+      projectId: projectId,
+      title: title,
+      date: date,
+      content: content
+    });
+  }
+
+  notes.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return notes;
+}
+
+// =========================================================================
+// GET 요청 처리 (조회 API)
+// =========================================================================
 function doGet(e) {
   try {
-    const sheet = getPostsSheet();
-    const lastRow = sheet.getLastRow();
-    const lastCol = sheet.getLastColumn();
+    const action = (e && e.parameter && e.parameter.action) || 'getPosts';
 
-    if (lastRow <= 1) {
-      return createJsonResponse({ success: true, posts: [] });
-    }
-
-    // 2행부터 전체 데이터 읽기
-    const range = sheet.getRange(2, 1, lastRow - 1, Math.max(lastCol, 5));
-    const values = range.getValues();
-    
-    // 셀 내 이미지 객체 처리 (시트 셀 내 이미지 추출 지원)
-    let cellImages = [];
-    try {
-      cellImages = range.getCellImages();
-    } catch (err) {
-      // getCellImages 미지원 환경 대비 fallback
-      cellImages = [];
-    }
-
-    const posts = [];
-
-    for (let i = 0; i < values.length; i++) {
-      const row = values[i];
-      const id = String(row[0] || '').trim();
-      if (!id) continue;
-
-      const category = String(row[1] || 'General');
-      const title = String(row[2] || '');
-      const dateVal = row[3];
-      let date = '';
-      if (dateVal instanceof Date) {
-        date = Utilities.formatDate(dateVal, Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyy-MM-dd');
-      } else {
-        date = String(dateVal || '');
-      }
-      const content = String(row[4] || '');
-
-      // F열(인덱스 5) 이후의 이미지들 수집
-      const images = [];
-      const colLimit = Math.max(row.length, (cellImages[i] ? cellImages[i].length : 0));
-      for (let c = 5; c < colLimit; c++) {
-        let imgUrl = '';
-        // 1. 셀 내 이미지 객체가 있는 경우 getContentUrl() 추출
-        if (cellImages[i] && cellImages[i][c]) {
-          try {
-            imgUrl = cellImages[i][c].getContentUrl() || '';
-          } catch (e) {
-            imgUrl = '';
-          }
-        }
-        // 2. 텍스트 URL로 기입된 경우
-        if (!imgUrl && row[c]) {
-          const val = String(row[c]).trim();
-          if (val.startsWith('http')) {
-            imgUrl = val;
-          }
-        }
-
-        if (imgUrl) {
-          images.push(imgUrl);
-        }
-      }
-
-      posts.push({
-        id: id,
-        category: category,
-        title: title,
-        date: date,
-        content: content,
-        images: images
+    if (action === 'getProjects') {
+      return createJsonResponse({ success: true, projects: getProjectsData() });
+    } else if (action === 'getProjectNotes') {
+      return createJsonResponse({ success: true, projectNotes: getProjectNotesData() });
+    } else if (action === 'getAllData') {
+      return createJsonResponse({
+        success: true,
+        posts: getPostsData(),
+        projects: getProjectsData(),
+        projectNotes: getProjectNotesData()
       });
+    } else {
+      // 기본값: getPosts
+      return createJsonResponse({ success: true, posts: getPostsData() });
     }
-
-    // 날짜 기준 내림차순 정렬
-    posts.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    return createJsonResponse({
-      success: true,
-      posts: posts
-    });
   } catch (err) {
     return createJsonResponse({
       success: false,
@@ -221,6 +347,169 @@ function doPost(e) {
       } else {
         return createJsonResponse({ success: false, error: '해당 ID의 게시글을 찾을 수 없습니다.' });
       }
+
+    // 3. Projects (프로젝트 및 하위 세부 진단) 저장
+    } else if (action === 'saveProject') {
+      const sheet = getProjectsSheet();
+      const lastRow = sheet.getLastRow();
+      const { id, name, client, startDate, endDate, details, diagnostics } = data;
+      if (!name) {
+        return createJsonResponse({ success: false, error: '프로젝트 이름은 필수 입력 항목입니다.' });
+      }
+
+      const projId = id || ('project-' + Date.now());
+      const projName = String(name).trim();
+      const projClient = client ? String(client).trim() : '';
+      const projStart = startDate || '';
+      const projEnd = endDate || '';
+      const projDetails = details || '';
+      const diagJson = JSON.stringify(Array.isArray(diagnostics) ? diagnostics : []);
+
+      let foundRow = -1;
+      if (lastRow > 1) {
+        const idValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+        for (let r = 0; r < idValues.length; r++) {
+          if (String(idValues[r][0]) === projId) {
+            foundRow = r + 2;
+            break;
+          }
+        }
+      }
+
+      const rowData = [projId, projName, projClient, projStart, projEnd, projDetails, diagJson];
+
+      if (foundRow !== -1) {
+        sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
+      } else {
+        sheet.appendRow(rowData);
+      }
+
+      return createJsonResponse({
+        success: true,
+        message: '프로젝트가 성공적으로 저장되었습니다.',
+        project: {
+          id: projId,
+          name: projName,
+          client: projClient,
+          startDate: projStart,
+          endDate: projEnd,
+          details: projDetails,
+          diagnostics: Array.isArray(diagnostics) ? diagnostics : []
+        }
+      });
+
+    // 4. Projects 삭제
+    } else if (action === 'deleteProject') {
+      const sheet = getProjectsSheet();
+      const lastRow = sheet.getLastRow();
+      const { id } = data;
+      if (!id) {
+        return createJsonResponse({ success: false, error: '삭제할 프로젝트 ID가 지정되지 않았습니다.' });
+      }
+
+      let deleteRow = -1;
+      if (lastRow > 1) {
+        const idValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+        for (let r = 0; r < idValues.length; r++) {
+          if (String(idValues[r][0]) === id) {
+            deleteRow = r + 2;
+            break;
+          }
+        }
+      }
+
+      if (deleteRow !== -1) {
+        sheet.deleteRow(deleteRow);
+
+        // 프로젝트에 소속된 ProjectNotes도 함께 일괄 정리
+        const notesSheet = getProjectNotesSheet();
+        const notesLastRow = notesSheet.getLastRow();
+        if (notesLastRow > 1) {
+          const noteProjIds = notesSheet.getRange(2, 2, notesLastRow - 1, 1).getValues();
+          for (let nr = noteProjIds.length - 1; nr >= 0; nr--) {
+            if (String(noteProjIds[nr][0]) === id) {
+              notesSheet.deleteRow(nr + 2);
+            }
+          }
+        }
+
+        return createJsonResponse({ success: true, message: '프로젝트 및 소속 기록이 삭제되었습니다.', id: id });
+      } else {
+        return createJsonResponse({ success: false, error: '해당 ID의 프로젝트를 찾을 수 없습니다.' });
+      }
+
+    // 5. ProjectNotes (프로젝트 기록 게시판) 저장
+    } else if (action === 'saveProjectNote') {
+      const sheet = getProjectNotesSheet();
+      const lastRow = sheet.getLastRow();
+      const { id, projectId, title, date, content } = data;
+      if (!title || !projectId) {
+        return createJsonResponse({ success: false, error: '제목과 소속 프로젝트 ID는 필수 입력 항목입니다.' });
+      }
+
+      const noteId = id || ('note-' + Date.now());
+      const noteDate = date || Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyy-MM-dd');
+      const noteTitle = String(title).trim();
+      const noteContent = content || '';
+
+      let foundRow = -1;
+      if (lastRow > 1) {
+        const idValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+        for (let r = 0; r < idValues.length; r++) {
+          if (String(idValues[r][0]) === noteId) {
+            foundRow = r + 2;
+            break;
+          }
+        }
+      }
+
+      const rowData = [noteId, projectId, noteTitle, noteDate, noteContent];
+
+      if (foundRow !== -1) {
+        sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
+      } else {
+        sheet.appendRow(rowData);
+      }
+
+      return createJsonResponse({
+        success: true,
+        message: '프로젝트 기록이 성공적으로 저장되었습니다.',
+        note: {
+          id: noteId,
+          projectId: projectId,
+          title: noteTitle,
+          date: noteDate,
+          content: noteContent
+        }
+      });
+
+    // 6. ProjectNotes 삭제
+    } else if (action === 'deleteProjectNote') {
+      const sheet = getProjectNotesSheet();
+      const lastRow = sheet.getLastRow();
+      const { id } = data;
+      if (!id) {
+        return createJsonResponse({ success: false, error: '삭제할 기록 ID가 지정되지 않았습니다.' });
+      }
+
+      let deleteRow = -1;
+      if (lastRow > 1) {
+        const idValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+        for (let r = 0; r < idValues.length; r++) {
+          if (String(idValues[r][0]) === id) {
+            deleteRow = r + 2;
+            break;
+          }
+        }
+      }
+
+      if (deleteRow !== -1) {
+        sheet.deleteRow(deleteRow);
+        return createJsonResponse({ success: true, message: '프로젝트 기록이 삭제되었습니다.', id: id });
+      } else {
+        return createJsonResponse({ success: false, error: '해당 ID의 프로젝트 기록을 찾을 수 없습니다.' });
+      }
+
     } else if (action === 'verifyPassword') {
       // 비밀번호 검증 전용 액션
       return createJsonResponse({ success: true, message: '인증되었습니다.' });

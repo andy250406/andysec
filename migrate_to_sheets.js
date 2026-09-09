@@ -7,6 +7,8 @@ const ADMIN_PASSWORD = 'pp0406hh';
 
 const postsDir = path.resolve('./public/posts');
 const postsJsonPath = path.join(postsDir, 'posts.json');
+const projectsJsonPath = path.join(postsDir, 'projects.json');
+const projectNotesJsonPath = path.join(postsDir, 'projectNotes.json');
 
 function postToGas(payload) {
   return new Promise((resolve, reject) => {
@@ -62,10 +64,10 @@ function postToGas(payload) {
   });
 }
 
-async function migrate() {
-  console.log('Reading posts metadata from:', postsJsonPath);
+async function migratePosts() {
+  console.log('\n--- [1/3] Migrating Posts (게시글 마이그레이션) ---');
   if (!fs.existsSync(postsJsonPath)) {
-    console.error('posts.json not found!');
+    console.log('posts.json not found, skipping posts migration.');
     return;
   }
 
@@ -79,7 +81,6 @@ async function migrate() {
     const p = posts[i];
     let content = p.content || '';
 
-    // If content not in json, read from markdown file
     if (!content && p.filePath) {
       const fullPath = path.resolve('public', p.filePath);
       if (fs.existsSync(fullPath)) {
@@ -101,24 +102,137 @@ async function migrate() {
     };
 
     try {
-      console.log(`[${i + 1}/${posts.length}] Migrating: ${p.title} (${p.id})...`);
+      console.log(`[${i + 1}/${posts.length}] Migrating Post: ${p.title} (${p.id})...`);
       const res = await postToGas(payload);
       if (res && res.success) {
         successCount++;
       } else {
-        console.warn(`Response error for ${p.id}:`, res);
-        successCount++; // GAS redirect might output HTML or simple object
+        console.warn(`Response for ${p.id}:`, res);
+        successCount++;
       }
     } catch (err) {
       console.error(`Failed to migrate ${p.id}:`, err.message);
       failCount++;
     }
 
-    // Short sleep to prevent rate limiting
     await new Promise(r => setTimeout(r, 400));
   }
-
-  console.log(`\nMigration completed! Success: ${successCount}, Failed: ${failCount}`);
+  console.log(`Posts migration completed: Success ${successCount}, Failed ${failCount}`);
 }
 
-migrate();
+async function migrateProjects() {
+  console.log('\n--- [2/3] Migrating Projects (프로젝트 및 하위 세부진단 마이그레이션) ---');
+  if (!fs.existsSync(projectsJsonPath)) {
+    console.log('projects.json not found, skipping projects migration.');
+    return;
+  }
+
+  const projects = JSON.parse(fs.readFileSync(projectsJsonPath, 'utf-8'));
+  console.log(`Found ${projects.length} projects to migrate.`);
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < projects.length; i++) {
+    const proj = projects[i];
+    const payload = {
+      password: ADMIN_PASSWORD,
+      action: 'saveProject',
+      data: {
+        id: proj.id,
+        name: proj.name,
+        client: proj.client || '',
+        startDate: proj.startDate || '',
+        endDate: proj.endDate || '',
+        details: proj.details || '',
+        diagnostics: proj.diagnostics || []
+      }
+    };
+
+    try {
+      const diagCount = (proj.diagnostics && proj.diagnostics.length) || 0;
+      console.log(`[${i + 1}/${projects.length}] Migrating Project: ${proj.name} (Diagnostics: ${diagCount}개)...`);
+      const res = await postToGas(payload);
+      if (res && res.success) {
+        successCount++;
+      } else {
+        console.warn(`Response for ${proj.id}:`, res);
+        successCount++;
+      }
+    } catch (err) {
+      console.error(`Failed to migrate project ${proj.id}:`, err.message);
+      failCount++;
+    }
+
+    await new Promise(r => setTimeout(r, 400));
+  }
+  console.log(`Projects migration completed: Success ${successCount}, Failed ${failCount}`);
+}
+
+async function migrateProjectNotes() {
+  console.log('\n--- [3/3] Migrating Project Notes (프로젝트 기록 게시물 마이그레이션) ---');
+  if (!fs.existsSync(projectNotesJsonPath)) {
+    console.log('projectNotes.json not found, skipping project notes migration.');
+    return;
+  }
+
+  const notes = JSON.parse(fs.readFileSync(projectNotesJsonPath, 'utf-8'));
+  console.log(`Found ${notes.length} project notes to migrate.`);
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < notes.length; i++) {
+    const note = notes[i];
+    const payload = {
+      password: ADMIN_PASSWORD,
+      action: 'saveProjectNote',
+      data: {
+        id: note.id,
+        projectId: note.projectId,
+        title: note.title,
+        date: note.date,
+        content: note.content || ''
+      }
+    };
+
+    try {
+      console.log(`[${i + 1}/${notes.length}] Migrating Project Note: ${note.title} (${note.id})...`);
+      const res = await postToGas(payload);
+      if (res && res.success) {
+        successCount++;
+      } else {
+        console.warn(`Response for ${note.id}:`, res);
+        successCount++;
+      }
+    } catch (err) {
+      console.error(`Failed to migrate project note ${note.id}:`, err.message);
+      failCount++;
+    }
+
+    await new Promise(r => setTimeout(r, 400));
+  }
+  console.log(`Project notes migration completed: Success ${successCount}, Failed ${failCount}`);
+}
+
+async function migrateAll() {
+  const args = process.argv.slice(2);
+  const postsOnly = args.includes('--posts-only');
+  const projectsOnly = args.includes('--projects-only');
+  const notesOnly = args.includes('--notes-only');
+
+  if (projectsOnly) {
+    await migrateProjects();
+  } else if (notesOnly) {
+    await migrateProjectNotes();
+  } else if (postsOnly) {
+    await migratePosts();
+  } else {
+    await migratePosts();
+    await migrateProjects();
+    await migrateProjectNotes();
+  }
+  console.log('\n모든 마이그레이션 작업이 완료되었습니다!');
+}
+
+migrateAll();
