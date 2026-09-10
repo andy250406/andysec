@@ -1046,6 +1046,13 @@ a:hover {
   display: flex;
   justify-content: center;
   align-items: center;
+  opacity: 1;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s ease;
+}
+.deploy-overlay.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 .deploy-spinner-box {
   text-align: center;
@@ -1068,6 +1075,39 @@ a:hover {
   font-size: 0.9rem;
   color: var(--text-muted);
   max-width: 320px;
+}
+
+/* Top-Right Red Popup Toast */
+.top-right-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 10000;
+  background: rgba(40, 12, 16, 0.96);
+  border: 1px solid #ff4d4f;
+  box-shadow: 0 8px 24px rgba(255, 77, 79, 0.3);
+  backdrop-filter: blur(10px);
+  color: #ff4d4f;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+.top-right-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.top-right-toast i {
+  font-size: 1.1rem;
+  color: #ff4d4f;
 }
 
 /* Projects Detail View */

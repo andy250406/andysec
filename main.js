@@ -310,7 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initResizeHandler();
   loadAdminAuth();
-  hydrateInitialData();
   setupEventListeners();
   initRouter();
   loadData();
@@ -526,84 +525,83 @@ function hydrateInitialData() {
   return hasData;
 }
 
-// Load All Data (GAS Sheets DB Priority + Background Sync with Strict Timeout)
+// Load All Data (GAS Sheets DB Priority + 5s Strict Timeout)
 async function loadData() {
-  const hasLocalData = (Array.isArray(appState.posts) && appState.posts.length > 0);
+  // 1. 처음 사이트를 접속하거나 새로고침하면 무조건 시트DB로부터 최신 데이터를 로드 (오버레이 표출)
+  showLoader('데이터 로딩 중...', '구글 시트 데이터베이스와 연결하고 있습니다.');
 
-  // If there's no local data at all (first-time visitor), show loading screen with auto-dismiss
-  if (!hasLocalData) {
-    showLoader('데이터 로딩 중...', '구글 시트 데이터베이스와 연결하고 있습니다.');
-  }
+  let serverPosts = [];
+  let serverProjects = [];
+  let serverNotes = [];
+  let serverProfile = null;
+  let serverPortfolio = [];
+  let gasLoaded = false;
+  let isFailedOrTimeout = false;
+
+  // 2. 정확히 5초 동안 대기하는 AbortController 설정
+  const controller = new AbortController();
+  const timeoutTimer = setTimeout(() => {
+    isFailedOrTimeout = true;
+    controller.abort();
+  }, 5000);
 
   try {
-    let serverPosts = [];
-    let serverProjects = [];
-    let serverNotes = [];
-    let serverProfile = null;
-    let serverPortfolio = [];
-    let gasLoaded = false;
+    const gasRes = await fetch(`${GAS_API_URL}?action=getAllData`, { 
+      method: 'GET',
+      signal: controller.signal
+    });
+    clearTimeout(timeoutTimer);
 
-    // Strict 7-second timeout with AbortController so it NEVER hangs
-    const controller = new AbortController();
-    const timeoutTimer = setTimeout(() => {
-      controller.abort();
-    }, 7000);
-
-    try {
-      const gasRes = await fetch(`${GAS_API_URL}?action=getAllData`, { 
-        method: 'GET',
-        signal: controller.signal
-      });
-      clearTimeout(timeoutTimer);
-
-      if (gasRes.ok) {
-        const gasData = await gasRes.json();
-        if (gasData && gasData.success) {
-          if (Array.isArray(gasData.posts)) serverPosts = gasData.posts;
-          if (Array.isArray(gasData.projects)) serverProjects = gasData.projects;
-          if (Array.isArray(gasData.projectNotes)) serverNotes = gasData.projectNotes;
-          if (gasData.profile) serverProfile = gasData.profile;
-          if (Array.isArray(gasData.portfolio)) serverPortfolio = gasData.portfolio;
-          gasLoaded = true;
-          console.log(`[GAS API] Successfully loaded all data from Sheets DB (${serverPosts.length} posts, ${serverProjects.length} projects, ${serverNotes.length} notes).`);
-        }
+    if (gasRes.ok) {
+      const gasData = await gasRes.json();
+      if (gasData && gasData.success) {
+        if (Array.isArray(gasData.posts)) serverPosts = gasData.posts;
+        if (Array.isArray(gasData.projects)) serverProjects = gasData.projects;
+        if (Array.isArray(gasData.projectNotes)) serverNotes = gasData.projectNotes;
+        if (gasData.profile) serverProfile = gasData.profile;
+        if (Array.isArray(gasData.portfolio)) serverPortfolio = gasData.portfolio;
+        gasLoaded = true;
+        console.log(`[GAS API] Successfully loaded all data from Sheets DB (${serverPosts.length} posts, ${serverProjects.length} projects, ${serverNotes.length} notes).`);
+      } else {
+        isFailedOrTimeout = true;
       }
-    } catch (gasErr) {
-      clearTimeout(timeoutTimer);
-      console.warn('[GAS API] Live fetch failed or timed out, using local/cached data:', gasErr);
-    } finally {
-      hideLoader(); // ALWAYS hide loader immediately once network attempt completes or times out!
+    } else {
+      isFailedOrTimeout = true;
     }
+  } catch (err) {
+    clearTimeout(timeoutTimer);
+    isFailedOrTimeout = true;
+    console.warn('[GAS API] Live fetch timed out (>5s) or failed:', err);
+  } finally {
+    // 5초 초과 또는 통신 완료 시 오버레이 fadeout
+    hideLoader();
+  }
 
-    if (gasLoaded && serverPosts.length > 0) {
-      appState.posts = serverPosts;
-      localStorage.setItem('posts', JSON.stringify(serverPosts));
-      appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
-    }
+  if (gasLoaded && serverPosts.length > 0) {
+    appState.posts = serverPosts;
+    localStorage.setItem('posts', JSON.stringify(serverPosts));
+    appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    if (gasLoaded && serverProjects.length > 0) {
-      appState.projects = serverProjects;
-      localStorage.setItem('projects', JSON.stringify(serverProjects));
-    }
+    await initProjects(serverProjects);
 
-    if (gasLoaded && serverNotes.length > 0) {
+    if (serverNotes.length > 0) {
       appState.projectNotes = serverNotes;
       localStorage.setItem('projectNotes', JSON.stringify(serverNotes));
     }
 
-    if (gasLoaded && serverProfile) {
+    if (serverProfile) {
       initProfile(serverProfile);
     }
 
-    if (gasLoaded && serverPortfolio.length > 0) {
+    if (serverPortfolio.length > 0) {
       initPortfolio(serverPortfolio);
     }
 
     renderAll();
-  } catch (error) {
-    console.error('Error in loadData:', error);
-  } finally {
-    hideLoader();
+  } else {
+    // 5초 초과 or 로드 실패 시: 로컬 캐시 데이터 폴백 복원 & 우측 상단 붉은 팝업 5초 표출 후 fadeout
+    hydrateInitialData();
+    showTopRightError('DB에서 데이터를 불러오지 못했습니다. 잠시후 다시 시도해주세요.');
   }
 }
 
@@ -1882,36 +1880,53 @@ async function sendToGasApi(action, data = {}) {
   }
 }
 
-// Spinner Helper with Absolute Safety Cutoff
-let loaderSafetyTimer = null;
+// Spinner Helper with Smooth Fade-out
 function showLoader(title, desc) {
   if (!elements.deployOverlay) return;
+  elements.deployOverlay.classList.remove('fade-out');
   elements.deployOverlayTitle.textContent = title;
   elements.deployOverlayDesc.textContent = desc;
   elements.deployOverlay.style.display = 'flex';
-
-  // Absolute 6-second safety cutoff: overlay can NEVER remain stuck on screen
-  clearTimeout(loaderSafetyTimer);
-  loaderSafetyTimer = setTimeout(() => {
-    hideLoader();
-  }, 6000);
 }
 
-function hideLoader() {
-  clearTimeout(loaderSafetyTimer);
-  if (elements.deployOverlay) {
-    elements.deployOverlay.style.display = 'none';
+function hideLoader(callback = null) {
+  if (!elements.deployOverlay) {
+    if (callback) callback();
+    return;
   }
+  elements.deployOverlay.classList.add('fade-out');
+  setTimeout(() => {
+    elements.deployOverlay.style.display = 'none';
+    elements.deployOverlay.classList.remove('fade-out');
+    if (callback) callback();
+  }, 500);
+}
+
+// Top-Right Red Popup Toast Message (5초 후 fadeout)
+function showTopRightError(message = 'DB에서 데이터를 불러오지 못했습니다. 잠시후 다시 시도해주세요.') {
+  let toast = document.getElementById('top-right-error-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'top-right-error-toast';
+    toast.className = 'top-right-toast';
+    toast.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> <span id="top-right-error-msg"></span>';
+    document.body.appendChild(toast);
+  }
+  const msgSpan = toast.querySelector('#top-right-error-msg');
+  if (msgSpan) msgSpan.textContent = message;
+
+  // Show
+  toast.classList.add('show');
+
+  // 5초 후 자동 fadeout
+  if (toast._dismissTimer) clearTimeout(toast._dismissTimer);
+  toast._dismissTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 5000);
 }
 
 // Event Listeners Setup
 function setupEventListeners() {
-  // Allow clicking anywhere on deploy overlay backdrop to force-dismiss if needed
-  elements.deployOverlay?.addEventListener('click', (e) => {
-    if (e.target === elements.deployOverlay) {
-      hideLoader();
-    }
-  });
   // Navigation tabs
   elements.navBtns.forEach(btn => {
     btn.addEventListener('click', () => {
