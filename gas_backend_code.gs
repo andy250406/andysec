@@ -129,6 +129,57 @@ function createJsonResponse(data) {
 }
 
 // =========================================================================
+// 고속 인메모리 캐시 (CacheService) 헬퍼
+// =========================================================================
+function getCachedData(cache, key) {
+  try {
+    const countStr = cache.get(key + '_cnt');
+    if (!countStr) {
+      return cache.get(key);
+    }
+    const count = Number(countStr);
+    let full = '';
+    for (let i = 0; i < count; i++) {
+      const part = cache.get(key + '_' + i);
+      if (!part) return null;
+      full += part;
+    }
+    return full;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setCachedData(cache, key, str, ttl = 21600) {
+  try {
+    const CHUNK_SIZE = 95000;
+    if (str.length <= CHUNK_SIZE) {
+      cache.put(key, str, ttl);
+      cache.remove(key + '_cnt');
+    } else {
+      const numChunks = Math.ceil(str.length / CHUNK_SIZE);
+      cache.put(key + '_cnt', String(numChunks), ttl);
+      for (let i = 0; i < numChunks; i++) {
+        cache.put(key + '_' + i, str.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE), ttl);
+      }
+    }
+  } catch (e) {
+    console.warn('Cache write failed:', e);
+  }
+}
+
+function clearAllCache() {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.remove('all_data');
+    cache.remove('all_data_cnt');
+    for (let i = 0; i < 10; i++) {
+      cache.remove('all_data_' + i);
+    }
+  } catch (e) {}
+}
+
+// =========================================================================
 // 데이터 추출 함수군
 // =========================================================================
 
@@ -362,14 +413,25 @@ function doGet(e) {
     } else if (action === 'getPortfolio') {
       return createJsonResponse({ success: true, portfolio: getPortfolioData(ss) });
     } else if (action === 'getAllData') {
-      return createJsonResponse({
+      const cache = CacheService.getScriptCache();
+      const cached = getCachedData(cache, 'all_data');
+      if (cached) {
+        return ContentService.createTextOutput(cached)
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      const fullData = {
         success: true,
         posts: getPostsData(ss),
         projects: getProjectsData(ss),
         projectNotes: getProjectNotesData(ss),
         profile: getProfileData(ss),
         portfolio: getPortfolioData(ss)
-      });
+      };
+      const jsonStr = JSON.stringify(fullData);
+      setCachedData(cache, 'all_data', jsonStr, 21600);
+      return ContentService.createTextOutput(jsonStr)
+        .setMimeType(ContentService.MimeType.JSON);
     } else if (action === 'deletePost') {
       const password = (e && e.parameter && e.parameter.password) || '';
       if (password !== getAdminPassword()) {
@@ -395,6 +457,7 @@ function doGet(e) {
       if (deleteRow !== -1) {
         sheet.deleteRow(deleteRow);
         SpreadsheetApp.flush();
+        clearAllCache();
         return createJsonResponse({ success: true, message: '게시글이 삭제되었습니다.', id: postId });
       } else {
         return createJsonResponse({ success: false, error: '해당 ID의 게시글을 찾을 수 없습니다.' });
@@ -425,6 +488,8 @@ function doPost(e) {
     if (password !== getAdminPassword()) {
       return createJsonResponse({ success: false, error: '인증 실패: 관리자 비밀번호가 일치하지 않습니다.' });
     }
+
+    clearAllCache(); // 모든 쓰기 작업 시 캐시 즉시 무효화
 
     const sheet = getPostsSheet();
     const lastRow = sheet.getLastRow();
