@@ -525,83 +525,100 @@ function hydrateInitialData() {
   return hasData;
 }
 
-// Load All Data (GAS Sheets DB Priority + 5s Strict Timeout)
-async function loadData() {
-  // 1. 처음 사이트를 접속하거나 새로고침하면 무조건 시트DB로부터 최신 데이터를 로드 (오버레이 표출)
-  showLoader('데이터 로딩 중...', '구글 시트 데이터베이스와 연결하고 있습니다.');
-
-  let serverPosts = [];
-  let serverProjects = [];
-  let serverNotes = [];
-  let serverProfile = null;
-  let serverPortfolio = [];
-  let gasLoaded = false;
-  let isFailedOrTimeout = false;
-
-  // 2. 정확히 5초 동안 대기하는 AbortController 설정
-  const controller = new AbortController();
-  const timeoutTimer = setTimeout(() => {
-    isFailedOrTimeout = true;
-    controller.abort();
-  }, 5000);
-
+// Fetch and apply lightweight metadata from Google Sheets DB
+async function fetchAndApplyAllData(expectedLastModified = null) {
   try {
-    const gasRes = await fetch(`${GAS_API_URL}?action=getAllData`, { 
+    const controller = new AbortController();
+    const timeoutTimer = setTimeout(() => controller.abort(), 10000);
+
+    const res = await fetch(`${GAS_API_URL}?action=getAllData`, {
       method: 'GET',
       signal: controller.signal
     });
     clearTimeout(timeoutTimer);
 
-    if (gasRes.ok) {
-      const gasData = await gasRes.json();
-      if (gasData && gasData.success) {
-        if (Array.isArray(gasData.posts)) serverPosts = gasData.posts;
-        if (Array.isArray(gasData.projects)) serverProjects = gasData.projects;
-        if (Array.isArray(gasData.projectNotes)) serverNotes = gasData.projectNotes;
-        if (gasData.profile) serverProfile = gasData.profile;
-        if (Array.isArray(gasData.portfolio)) serverPortfolio = gasData.portfolio;
-        gasLoaded = true;
-        console.log(`[GAS API] Successfully loaded all data from Sheets DB (${serverPosts.length} posts, ${serverProjects.length} projects, ${serverNotes.length} notes).`);
-      } else {
-        isFailedOrTimeout = true;
-      }
-    } else {
-      isFailedOrTimeout = true;
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (!data || !data.success) return false;
+
+    if (Array.isArray(data.posts)) {
+      appState.posts = data.posts;
+      localStorage.setItem('posts', JSON.stringify(data.posts));
+      appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
-  } catch (err) {
-    clearTimeout(timeoutTimer);
-    isFailedOrTimeout = true;
-    console.warn('[GAS API] Live fetch timed out (>5s) or failed:', err);
-  } finally {
-    // 5초 초과 또는 통신 완료 시 오버레이 fadeout
-    hideLoader();
-  }
-
-  if (gasLoaded && serverPosts.length > 0) {
-    appState.posts = serverPosts;
-    localStorage.setItem('posts', JSON.stringify(serverPosts));
-    appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    await initProjects(serverProjects);
-
-    if (serverNotes.length > 0) {
-      appState.projectNotes = serverNotes;
-      localStorage.setItem('projectNotes', JSON.stringify(serverNotes));
+    if (Array.isArray(data.projects)) {
+      await initProjects(data.projects);
+    }
+    if (Array.isArray(data.projectNotes)) {
+      appState.projectNotes = data.projectNotes;
+      localStorage.setItem('projectNotes', JSON.stringify(data.projectNotes));
+    }
+    if (data.profile) {
+      initProfile(data.profile);
+    }
+    if (Array.isArray(data.portfolio)) {
+      initPortfolio(data.portfolio);
     }
 
-    if (serverProfile) {
-      initProfile(serverProfile);
-    }
-
-    if (serverPortfolio.length > 0) {
-      initPortfolio(serverPortfolio);
-    }
+    const lastMod = data.lastModified || expectedLastModified || new Date().toISOString();
+    localStorage.setItem('andysec_last_modified', lastMod);
 
     renderAll();
-  } else {
-    // 5초 초과 or 로드 실패 시: 로컬 캐시 데이터 폴백 복원 & 우측 상단 붉은 팝업 5초 표출 후 fadeout
-    hydrateInitialData();
-    showTopRightError('DB에서 데이터를 불러오지 못했습니다. 잠시후 다시 시도해주세요.');
+    console.log(`[GAS API] Successfully synced data (${appState.posts.length} posts, ${appState.projects.length} projects). Timestamp: ${lastMod}`);
+    return true;
+  } catch (err) {
+    console.warn('[GAS API] fetchAndApplyAllData error:', err);
+    return false;
+  }
+}
+
+// Load All Data (ETag / Conditional Last-Modified Smart Caching)
+async function loadData() {
+  // 1. 로컬 캐시 즉시 렌더링 (체감 대기시간 0초)
+  const hasLocalData = hydrateInitialData();
+  const cachedLastModified = localStorage.getItem('andysec_last_modified');
+
+  // 로컬 캐시가 아예 없는 최초 방문자인 경우에만 로딩 오버레이 표출
+  const isFirstVisit = !hasLocalData || !cachedLastModified;
+  if (isFirstVisit) {
+    showLoader('데이터 로딩 중...', '구글 시트 데이터베이스와 연결하고 있습니다.');
+    const ok = await fetchAndApplyAllData();
+    hideLoader();
+    if (!ok) {
+      showTopRightError('DB에서 데이터를 불러오지 못했습니다. 잠시후 다시 시도해주세요.');
+    }
+    return;
+  }
+
+  // 2. 이미 캐시가 있는 경우: 화면은 즉시 사용 가능하며, 백그라운드에서 최종 수정 시각만 초경량(50B) 대조
+  try {
+    const controller = new AbortController();
+    const timeoutTimer = setTimeout(() => controller.abort(), 8000);
+
+    const modRes = await fetch(`${GAS_API_URL}?action=getLastModified`, {
+      method: 'GET',
+      signal: controller.signal
+    });
+    clearTimeout(timeoutTimer);
+
+    if (modRes.ok) {
+      const modData = await modRes.json();
+      if (modData && modData.success && modData.lastModified) {
+        const serverLastModified = modData.lastModified;
+
+        // 캐시와 최종 변경 시각이 완전히 동일: 추가 다운로드 0회, 즉시 종료
+        if (cachedLastModified === serverLastModified) {
+          console.log(`[DB Cache Hit] 로컬 캐시가 최신 상태입니다. (최종 변경: ${serverLastModified})`);
+          return;
+        }
+
+        // DB에 변경이 발생한 경우: 경량 전체 데이터 동기화
+        console.log(`[DB Cache Miss/Update] DB 변경 감지 (${cachedLastModified} -> ${serverLastModified}). 최신 데이터를 동기화합니다.`);
+        await fetchAndApplyAllData(serverLastModified);
+      }
+    }
+  } catch (err) {
+    console.warn('[GAS API] 백그라운드 최종 수정 시각 확인 실패 (캐시로 정상 표시 중):', err);
   }
 }
 
@@ -1574,16 +1591,34 @@ async function showArticleDetail(postId) {
   }
   
   if (!post.content) {
-    elements.articleContent.innerHTML = '<p class="text-center text-muted" style="padding: 2rem;"><i class="fa-solid fa-spinner fa-spin"></i> 내용을 불러오는 중...</p>';
+    elements.articleContent.innerHTML = '<p class="text-center text-muted" style="padding: 2.5rem;"><i class="fa-solid fa-spinner fa-spin"></i> 본문 내용을 안전하게 불러오는 중...</p>';
     try {
-      const res = await fetch(`./${post.filePath}`);
+      const res = await fetch(`${GAS_API_URL}?action=getPostDetail&id=${encodeURIComponent(post.id)}`);
       if (res.ok) {
-        post.content = await res.text();
+        const data = await res.json();
+        if (data && data.success && (data.content || (data.post && data.post.content))) {
+          post.content = data.content || data.post.content;
+          if (data.post && data.post.images && Array.isArray(data.post.images)) {
+            post.images = data.post.images;
+          }
+          // 읽은 본문을 로컬 캐시에도 보관하여 재열람 시 0ms 즉시 표시
+          try {
+            const storedPosts = JSON.parse(localStorage.getItem('posts') || '[]');
+            const idx = storedPosts.findIndex(p => p.id === post.id);
+            if (idx !== -1) {
+              storedPosts[idx].content = post.content;
+              if (post.images) storedPosts[idx].images = post.images;
+              localStorage.setItem('posts', JSON.stringify(storedPosts));
+            }
+          } catch (storageErr) {}
+        } else {
+          post.content = `# ${post.title}\n\n본문 데이터를 불러오지 못했습니다.`;
+        }
       } else {
-        post.content = `# ${post.title}\n\n내용을 불러오지 못했습니다. (HTTP ${res.status})`;
+        post.content = `# ${post.title}\n\n본문 데이터를 불러오지 못했습니다. (HTTP ${res.status})`;
       }
     } catch (e) {
-      post.content = `# ${post.title}\n\n내용을 불러오는 중 오류가 발생했습니다.`;
+      post.content = `# ${post.title}\n\n본문을 불러오는 중 네트워크 오류가 발생했습니다.`;
     }
   }
   
@@ -1896,6 +1931,10 @@ async function sendToGasApi(action, data = {}) {
     const resJson = await response.json();
     if (!resJson.success) {
       throw new Error(resJson.error || '작업 수행 실패');
+    }
+
+    if (resJson.lastModified) {
+      localStorage.setItem('andysec_last_modified', resJson.lastModified);
     }
 
     return resJson;

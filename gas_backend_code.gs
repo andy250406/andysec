@@ -131,6 +131,37 @@ function createJsonResponse(data) {
 // =========================================================================
 // 고속 인메모리 캐시 (CacheService) 헬퍼
 // =========================================================================
+// =========================================================================
+// 고속 인메모리 캐시 (CacheService) 및 최종 수정 시각(LastModified) 헬퍼
+// =========================================================================
+function touchLastModified() {
+  const now = new Date().toISOString();
+  try {
+    PropertiesService.getScriptProperties().setProperty('LAST_UPDATED', now);
+  } catch (e) {
+    console.warn('Failed to update LAST_UPDATED:', e);
+  }
+  clearAllCache();
+  return now;
+}
+
+function getLastModifiedTime() {
+  try {
+    const prop = PropertiesService.getScriptProperties().getProperty('LAST_UPDATED');
+    if (prop) return prop;
+  } catch (e) {}
+  const initial = new Date().toISOString();
+  try {
+    PropertiesService.getScriptProperties().setProperty('LAST_UPDATED', initial);
+  } catch (e) {}
+  return initial;
+}
+
+// 구글 스프레드시트 화면에서 직접 셀 수정 시 자동 감지 트리거
+function onEdit(e) {
+  touchLastModified();
+}
+
 function getCachedData(cache, key) {
   try {
     const countStr = cache.get(key + '_cnt');
@@ -152,7 +183,7 @@ function getCachedData(cache, key) {
 
 function setCachedData(cache, key, str, ttl = 21600) {
   try {
-    const CHUNK_SIZE = 95000;
+    const CHUNK_SIZE = 25000; // UTF-8 한국어 3바이트 고려 안전 크기 (약 75KB)
     if (str.length <= CHUNK_SIZE) {
       cache.put(key, str, ttl);
       cache.remove(key + '_cnt');
@@ -173,8 +204,14 @@ function clearAllCache() {
     const cache = CacheService.getScriptCache();
     cache.remove('all_data');
     cache.remove('all_data_cnt');
-    for (let i = 0; i < 10; i++) {
+    cache.remove('all_data_light');
+    cache.remove('all_data_light_cnt');
+    cache.remove('all_data_full');
+    cache.remove('all_data_full_cnt');
+    for (let i = 0; i < 15; i++) {
       cache.remove('all_data_' + i);
+      cache.remove('all_data_light_' + i);
+      cache.remove('all_data_full_' + i);
     }
   } catch (e) {}
 }
@@ -183,8 +220,8 @@ function clearAllCache() {
 // 데이터 추출 함수군
 // =========================================================================
 
-// 1. Posts (스터디 노트 & 보안 뉴스) 데이터 추출 (초고속 단일 배치 조회)
-function getPostsData(ss = null) {
+// 1. Posts (스터디 노트 & 보안 뉴스) 데이터 추출 (includeContent: 본문 포함 여부 선택 가능)
+function getPostsData(ss = null, includeContent = true) {
   const sheet = getPostsSheet(ss);
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
@@ -205,7 +242,7 @@ function getPostsData(ss = null) {
     const category = String(row[1] || 'General');
     const title = String(row[2] || '');
     const date = formatIsoDate(row[3]);
-    const content = String(row[4] || '');
+    const content = includeContent ? String(row[4] || '') : '';
 
     let importance = '';
     let source = '';
@@ -257,6 +294,98 @@ function getPostsData(ss = null) {
   }
   posts.sort((a, b) => new Date(b.date) - new Date(a.date));
   return posts;
+}
+
+// 단건 게시글 본문 상세 조회 (캐시 우선 확인)
+function getSinglePostDetail(postId, ss = null) {
+  if (!postId) return null;
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('post_' + postId);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {}
+  }
+
+  const sheet = getPostsSheet(ss);
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow <= 1) return null;
+
+  const maxCol = Math.max(lastCol, 9);
+  const allRows = sheet.getRange(1, 1, lastRow, maxCol).getValues();
+  const headers = allRows[0];
+  const hasMetaCols = (headers[5] === 'importance');
+  const hasTypeCol = (headers[8] === 'type');
+
+  for (let i = 1; i < allRows.length; i++) {
+    const row = allRows[i];
+    const id = String(row[0] || '').trim();
+    if (id !== postId) continue;
+
+    const category = String(row[1] || 'General');
+    const title = String(row[2] || '');
+    const date = formatIsoDate(row[3]);
+    const content = String(row[4] || '');
+
+    let importance = '';
+    let source = '';
+    let newsLink = '';
+    let type = '';
+    let imageStartCol = 9;
+
+    if (hasMetaCols) {
+      importance = String(row[5] || '');
+      source = String(row[6] || '');
+      newsLink = String(row[7] || '');
+      type = hasTypeCol ? String(row[8] || '') : (row[8] && !String(row[8]).startsWith('http') ? String(row[8]) : '');
+      imageStartCol = 9;
+    } else {
+      const col5Val = String(row[5] || '').trim();
+      if (col5Val.includes('⭐')) {
+        importance = col5Val;
+        source = String(row[6] || '');
+        newsLink = String(row[7] || '');
+        type = String(row[8] || '');
+        imageStartCol = 9;
+      } else {
+        imageStartCol = 5;
+      }
+    }
+
+    const images = [];
+    for (let c = imageStartCol; c < row.length; c++) {
+      if (row[c]) {
+        const val = String(row[c]).trim();
+        if (val.startsWith('http')) {
+          images.push(val);
+        }
+      }
+    }
+
+    const postObj = {
+      id: id,
+      category: category,
+      title: title,
+      date: date,
+      content: content,
+      importance: importance,
+      source: source,
+      newsLink: newsLink,
+      type: type,
+      images: images
+    };
+
+    try {
+      const serialized = JSON.stringify(postObj);
+      if (serialized.length < 100000) {
+        cache.put('post_' + postId, serialized, 21600);
+      }
+    } catch (e) {}
+
+    return postObj;
+  }
+  return null;
 }
 
 // 2. Projects (프로젝트 및 하위 세부 진단 일정) 데이터 추출
@@ -402,8 +531,57 @@ function getPortfolioData(ss = null) {
 function doGet(e) {
   try {
     const action = (e && e.parameter && e.parameter.action) || 'getPosts';
-    const ss = getSpreadsheet();
 
+    // 1. 초고속 최종 변경 시각 확인 (Spreadsheet 오픈 0회, ~50ms 반환)
+    if (action === 'getLastModified') {
+      return createJsonResponse({
+        success: true,
+        lastModified: getLastModifiedTime()
+      });
+    }
+
+    // 2. 단건 게시글 본문 상세 조회 (캐시 히트 시 Spreadsheet 오픈 0회)
+    if (action === 'getPostDetail') {
+      const postId = (e && e.parameter && e.parameter.id) || '';
+      if (!postId) {
+        return createJsonResponse({ success: false, error: '게시글 ID가 누락되었습니다.' });
+      }
+      const post = getSinglePostDetail(postId);
+      if (post) {
+        return createJsonResponse({ success: true, post: post, content: post.content });
+      } else {
+        return createJsonResponse({ success: false, error: '해당 게시글을 찾을 수 없습니다.' });
+      }
+    }
+
+    // 3. 전체 데이터 경량 로드 (기본: 본문 제외 약 15KB, ?full=true 시 전체 포함)
+    if (action === 'getAllData') {
+      const includeContent = (e && e.parameter && e.parameter.full === 'true');
+      const cacheKey = includeContent ? 'all_data_full' : 'all_data_light';
+      const cache = CacheService.getScriptCache();
+      const cached = getCachedData(cache, cacheKey);
+      if (cached) {
+        return ContentService.createTextOutput(cached)
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      const ss = getSpreadsheet();
+      const fullData = {
+        success: true,
+        lastModified: getLastModifiedTime(),
+        posts: getPostsData(ss, includeContent), // includeContent false 시 본문 제외 약 15KB
+        projects: getProjectsData(ss),
+        projectNotes: getProjectNotesData(ss),
+        profile: getProfileData(ss),
+        portfolio: getPortfolioData(ss)
+      };
+      const jsonStr = JSON.stringify(fullData);
+      setCachedData(cache, cacheKey, jsonStr, 21600);
+      return ContentService.createTextOutput(jsonStr)
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const ss = getSpreadsheet();
     if (action === 'getProjects') {
       return createJsonResponse({ success: true, projects: getProjectsData(ss) });
     } else if (action === 'getProjectNotes') {
@@ -412,26 +590,6 @@ function doGet(e) {
       return createJsonResponse({ success: true, profile: getProfileData(ss) });
     } else if (action === 'getPortfolio') {
       return createJsonResponse({ success: true, portfolio: getPortfolioData(ss) });
-    } else if (action === 'getAllData') {
-      const cache = CacheService.getScriptCache();
-      const cached = getCachedData(cache, 'all_data');
-      if (cached) {
-        return ContentService.createTextOutput(cached)
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-
-      const fullData = {
-        success: true,
-        posts: getPostsData(ss),
-        projects: getProjectsData(ss),
-        projectNotes: getProjectNotesData(ss),
-        profile: getProfileData(ss),
-        portfolio: getPortfolioData(ss)
-      };
-      const jsonStr = JSON.stringify(fullData);
-      setCachedData(cache, 'all_data', jsonStr, 21600);
-      return ContentService.createTextOutput(jsonStr)
-        .setMimeType(ContentService.MimeType.JSON);
     } else if (action === 'deletePost') {
       const password = (e && e.parameter && e.parameter.password) || '';
       if (password !== getAdminPassword()) {
@@ -457,14 +615,14 @@ function doGet(e) {
       if (deleteRow !== -1) {
         sheet.deleteRow(deleteRow);
         SpreadsheetApp.flush();
-        clearAllCache();
-        return createJsonResponse({ success: true, message: '게시글이 삭제되었습니다.', id: postId });
+        const newTime = touchLastModified();
+        return createJsonResponse({ success: true, message: '게시글이 삭제되었습니다.', id: postId, lastModified: newTime });
       } else {
         return createJsonResponse({ success: false, error: '해당 ID의 게시글을 찾을 수 없습니다.' });
       }
     } else {
       // 기본값: getPosts
-      return createJsonResponse({ success: true, posts: getPostsData(ss) });
+      return createJsonResponse({ success: true, posts: getPostsData(ss, false) });
     }
   } catch (err) {
     return createJsonResponse({
@@ -489,7 +647,7 @@ function doPost(e) {
       return createJsonResponse({ success: false, error: '인증 실패: 관리자 비밀번호가 일치하지 않습니다.' });
     }
 
-    clearAllCache(); // 모든 쓰기 작업 시 캐시 즉시 무효화
+    const newLastModified = touchLastModified(); // 모든 쓰기 작업 시 타임스탬프 갱신 및 캐시 즉시 무효화
 
     const sheet = getPostsSheet();
     const lastRow = sheet.getLastRow();
