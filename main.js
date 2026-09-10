@@ -310,9 +310,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initResizeHandler();
   loadAdminAuth();
-  loadData();
+  hydrateInitialData();
   setupEventListeners();
   initRouter();
+  loadData();
 });
 
 // Window Resize Performance Optimizer (suppresses transitions during resize to prevent layout thrashing & stutter)
@@ -474,22 +475,87 @@ function initRouter() {
   handleRouting();
 }
 
-// Load All Data (GAS Sheets DB Priority + Local Fallback)
-// Load All Data (GAS Sheets DB Priority + Local Fallback)
+// // Instant Local Hydration (0ms Initial Paint)
+function hydrateInitialData() {
+  let hasData = false;
+  try {
+    const storedPosts = localStorage.getItem('posts');
+    if (storedPosts && storedPosts !== 'undefined') {
+      const parsed = JSON.parse(storedPosts);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        appState.posts = parsed;
+        appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
+        hasData = true;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse local posts:', e);
+  }
+
+  try {
+    const storedProjects = localStorage.getItem('projects');
+    if (storedProjects && storedProjects !== 'undefined') {
+      const parsed = JSON.parse(storedProjects);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        appState.projects = parsed;
+        hasData = true;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse local projects:', e);
+  }
+
+  try {
+    const storedNotes = localStorage.getItem('projectNotes');
+    if (storedNotes && storedNotes !== 'undefined') {
+      const parsed = JSON.parse(storedNotes);
+      if (Array.isArray(parsed)) {
+        appState.projectNotes = parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse local notes:', e);
+  }
+
+  initProfile(null);
+  initPortfolio([]);
+
+  if (hasData) {
+    renderAll();
+  }
+  return hasData;
+}
+
+// Load All Data (GAS Sheets DB Priority + Background Sync with Strict Timeout)
 async function loadData() {
+  const hasLocalData = (Array.isArray(appState.posts) && appState.posts.length > 0);
+
+  // If there's no local data at all (first-time visitor), show loading screen with auto-dismiss
+  if (!hasLocalData) {
+    showLoader('데이터 로딩 중...', '구글 시트 데이터베이스와 연결하고 있습니다.');
+  }
+
   try {
     let serverPosts = [];
     let serverProjects = [];
     let serverNotes = [];
     let serverProfile = null;
     let serverPortfolio = [];
-    
-    // 1. Fetch live data from Google Apps Script (Sheets DB)
-    showLoader('데이터 로딩 중...', '구글 시트 데이터베이스와 연결하고 있습니다.');
     let gasLoaded = false;
+
+    // Strict 7-second timeout with AbortController so it NEVER hangs
+    const controller = new AbortController();
+    const timeoutTimer = setTimeout(() => {
+      controller.abort();
+    }, 7000);
+
     try {
-      // First try batch endpoint getAllData (retrieves posts, projects, projectNotes, profile, portfolio at once)
-      const gasRes = await fetch(`${GAS_API_URL}?action=getAllData`, { method: 'GET' });
+      const gasRes = await fetch(`${GAS_API_URL}?action=getAllData`, { 
+        method: 'GET',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutTimer);
+
       if (gasRes.ok) {
         const gasData = await gasRes.json();
         if (gasData && gasData.success) {
@@ -502,83 +568,42 @@ async function loadData() {
           console.log(`[GAS API] Successfully loaded all data from Sheets DB (${serverPosts.length} posts, ${serverProjects.length} projects, ${serverNotes.length} notes).`);
         }
       }
-
-      // Fallback: If getAllData returned no posts or wasn't supported, try getPosts
-      if (!gasLoaded || serverPosts.length === 0) {
-        const pRes = await fetch(`${GAS_API_URL}?action=getPosts`, { method: 'GET' });
-        if (pRes.ok) {
-          const pData = await pRes.json();
-          if (pData && pData.success && Array.isArray(pData.posts)) {
-            serverPosts = pData.posts;
-            gasLoaded = true;
-          }
-        }
-      }
     } catch (gasErr) {
-      console.warn('[GAS API] Live fetch failed or offline, falling back to local files:', gasErr);
+      clearTimeout(timeoutTimer);
+      console.warn('[GAS API] Live fetch failed or timed out, using local/cached data:', gasErr);
     } finally {
-      hideLoader();
+      hideLoader(); // ALWAYS hide loader immediately once network attempt completes or times out!
     }
 
-    // 1. Merge posts: Live GAS DB is 100% the Single Source of Truth across all devices!
-    let mergedPosts;
     if (gasLoaded && serverPosts.length > 0) {
-      mergedPosts = serverPosts;
-    } else {
-      // Offline fallback: Only if GAS failed or offline, load from local storage
-      let localPosts = [];
-      try {
-        const stored = localStorage.getItem('posts');
-        if (stored && stored !== 'undefined') {
-          localPosts = JSON.parse(stored) || [];
-        }
-      } catch (e) {
-        console.error('Failed to parse local posts:', e);
-      }
-      if (!Array.isArray(localPosts)) localPosts = [];
-      mergedPosts = localPosts;
+      appState.posts = serverPosts;
+      localStorage.setItem('posts', JSON.stringify(serverPosts));
+      appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
-    appState.posts = mergedPosts;
-    localStorage.setItem('posts', JSON.stringify(mergedPosts));
-    appState.posts.sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    // 2. Initialize projects (100% GAS DB Single Source of Truth)
-    await initProjects(serverProjects);
-    
-    // 3. Load project internal notes (100% GAS DB Single Source of Truth)
-    let mergedNotes;
+    if (gasLoaded && serverProjects.length > 0) {
+      appState.projects = serverProjects;
+      localStorage.setItem('projects', JSON.stringify(serverProjects));
+    }
+
     if (gasLoaded && serverNotes.length > 0) {
-      mergedNotes = serverNotes;
-    } else {
-      let localNotes = [];
-      try {
-        const stored = localStorage.getItem('projectNotes');
-        if (stored && stored !== 'undefined') {
-          localNotes = JSON.parse(stored) || [];
-        }
-      } catch (e) {
-        console.error('Failed to parse local project notes:', e);
-      }
-      if (!Array.isArray(localNotes)) localNotes = [];
-      mergedNotes = localNotes;
+      appState.projectNotes = serverNotes;
+      localStorage.setItem('projectNotes', JSON.stringify(serverNotes));
     }
 
-    appState.projectNotes = mergedNotes;
-    localStorage.setItem('projectNotes', JSON.stringify(mergedNotes));
-    
-    // 4. Initialize Profile (from Google Sheets DB or local fallback)
-    initProfile(serverProfile);
+    if (gasLoaded && serverProfile) {
+      initProfile(serverProfile);
+    }
 
-    // 5. Initialize Portfolio (from Google Sheets DB or local fallback)
-    initPortfolio(serverPortfolio);
+    if (gasLoaded && serverPortfolio.length > 0) {
+      initPortfolio(serverPortfolio);
+    }
 
     renderAll();
   } catch (error) {
-    console.error('Error fetching data:', error);
-    if (elements.recentStudyList) {
-      elements.recentStudyList.innerHTML = `<p class="error-msg">데이터 로드 실패: ${error.message}</p>`;
-    }
+    console.error('Error in loadData:', error);
+  } finally {
+    hideLoader();
   }
 }
 
@@ -1857,14 +1882,23 @@ async function sendToGasApi(action, data = {}) {
   }
 }
 
-// Spinner Helper
+// Spinner Helper with Absolute Safety Cutoff
+let loaderSafetyTimer = null;
 function showLoader(title, desc) {
   if (!elements.deployOverlay) return;
   elements.deployOverlayTitle.textContent = title;
   elements.deployOverlayDesc.textContent = desc;
   elements.deployOverlay.style.display = 'flex';
+
+  // Absolute 6-second safety cutoff: overlay can NEVER remain stuck on screen
+  clearTimeout(loaderSafetyTimer);
+  loaderSafetyTimer = setTimeout(() => {
+    hideLoader();
+  }, 6000);
 }
+
 function hideLoader() {
+  clearTimeout(loaderSafetyTimer);
   if (elements.deployOverlay) {
     elements.deployOverlay.style.display = 'none';
   }
@@ -1872,6 +1906,12 @@ function hideLoader() {
 
 // Event Listeners Setup
 function setupEventListeners() {
+  // Allow clicking anywhere on deploy overlay backdrop to force-dismiss if needed
+  elements.deployOverlay?.addEventListener('click', (e) => {
+    if (e.target === elements.deployOverlay) {
+      hideLoader();
+    }
+  });
   // Navigation tabs
   elements.navBtns.forEach(btn => {
     btn.addEventListener('click', () => {

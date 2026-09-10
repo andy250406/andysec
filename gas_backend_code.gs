@@ -31,52 +31,41 @@ function getSpreadsheet() {
   return SpreadsheetApp.getActiveSpreadsheet();
 }
 
-function getPostsSheet() {
-  const ss = getSpreadsheet();
-  let sheet = ss.getSheetByName(POSTS_SHEET_NAME);
+function getPostsSheet(ss = null) {
+  const spreadsheet = ss || getSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(POSTS_SHEET_NAME);
   if (!sheet) {
-    sheet = ss.insertSheet(POSTS_SHEET_NAME);
+    sheet = spreadsheet.insertSheet(POSTS_SHEET_NAME);
     sheet.appendRow(['id', 'category', 'title', 'date', 'content', 'importance', 'source', 'newsLink', 'type', 'image_1', 'image_2', 'image_3']);
-  } else {
-    try {
-      const lastCol = Math.max(sheet.getLastColumn(), 9);
-      const headers = sheet.getRange(1, 1, 1, Math.min(lastCol, 12)).getValues()[0];
-      if (headers[5] !== 'importance') {
-        sheet.getRange(1, 6, 1, 3).setValues([['importance', 'source', 'newsLink']]);
-      }
-      if (headers[8] !== 'type') {
-        sheet.getRange(1, 9).setValue('type');
-      }
-    } catch (e) {}
   }
   return sheet;
 }
 
-function getProjectsSheet() {
-  const ss = getSpreadsheet();
-  let sheet = ss.getSheetByName(PROJECTS_SHEET_NAME);
+function getProjectsSheet(ss = null) {
+  const spreadsheet = ss || getSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(PROJECTS_SHEET_NAME);
   if (!sheet) {
-    sheet = ss.insertSheet(PROJECTS_SHEET_NAME);
+    sheet = spreadsheet.insertSheet(PROJECTS_SHEET_NAME);
     sheet.appendRow(['id', 'name', 'client', 'startDate', 'endDate', 'details', 'diagnostics']);
   }
   return sheet;
 }
 
-function getProjectNotesSheet() {
-  const ss = getSpreadsheet();
-  let sheet = ss.getSheetByName(PROJECT_NOTES_SHEET_NAME);
+function getProjectNotesSheet(ss = null) {
+  const spreadsheet = ss || getSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(PROJECT_NOTES_SHEET_NAME);
   if (!sheet) {
-    sheet = ss.insertSheet(PROJECT_NOTES_SHEET_NAME);
+    sheet = spreadsheet.insertSheet(PROJECT_NOTES_SHEET_NAME);
     sheet.appendRow(['id', 'projectId', 'title', 'date', 'content']);
   }
   return sheet;
 }
 
-function getProfileSheet() {
-  const ss = getSpreadsheet();
-  let sheet = ss.getSheetByName(PROFILE_SHEET_NAME);
+function getProfileSheet(ss = null) {
+  const spreadsheet = ss || getSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(PROFILE_SHEET_NAME);
   if (!sheet) {
-    sheet = ss.insertSheet(PROFILE_SHEET_NAME);
+    sheet = spreadsheet.insertSheet(PROFILE_SHEET_NAME);
     sheet.appendRow(['id', 'name', 'title', 'company', 'bio', 'email', 'phone', 'avatarUrl']);
     sheet.appendRow([
       'profile-main',
@@ -92,11 +81,11 @@ function getProfileSheet() {
   return sheet;
 }
 
-function getPortfolioSheet() {
-  const ss = getSpreadsheet();
-  let sheet = ss.getSheetByName(PORTFOLIO_SHEET_NAME);
+function getPortfolioSheet(ss = null) {
+  const spreadsheet = ss || getSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(PORTFOLIO_SHEET_NAME);
   if (!sheet) {
-    sheet = ss.insertSheet(PORTFOLIO_SHEET_NAME);
+    sheet = spreadsheet.insertSheet(PORTFOLIO_SHEET_NAME);
     sheet.appendRow(['id', 'type', 'title', 'date', 'description', 'category', 'level', 'percent', 'sortOrder']);
     const defaultRows = [
       ['cert-1', 'cert', 'CPPG (개인정보관리사) 취득', '2026.04', '개인정보보호법 및 망법 등 관련 규정 준수 요건 검토 지식 보유', '', '', '', 1],
@@ -131,22 +120,15 @@ function createJsonResponse(data) {
 // 데이터 추출 함수군
 // =========================================================================
 
-// 1. Posts (스터디 노트 & 보안 뉴스) 데이터 추출
-function getPostsData() {
-  const sheet = getPostsSheet();
+// 1. Posts (스터디 노트 & 보안 뉴스) 데이터 추출 (초고속 배치 조회)
+function getPostsData(ss = null) {
+  const sheet = getPostsSheet(ss);
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
   if (lastRow <= 1) return [];
 
   const range = sheet.getRange(2, 1, lastRow - 1, Math.max(lastCol, 9));
   const values = range.getValues();
-
-  let cellImages = [];
-  try {
-    cellImages = range.getCellImages();
-  } catch (err) {
-    cellImages = [];
-  }
 
   // Header inspection
   let hasMetaCols = false;
@@ -201,23 +183,13 @@ function getPostsData() {
     }
 
     const images = [];
-    const colLimit = Math.max(row.length, (cellImages[i] ? cellImages[i].length : 0));
-    for (let c = imageStartCol; c < colLimit; c++) {
-      let imgUrl = '';
-      if (cellImages[i] && cellImages[i][c]) {
-        try {
-          imgUrl = cellImages[i][c].getContentUrl() || '';
-        } catch (e) {
-          imgUrl = '';
-        }
-      }
-      if (!imgUrl && row[c]) {
+    for (let c = imageStartCol; c < row.length; c++) {
+      if (row[c]) {
         const val = String(row[c]).trim();
         if (val.startsWith('http')) {
-          imgUrl = val;
+          images.push(val);
         }
       }
-      if (imgUrl) images.push(imgUrl);
     }
 
     posts.push({
@@ -238,8 +210,8 @@ function getPostsData() {
 }
 
 // 2. Projects (프로젝트 및 하위 세부 진단 일정) 데이터 추출
-function getProjectsData() {
-  const sheet = getProjectsSheet();
+function getProjectsData(ss = null) {
+  const sheet = getProjectsSheet(ss);
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return [];
 
@@ -295,8 +267,8 @@ function getProjectsData() {
 }
 
 // 3. ProjectNotes (프로젝트 내부 스터디 & 기록 게시물) 데이터 추출
-function getProjectNotesData() {
-  const sheet = getProjectNotesSheet();
+function getProjectNotesData(ss = null) {
+  const sheet = getProjectNotesSheet(ss);
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return [];
 
@@ -334,8 +306,8 @@ function getProjectNotesData() {
 }
 
 // 4. Profile (프로필 정보) 데이터 추출
-function getProfileData() {
-  const sheet = getProfileSheet();
+function getProfileData(ss = null) {
+  const sheet = getProfileSheet(ss);
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) {
     return {
@@ -364,8 +336,8 @@ function getProfileData() {
 }
 
 // 5. Portfolio (포트폴리오 자격증, 프로젝트, 경력, 스킬) 데이터 추출
-function getPortfolioData() {
-  const sheet = getPortfolioSheet();
+function getPortfolioData(ss = null) {
+  const sheet = getPortfolioSheet(ss);
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return [];
 
@@ -400,27 +372,28 @@ function getPortfolioData() {
 function doGet(e) {
   try {
     const action = (e && e.parameter && e.parameter.action) || 'getPosts';
+    const ss = getSpreadsheet();
 
     if (action === 'getProjects') {
-      return createJsonResponse({ success: true, projects: getProjectsData() });
+      return createJsonResponse({ success: true, projects: getProjectsData(ss) });
     } else if (action === 'getProjectNotes') {
-      return createJsonResponse({ success: true, projectNotes: getProjectNotesData() });
+      return createJsonResponse({ success: true, projectNotes: getProjectNotesData(ss) });
     } else if (action === 'getProfile') {
-      return createJsonResponse({ success: true, profile: getProfileData() });
+      return createJsonResponse({ success: true, profile: getProfileData(ss) });
     } else if (action === 'getPortfolio') {
-      return createJsonResponse({ success: true, portfolio: getPortfolioData() });
+      return createJsonResponse({ success: true, portfolio: getPortfolioData(ss) });
     } else if (action === 'getAllData') {
       return createJsonResponse({
         success: true,
-        posts: getPostsData(),
-        projects: getProjectsData(),
-        projectNotes: getProjectNotesData(),
-        profile: getProfileData(),
-        portfolio: getPortfolioData()
+        posts: getPostsData(ss),
+        projects: getProjectsData(ss),
+        projectNotes: getProjectNotesData(ss),
+        profile: getProfileData(ss),
+        portfolio: getPortfolioData(ss)
       });
     } else {
       // 기본값: getPosts
-      return createJsonResponse({ success: true, posts: getPostsData() });
+      return createJsonResponse({ success: true, posts: getPostsData(ss) });
     }
   } catch (err) {
     return createJsonResponse({
