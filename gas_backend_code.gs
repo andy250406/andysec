@@ -21,6 +21,18 @@ function getAdminPassword() {
   return prop || 'pp0406hh';
 }
 
+// 초고속 ISO 날짜 포맷터 (Session.getScriptTimeZone API 오버헤드 0ms)
+function formatIsoDate(d) {
+  if (!d) return '';
+  if (d instanceof Date) {
+    const y = d.getFullYear();
+    const m = ('0' + (d.getMonth() + 1)).slice(-2);
+    const day = ('0' + d.getDate()).slice(-2);
+    return y + '-' + m + '-' + day;
+  }
+  return String(d).trim();
+}
+
 const POSTS_SHEET_NAME = 'Posts';
 const PROJECTS_SHEET_NAME = 'Projects';
 const PROJECT_NOTES_SHEET_NAME = 'ProjectNotes';
@@ -120,40 +132,28 @@ function createJsonResponse(data) {
 // 데이터 추출 함수군
 // =========================================================================
 
-// 1. Posts (스터디 노트 & 보안 뉴스) 데이터 추출 (초고속 배치 조회)
+// 1. Posts (스터디 노트 & 보안 뉴스) 데이터 추출 (초고속 단일 배치 조회)
 function getPostsData(ss = null) {
   const sheet = getPostsSheet(ss);
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
   if (lastRow <= 1) return [];
 
-  const range = sheet.getRange(2, 1, lastRow - 1, Math.max(lastCol, 9));
-  const values = range.getValues();
-
-  // Header inspection
-  let hasMetaCols = false;
-  let hasTypeCol = false;
-  try {
-    const headers = sheet.getRange(1, 1, 1, Math.max(lastCol, 9)).getValues()[0];
-    hasMetaCols = (headers[5] === 'importance');
-    hasTypeCol = (headers[8] === 'type');
-  } catch (e) {}
+  const maxCol = Math.max(lastCol, 9);
+  const allRows = sheet.getRange(1, 1, lastRow, maxCol).getValues();
+  const headers = allRows[0];
+  const hasMetaCols = (headers[5] === 'importance');
+  const hasTypeCol = (headers[8] === 'type');
 
   const posts = [];
-  for (let i = 0; i < values.length; i++) {
-    const row = values[i];
+  for (let i = 1; i < allRows.length; i++) {
+    const row = allRows[i];
     const id = String(row[0] || '').trim();
     if (!id) continue;
 
     const category = String(row[1] || 'General');
     const title = String(row[2] || '');
-    const dateVal = row[3];
-    let date = '';
-    if (dateVal instanceof Date) {
-      date = Utilities.formatDate(dateVal, Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyy-MM-dd');
-    } else {
-      date = String(dateVal || '');
-    }
+    const date = formatIsoDate(row[3]);
     const content = String(row[4] || '');
 
     let importance = '';
@@ -169,7 +169,6 @@ function getPostsData(ss = null) {
       type = hasTypeCol ? String(row[8] || '') : (row[8] && !String(row[8]).startsWith('http') ? String(row[8]) : '');
       imageStartCol = 9;
     } else {
-      // If header is not yet updated, check if col 6 contains star rating
       const col5Val = String(row[5] || '').trim();
       if (col5Val.includes('⭐')) {
         importance = col5Val;
@@ -225,21 +224,8 @@ function getProjectsData(ss = null) {
 
     const name = String(row[1] || '');
     const client = String(row[2] || '');
-    
-    let startDate = row[3];
-    if (startDate instanceof Date) {
-      startDate = Utilities.formatDate(startDate, Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyy-MM-dd');
-    } else {
-      startDate = String(startDate || '');
-    }
-
-    let endDate = row[4];
-    if (endDate instanceof Date) {
-      endDate = Utilities.formatDate(endDate, Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyy-MM-dd');
-    } else {
-      endDate = String(endDate || '');
-    }
-
+    const startDate = formatIsoDate(row[3]);
+    const endDate = formatIsoDate(row[4]);
     const details = String(row[5] || '');
     let diagnostics = [];
     try {
@@ -282,14 +268,7 @@ function getProjectNotesData(ss = null) {
 
     const projectId = String(row[1] || '');
     const title = String(row[2] || '');
-    
-    let date = row[3];
-    if (date instanceof Date) {
-      date = Utilities.formatDate(date, Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyy-MM-dd');
-    } else {
-      date = String(date || '');
-    }
-
+    const date = formatIsoDate(row[3]);
     const content = String(row[4] || '');
 
     notes.push({
@@ -391,6 +370,35 @@ function doGet(e) {
         profile: getProfileData(ss),
         portfolio: getPortfolioData(ss)
       });
+    } else if (action === 'deletePost') {
+      const password = (e && e.parameter && e.parameter.password) || '';
+      if (password !== getAdminPassword()) {
+        return createJsonResponse({ success: false, error: '인증 실패: 관리자 비밀번호가 일치하지 않습니다.' });
+      }
+      const postId = (e && e.parameter && e.parameter.id) || '';
+      if (!postId) {
+        return createJsonResponse({ success: false, error: '삭제할 게시글 ID가 지정되지 않았습니다.' });
+      }
+      const sheet = getPostsSheet(ss);
+      const lastRow = sheet.getLastRow();
+      if (lastRow <= 1) {
+        return createJsonResponse({ success: false, error: '삭제할 게시글이 존재하지 않습니다.' });
+      }
+      const idValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+      let deleteRow = -1;
+      for (let r = 0; r < idValues.length; r++) {
+        if (String(idValues[r][0]) === postId) {
+          deleteRow = r + 2;
+          break;
+        }
+      }
+      if (deleteRow !== -1) {
+        sheet.deleteRow(deleteRow);
+        SpreadsheetApp.flush();
+        return createJsonResponse({ success: true, message: '게시글이 삭제되었습니다.', id: postId });
+      } else {
+        return createJsonResponse({ success: false, error: '해당 ID의 게시글을 찾을 수 없습니다.' });
+      }
     } else {
       // 기본값: getPosts
       return createJsonResponse({ success: true, posts: getPostsData(ss) });
@@ -532,6 +540,7 @@ function doPost(e) {
 
       if (deleteRow !== -1) {
         sheet.deleteRow(deleteRow);
+        SpreadsheetApp.flush();
         return createJsonResponse({ success: true, message: '게시글이 삭제되었습니다.', id: id });
       } else {
         return createJsonResponse({ success: false, error: '해당 ID의 게시글을 찾을 수 없습니다.' });

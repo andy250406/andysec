@@ -1845,24 +1845,48 @@ async function sendToGasApi(action, data = {}) {
   showLoader('데이터 처리 중...', 'Google Sheets 데이터베이스와 통신하고 있습니다.');
 
   try {
-    const payload = {
-      password: appState.adminPassword,
-      action: action,
-      data: data
-    };
-
     let response;
-    try {
-      response = await fetch(GAS_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8' // GAS doPost CORS preflight 최적화
-        },
-        body: JSON.stringify(payload)
-      });
-    } catch (netErr) {
-      console.error('[GAS API Network/CORS Error]', netErr);
-      throw new Error(`Google Sheets 통신 실패 (${netErr.message || 'Failed to fetch'}).\n\n[원인]\nGoogle Apps Script 웹 앱 배포 설정의 '액세스 권한이 있는 사용자'가 '모든 사용자(Anyone)'로 설정되지 않아 브라우저 보안에 의해 연결이 거부되었습니다.\n\n[해결 방법]\nApps Script 편집기 > 배포 관리 > ✏️(편집) > '액세스 권한'을 '모든 사용자(Anyone)'로 변경 후 새 버전으로 배포해 주세요.`);
+
+    // deletePost는 브라우저 간 교차 출처(CORS) 302 리다이렉트 시 본문 손실/차단 이슈가 없는 GET 파라미터 방식을 우선 시도
+    if (action === 'deletePost' && data && data.id) {
+      try {
+        const getUrl = `${GAS_API_URL}?action=deletePost&id=${encodeURIComponent(data.id)}&password=${encodeURIComponent(appState.adminPassword)}`;
+        response = await fetch(getUrl, { method: 'GET' });
+      } catch (getErr) {
+        console.warn('[GAS API GET Delete error, attempting POST fallback]', getErr);
+      }
+    }
+
+    if (!response) {
+      const payload = {
+        password: appState.adminPassword,
+        action: action,
+        data: data
+      };
+
+      try {
+        response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8' // GAS doPost CORS preflight 최적화
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (netErr) {
+        // 만약 deletePost에서 POST 오류 발생 시 GET으로 재시도
+        if (action === 'deletePost' && data && data.id) {
+          try {
+            const getUrl = `${GAS_API_URL}?action=deletePost&id=${encodeURIComponent(data.id)}&password=${encodeURIComponent(appState.adminPassword)}`;
+            response = await fetch(getUrl, { method: 'GET' });
+          } catch (retryErr) {
+            console.error('[GAS API Network/CORS Error]', retryErr);
+            throw new Error(`Google Sheets 통신 실패 (${netErr.message || 'Failed to fetch'}).\n\n[원인]\nGoogle Apps Script 웹 앱 배포 설정의 '액세스 권한이 있는 사용자'가 '모든 사용자(Anyone)'로 설정되지 않아 브라우저 보안에 의해 연결이 거부되었습니다.\n\n[해결 방법]\nApps Script 편집기 > 배포 관리 > ✏️(편집) > '액세스 권한'을 '모든 사용자(Anyone)'로 변경 후 새 버전으로 배포해 주세요.`);
+          }
+        } else {
+          console.error('[GAS API Network/CORS Error]', netErr);
+          throw new Error(`Google Sheets 통신 실패 (${netErr.message || 'Failed to fetch'}).\n\n[원인]\nGoogle Apps Script 웹 앱 배포 설정의 '액세스 권한이 있는 사용자'가 '모든 사용자(Anyone)'로 설정되지 않아 브라우저 보안에 의해 연결이 거부되었습니다.\n\n[해결 방법]\nApps Script 편집기 > 배포 관리 > ✏️(편집) > '액세스 권한'을 '모든 사용자(Anyone)'로 변경 후 새 버전으로 배포해 주세요.`);
+        }
+      }
     }
 
     if (!response.ok) {
