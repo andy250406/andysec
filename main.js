@@ -64,6 +64,7 @@ const elements = {
   tabPanes: document.querySelectorAll('.tab-pane'),
   themeToggle: document.getElementById('theme-toggle'),
   adminAuthBtn: document.getElementById('admin-auth-btn'),
+  pwaInstallBtn: document.getElementById('pwa-install-btn'),
   liveClock: document.getElementById('live-clock'),
   globalSearch: document.getElementById('global-search'),
   
@@ -313,7 +314,53 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   initRouter();
   loadData();
+  initPWA();
 });
+
+// Progressive Web App (PWA) Handler
+function initPWA() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => {
+          console.log('[PWA] Service Worker registered:', reg.scope);
+        })
+        .catch((err) => {
+          console.warn('[PWA] Service Worker registration failed:', err);
+        });
+    });
+  }
+
+  let deferredPrompt = null;
+  const installBtn = elements.pwaInstallBtn || document.getElementById('pwa-install-btn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installBtn) {
+      installBtn.style.display = 'inline-flex';
+    }
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`[PWA] Install prompt outcome: ${outcome}`);
+      deferredPrompt = null;
+      installBtn.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    console.log('[PWA] AndySec app installed');
+    if (installBtn) {
+      installBtn.style.display = 'none';
+    }
+    deferredPrompt = null;
+  });
+}
 
 // Window Resize Performance Optimizer (suppresses transitions during resize to prevent layout thrashing & stutter)
 function initResizeHandler() {

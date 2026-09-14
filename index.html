@@ -9,6 +9,12 @@
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' rx='40' fill='%23f1f5f9'/><circle cx='45' cy='45' r='10' fill='%23ef4444'/><circle cx='80' cy='45' r='10' fill='%23f59e0b'/><circle cx='115' cy='45' r='10' fill='%2310b981'/><text x='35' y='95' font-family='Courier' font-size='18' fill='%2322c55e' font-weight='bold'>$</text><text x='50' y='95' font-family='Courier' font-size='16' fill='%231f2937'>whoami</text><text x='35' y='130' font-family='Georgia' font-size='13' fill='%233b82f6' font-style='italic'>Security</text><text x='35' y='155' font-family='Courier' font-size='10' fill='%2309a3ff' font-weight='bold'>$</text></svg>" />
   <meta name="theme-color" content="#0a0d13" />
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AndySec">
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -90,6 +96,9 @@
           <input type="text" id="global-search" placeholder="글 제목, 태그 검색...">
         </div>
         <div class="topbar-actions">
+          <button id="pwa-install-btn" class="action-btn" title="AndySec 앱 설치" style="display: none;">
+            <i class="fa-solid fa-download"></i>
+          </button>
           <button id="admin-auth-btn" class="action-btn" title="관리자 인증 (열쇠)">
             <i class="fa-solid fa-key"></i>
           </button>
