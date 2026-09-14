@@ -432,6 +432,9 @@ function applyAdminPermissions() {
     }
   }
 
+  // Synchronize project list table view (show/hide diagnostic sub-rows)
+  renderProjectsList();
+
   // If viewing project detail view, update project notes & diagnostics lock/unlock view immediately
   if (appState.activeProjectId && elements.projectDetailView && elements.projectDetailView.style.display !== 'none') {
     const proj = appState.projects.find(p => p.id === appState.activeProjectId);
@@ -1109,8 +1112,8 @@ function renderProjectsList() {
   
   projects.forEach(p => {
     const progressPercent = calculateProgress(p.startDate, p.endDate);
-    const hasDiags = Array.isArray(p.diagnostics) && p.diagnostics.length > 0;
-    const isExpanded = appState.expandedProjects.has(p.id);
+    const hasDiags = appState.isAdmin && Array.isArray(p.diagnostics) && p.diagnostics.length > 0;
+    const isExpanded = hasDiags && appState.expandedProjects.has(p.id);
 
     // Parent Project Row
     const tr = document.createElement('tr');
@@ -1246,13 +1249,26 @@ function renderProjectDiagnostics(project) {
   if (!elements.projectDiagnosticsGrid) return;
   elements.projectDiagnosticsGrid.innerHTML = '';
   
+  if (!appState.isAdmin) {
+    elements.projectDiagnosticsGrid.innerHTML = `
+      <div class="lock-placeholder" style="grid-column: 1/-1; text-align: center; padding: 3rem 2rem; background: rgba(220, 38, 38, 0.04); border: 1px dashed rgba(220, 38, 38, 0.2); border-radius: 8px;">
+        <i class="fa-solid fa-lock" style="font-size: 2rem; color: #ef4444; margin-bottom: 1rem; display: block;"></i>
+        <h4 style="font-family: var(--font-header); font-size: 1.1rem; color: var(--text-highlight); margin-bottom: 0.5rem;">세부 진단 과업 및 수행 일정 비공개</h4>
+        <p class="text-muted" style="font-size: 0.85rem; max-width: 460px; margin: 0 auto; line-height: 1.5;">
+          본 프로젝트의 세부 진단 과업 및 일정 정보는 보안상 비공개 상태입니다. 접근 권한을 획득하려면 상단 <strong>관리자 열쇠(🔑)</strong> 버튼을 눌러 인증하십시오.
+        </p>
+      </div>
+    `;
+    return;
+  }
+  
   const diags = project.diagnostics || [];
   if (diags.length === 0) {
     elements.projectDiagnosticsGrid.innerHTML = `
       <div class="card" style="grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--text-muted);">
         <i class="fa-solid fa-clipboard-list" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
         <p>등록된 세부 진단 과업이 없습니다.</p>
-        ${appState.isAdmin ? '<p style="font-size: 0.85rem; margin-top: 0.5rem;">상단의 [새 진단 일정 추가] 버튼을 눌러 진단을 등록해 보세요.</p>' : ''}
+        <p style="font-size: 0.85rem; margin-top: 0.5rem;">상단의 [새 진단 일정 추가] 버튼을 눌러 진단을 등록해 보세요.</p>
       </div>
     `;
     return;
@@ -1322,6 +1338,12 @@ function renderProjectDiagnostics(project) {
 
 // Show Diagnostic Detail View
 function showDiagnosticDetail(projectId, diagId) {
+  if (!appState.isAdmin) {
+    alert('보안상 비공개 상태인 세부 진단 일지입니다. 관리자 열쇠(🔑)로 인증 후 확인 가능합니다.');
+    window.location.hash = `#/project/${projectId}`;
+    return;
+  }
+
   const project = appState.projects.find(p => p.id === projectId);
   if (!project) {
     alert('해당 프로젝트를 찾을 수 없습니다.');
