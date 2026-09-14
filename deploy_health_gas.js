@@ -138,6 +138,10 @@ async function main() {
     }
   }
 
+  appsscriptJson.oauthScopes = [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive'
+  ];
   appsscriptJson.webapp = {
     executeAs: 'USER_DEPLOYING',
     access: 'ANYONE_ANONYMOUS'
