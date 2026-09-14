@@ -4,8 +4,9 @@ import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
 // Constants & API Endpoints
 const TODAY = new Date(); // Actual current date
 
-// Google Apps Script Web App Deployment URL
+// Google Apps Script Web App Deployment URLs
 const GAS_API_URL = localStorage.getItem('gas_api_url') || 'https://script.google.com/macros/s/AKfycby_5htUVodm_M16r25fUOyNAkNG7cpx3L1X098TYGtvS6KYN4nv8h8N5-wnNsveytLz8Q/exec';
+const HEALTH_GAS_API_URL = localStorage.getItem('health_gas_api_url') || 'https://script.google.com/macros/s/AKfycbz5axHM_61gZngyDkr9CXwhK0AXdi4JRRm23Won8IaHxzbV7YWTpT7Wd_qn7GuL0gTgYg/exec';
 
 // Default Profile & Portfolio Data (Fallbacks for initial/offline load)
 const DEFAULT_PROFILE = {
@@ -55,7 +56,15 @@ let appState = {
   activeDiagId: null,      // ID of diagnostic currently viewed in detail
   expandedProjects: new Set(['project-1782022260306']), // Expanded project tree IDs
   isAdmin: false,          // Administrator unlocked status
-  adminPassword: ''        // Cached admin password for GAS cross-validation
+  adminPassword: '',       // Cached admin password for GAS cross-validation
+  
+  // Health & Fitness Mode State
+  mode: 'sec',             // 'sec' (Security Blog) or 'health' (Health & Fitness)
+  currentHealthTab: 'health-dashboard',
+  healthData: { db: [], body: [], activity: [], sleep: [], vitals: [] },
+  geminiApiKey: localStorage.getItem('gemini_api_key') || '',
+  geminiModel: localStorage.getItem('gemini_model') || 'gemini-1.5-flash',
+  dietFilter: 'all'
 };
 
 // DOM Elements
@@ -302,7 +311,100 @@ const elements = {
   portInputLevel: document.getElementById('port-input-level'),
   portInputPercent: document.getElementById('port-input-percent'),
   btnResetPortItem: document.getElementById('btn-reset-port-item'),
-  btnSavePortItem: document.getElementById('btn-save-port-item')
+  btnSavePortItem: document.getElementById('btn-save-port-item'),
+
+  // Health Mode Elements
+  modeHealthToggleBtn: document.getElementById('mode-health-toggle-btn'),
+  geminiSettingsBtn: document.getElementById('gemini-settings-btn'),
+  navSec: document.getElementById('nav-sec'),
+  navHealth: document.getElementById('nav-health'),
+
+  // Health Dashboard Elements
+  healthCardSteps: document.getElementById('health-card-steps'),
+  healthCardActiveCal: document.getElementById('health-card-active-cal'),
+  healthCardCalories: document.getElementById('health-card-calories'),
+  healthCardMacros: document.getElementById('health-card-macros'),
+  healthCardWeight: document.getElementById('health-card-weight'),
+  healthCardBodyDetail: document.getElementById('health-card-body-detail'),
+  healthCardSleep: document.getElementById('health-card-sleep'),
+  healthCardHr: document.getElementById('health-card-hr'),
+  healthTodayDietList: document.getElementById('health-today-diet-list'),
+  healthTodayWorkoutList: document.getElementById('health-today-workout-list'),
+
+  // Health Diet Elements
+  btnOpenAddDiet: document.getElementById('btn-open-add-diet'),
+  modalHealthDiet: document.getElementById('modal-health-diet'),
+  formHealthDiet: document.getElementById('form-health-diet'),
+  dietEditId: document.getElementById('diet-edit-id'),
+  dietModalTitle: document.getElementById('diet-modal-title'),
+  dietInputDate: document.getElementById('diet-input-date'),
+  dietInputTime: document.getElementById('diet-input-time'),
+  dietInputSubtype: document.getElementById('diet-input-subtype'),
+  dietInputTitle: document.getElementById('diet-input-title'),
+  dietInputCalories: document.getElementById('diet-input-calories'),
+  dietInputCarbs: document.getElementById('diet-input-carbs'),
+  dietInputProtein: document.getElementById('diet-input-protein'),
+  dietInputFat: document.getElementById('diet-input-fat'),
+  dietInputContent: document.getElementById('diet-input-content'),
+  dietImageInput: document.getElementById('diet-image-input'),
+  dietImageFilename: document.getElementById('diet-image-filename'),
+  dietImagePreview: document.getElementById('diet-image-preview'),
+  dietImagePreviewBox: document.getElementById('diet-image-preview-box'),
+  btnRemoveDietImage: document.getElementById('btn-remove-diet-image'),
+  dietTextPrompt: document.getElementById('diet-text-prompt'),
+  btnRunDietAi: document.getElementById('btn-run-diet-ai'),
+  dietAiStatus: document.getElementById('diet-ai-status'),
+  dietFilterBar: document.getElementById('diet-filter-bar'),
+  healthDietGrid: document.getElementById('health-diet-grid'),
+  btnCloseDietModal: document.getElementById('btn-close-diet-modal'),
+  btnCancelDiet: document.getElementById('btn-cancel-diet'),
+
+  // Health Workout Elements
+  btnOpenAddWorkout: document.getElementById('btn-open-add-workout'),
+  modalHealthWorkout: document.getElementById('modal-health-workout'),
+  formHealthWorkout: document.getElementById('form-health-workout'),
+  workoutEditId: document.getElementById('workout-edit-id'),
+  workoutModalTitle: document.getElementById('workout-modal-title'),
+  workoutInputDate: document.getElementById('workout-input-date'),
+  workoutInputTime: document.getElementById('workout-input-time'),
+  workoutInputSubtype: document.getElementById('workout-input-subtype'),
+  workoutInputTitle: document.getElementById('workout-input-title'),
+  workoutInputDuration: document.getElementById('workout-input-duration'),
+  workoutInputCalories: document.getElementById('workout-input-calories'),
+  workoutInputContent: document.getElementById('workout-input-content'),
+  healthWorkoutGrid: document.getElementById('health-workout-grid'),
+  btnCloseWorkoutModal: document.getElementById('btn-close-workout-modal'),
+  btnCancelWorkout: document.getElementById('btn-cancel-workout'),
+  samsungSteps: document.getElementById('samsung-steps'),
+  samsungDistance: document.getElementById('samsung-distance'),
+  samsungActiveCal: document.getElementById('samsung-active-cal'),
+  samsungActiveTime: document.getElementById('samsung-active-time'),
+  samsungStatsDate: document.getElementById('samsung-stats-date'),
+
+  // Health Body Elements
+  btnOpenAddBody: document.getElementById('btn-open-add-body'),
+  modalHealthBody: document.getElementById('modal-health-body'),
+  formHealthBody: document.getElementById('form-health-body'),
+  bodyEditId: document.getElementById('body-edit-id'),
+  bodyModalTitle: document.getElementById('body-modal-title'),
+  bodyInputDate: document.getElementById('body-input-date'),
+  bodyInputWeight: document.getElementById('body-input-weight'),
+  bodyInputMuscle: document.getElementById('body-input-muscle'),
+  bodyInputFat: document.getElementById('body-input-fat'),
+  bodyInputNotes: document.getElementById('body-input-notes'),
+  btnCloseBodyModal: document.getElementById('btn-close-body-modal'),
+  btnCancelBody: document.getElementById('btn-cancel-body'),
+  healthBodyTableBody: document.getElementById('health-body-table-body'),
+  bodyLatestSummary: document.getElementById('body-latest-summary'),
+
+  // Gemini Settings Elements
+  modalGeminiSettings: document.getElementById('modal-gemini-settings'),
+  geminiApiKeyInput: document.getElementById('gemini-api-key-input'),
+  geminiModelSelect: document.getElementById('gemini-model-select'),
+  geminiKeyStatus: document.getElementById('gemini-key-status'),
+  btnCloseGeminiModal: document.getElementById('btn-close-gemini-modal'),
+  btnCancelGeminiSettings: document.getElementById('btn-cancel-gemini-settings'),
+  btnSaveGeminiSettings: document.getElementById('btn-save-gemini-settings')
 };
 
 // Initialize App
@@ -314,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   initRouter();
   loadData();
+  loadHealthData();
   initPWA();
 });
 
@@ -458,6 +561,17 @@ function applyAdminPermissions() {
   if (elements.btnEditProfile) elements.btnEditProfile.style.display = isAdmin ? 'inline-flex' : 'none';
   if (elements.btnEditPortfolio) elements.btnEditPortfolio.style.display = isAdmin ? 'inline-flex' : 'none';
   if (elements.btnOpenAddNewsEditor) elements.btnOpenAddNewsEditor.style.display = isAdmin ? 'inline-block' : 'none';
+  
+  // Health Mode Buttons Visibility
+  if (elements.modeHealthToggleBtn) {
+    elements.modeHealthToggleBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+  }
+  if (elements.geminiSettingsBtn) {
+    elements.geminiSettingsBtn.style.display = (isAdmin && appState.mode === 'health') ? 'inline-flex' : 'none';
+  }
+  if (!isAdmin && appState.mode === 'health') {
+    toggleAppMode('sec');
+  }
   
   // Hide details view metadata action buttons if not admin
   const projectMetaActions = document.querySelector('.project-info-header .meta-actions');
@@ -893,12 +1007,41 @@ function stripMarkdown(mdString) {
 
 // Tab Switching
 function switchTab(tabId) {
-  const validTabs = ['dashboard', 'study', 'projects', 'news', 'portfolio'];
+  const validTabs = ['dashboard', 'study', 'projects', 'news', 'portfolio', 'health-dashboard', 'health-diet', 'health-workout', 'health-body'];
   if (!validTabs.includes(tabId)) {
-    tabId = 'dashboard';
+    tabId = (appState.mode === 'health') ? 'health-dashboard' : 'dashboard';
   }
   
   appState.currentTab = tabId;
+  if (tabId.startsWith('health-')) {
+    appState.currentHealthTab = tabId;
+    appState.mode = 'health';
+    if (elements.navSec) elements.navSec.style.display = 'none';
+    if (elements.navHealth) elements.navHealth.style.display = 'flex';
+    if (elements.modeHealthToggleBtn) {
+      elements.modeHealthToggleBtn.innerHTML = '<i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i>';
+      elements.modeHealthToggleBtn.title = '보안 블로그 모드로 복귀';
+      elements.modeHealthToggleBtn.classList.add('active-health');
+    }
+    if (elements.geminiSettingsBtn) {
+      elements.geminiSettingsBtn.style.display = appState.isAdmin ? 'inline-flex' : 'none';
+    }
+  } else {
+    if (appState.mode === 'health') {
+      appState.mode = 'sec';
+      if (elements.navSec) elements.navSec.style.display = 'flex';
+      if (elements.navHealth) elements.navHealth.style.display = 'none';
+      if (elements.modeHealthToggleBtn) {
+        elements.modeHealthToggleBtn.innerHTML = '<i class="fa-solid fa-heart" style="color: #10b981;"></i>';
+        elements.modeHealthToggleBtn.title = 'Health & Fitness 모드로 전환';
+        elements.modeHealthToggleBtn.classList.remove('active-health');
+      }
+      if (elements.geminiSettingsBtn) {
+        elements.geminiSettingsBtn.style.display = 'none';
+      }
+    }
+  }
+
   appState.activePostId = null;
   appState.activePostType = null;
   appState.activeProjectId = null;
@@ -910,7 +1053,8 @@ function switchTab(tabId) {
   if (elements.diagnosticDetailPane) elements.diagnosticDetailPane.style.display = 'none';
   if (elements.projectsListView) elements.projectsListView.style.display = 'block';
   
-  elements.navBtns.forEach(btn => {
+  const allNavBtns = document.querySelectorAll('.nav-menu .nav-btn');
+  allNavBtns.forEach(btn => {
     if (btn.getAttribute('data-tab') === tabId) {
       btn.classList.add('active');
     } else {
@@ -918,7 +1062,8 @@ function switchTab(tabId) {
     }
   });
 
-  elements.tabPanes.forEach(pane => {
+  const allPanes = document.querySelectorAll('.tab-pane');
+  allPanes.forEach(pane => {
     if (pane.id === `tab-${tabId}`) {
       pane.classList.add('active');
     } else {
@@ -926,7 +1071,11 @@ function switchTab(tabId) {
     }
   });
   
-  renderAll();
+  if (tabId.startsWith('health-')) {
+    renderHealthSection(tabId);
+  } else {
+    renderAll();
+  }
 }
 
 // Render All Components
@@ -4320,5 +4469,1431 @@ function setupEventListeners() {
     if (elements.editPortfolioModal) elements.editPortfolioModal.style.display = 'none';
     alert('포트폴리오가 성공적으로 저장되었습니다.');
   });
+
+  setupHealthEventListeners();
 }
+
+// ==========================================
+// Health & Fitness Module (Phase 2)
+// ==========================================
+
+let healthCharts = {
+  calorieBalance: null,
+  bodyComposition: null,
+  bodyDetailTrend: null
+};
+
+let currentDietImageBase64 = '';
+let currentDietImageMime = 'image/jpeg';
+
+// Toggle between Security Blog ('sec') and Health & Fitness ('health')
+function toggleAppMode(targetMode) {
+  if (!targetMode) {
+    targetMode = (appState.mode === 'health') ? 'sec' : 'health';
+  }
+  appState.mode = targetMode;
+
+  if (targetMode === 'health') {
+    if (elements.navSec) elements.navSec.style.display = 'none';
+    if (elements.navHealth) elements.navHealth.style.display = 'flex';
+    if (elements.modeHealthToggleBtn) {
+      elements.modeHealthToggleBtn.innerHTML = '<i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i>';
+      elements.modeHealthToggleBtn.title = '보안 블로그 모드로 복귀';
+      elements.modeHealthToggleBtn.classList.add('active-health');
+    }
+    if (elements.geminiSettingsBtn) {
+      elements.geminiSettingsBtn.style.display = appState.isAdmin ? 'inline-flex' : 'none';
+    }
+    
+    // Switch to health dashboard or saved tab
+    const targetHealthTab = appState.currentHealthTab || 'health-dashboard';
+    switchTab(targetHealthTab);
+    loadHealthData();
+  } else {
+    if (elements.navSec) elements.navSec.style.display = 'flex';
+    if (elements.navHealth) elements.navHealth.style.display = 'none';
+    if (elements.modeHealthToggleBtn) {
+      elements.modeHealthToggleBtn.innerHTML = '<i class="fa-solid fa-heart" style="color: #10b981;"></i>';
+      elements.modeHealthToggleBtn.title = 'Health & Fitness 모드로 전환';
+      elements.modeHealthToggleBtn.classList.remove('active-health');
+    }
+    if (elements.geminiSettingsBtn) {
+      elements.geminiSettingsBtn.style.display = 'none';
+    }
+    switchTab('dashboard');
+  }
+}
+
+// Fetch all Health Data from Google Apps Script with Local Cache
+async function loadHealthData(forceRefresh = false) {
+  try {
+    const cached = localStorage.getItem('health_data');
+    if (cached && cached !== 'undefined' && !forceRefresh) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          appState.healthData = {
+            db: Array.isArray(parsed.db) ? parsed.db : [],
+            body: Array.isArray(parsed.body) ? parsed.body : [],
+            activity: Array.isArray(parsed.activity) ? parsed.activity : [],
+            sleep: Array.isArray(parsed.sleep) ? parsed.sleep : [],
+            vitals: Array.isArray(parsed.vitals) ? parsed.vitals : []
+          };
+          if (appState.mode === 'health') {
+            renderHealthSection(appState.currentHealthTab);
+          }
+        }
+      } catch (e) {
+        console.warn('Local health data parse error:', e);
+      }
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(`${HEALTH_GAS_API_URL}?action=getAllData`, {
+      method: 'GET',
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.status === 'success' && json.data) {
+        appState.healthData = {
+          db: Array.isArray(json.data.db) ? json.data.db : [],
+          body: Array.isArray(json.data.body) ? json.data.body : [],
+          activity: Array.isArray(json.data.activity) ? json.data.activity : [],
+          sleep: Array.isArray(json.data.sleep) ? json.data.sleep : [],
+          vitals: Array.isArray(json.data.vitals) ? json.data.vitals : []
+        };
+        localStorage.setItem('health_data', JSON.stringify(appState.healthData));
+        if (appState.mode === 'health') {
+          renderHealthSection(appState.currentHealthTab);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Health data fetch failed or timed out:', err);
+    if (appState.mode === 'health') {
+      renderHealthSection(appState.currentHealthTab);
+    }
+  }
+}
+
+// Send Mutation Requests to Health GAS API
+async function sendToHealthGasApi(action, payload = {}) {
+  const body = {
+    action,
+    ...payload,
+    password: appState.adminPassword
+  };
+
+  showDeployOverlay('데이터 저장 중...', 'Health Google Sheets에 안전하게 동기화하고 있습니다.');
+  try {
+    const res = await fetch(HEALTH_GAS_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    if (data.status === 'error') {
+      throw new Error(data.message || '요청 처리 중 오류가 발생했습니다.');
+    }
+    return data;
+  } finally {
+    hideDeployOverlay();
+  }
+}
+
+// Route to specific health render function
+function renderHealthSection(tabId) {
+  if (!tabId) tabId = appState.currentHealthTab || 'health-dashboard';
+  switch (tabId) {
+    case 'health-dashboard':
+      renderHealthDashboard();
+      break;
+    case 'health-diet':
+      renderHealthDiet();
+      break;
+    case 'health-workout':
+      renderHealthWorkout();
+      break;
+    case 'health-body':
+      renderHealthBody();
+      break;
+  }
+}
+
+// 1. Health Main Dashboard
+function renderHealthDashboard() {
+  const today = new Date().toISOString().split('T')[0];
+  
+  // 1-1. Activity (Samsung Health)
+  const activities = appState.healthData.activity || [];
+  const todayAct = activities.find(a => a.date && a.date.startsWith(today)) || (activities.length > 0 ? activities[activities.length - 1] : null);
+  if (todayAct) {
+    if (elements.healthCardSteps) {
+      elements.healthCardSteps.innerHTML = `${(Number(todayAct.steps) || 0).toLocaleString()} <span class="unit">보</span>`;
+    }
+    if (elements.healthCardActiveCal) {
+      elements.healthCardActiveCal.textContent = `활동 소모: ${(Number(todayAct.activeCalories) || 0).toLocaleString()} kcal`;
+    }
+  } else {
+    if (elements.healthCardSteps) elements.healthCardSteps.innerHTML = `0 <span class="unit">보</span>`;
+    if (elements.healthCardActiveCal) elements.healthCardActiveCal.textContent = `활동 소모: 0 kcal`;
+  }
+
+  // 1-2. Diet Intake
+  const dbItems = appState.healthData.db || [];
+  const dietItems = dbItems.filter(item => (item.category || '').toLowerCase() === 'diet');
+  const todayDiets = dietItems.filter(item => item.date && item.date.startsWith(today));
+  
+  const totalDietCal = todayDiets.reduce((sum, item) => sum + (Number(item.calories) || 0), 0);
+  const totalCarbs = todayDiets.reduce((sum, item) => sum + (Number(item.carbs) || 0), 0);
+  const totalProtein = todayDiets.reduce((sum, item) => sum + (Number(item.protein) || 0), 0);
+  const totalFat = todayDiets.reduce((sum, item) => sum + (Number(item.fat) || 0), 0);
+
+  if (elements.healthCardCalories) {
+    elements.healthCardCalories.innerHTML = `${totalDietCal.toLocaleString()} <span class="unit">kcal</span>`;
+  }
+  if (elements.healthCardMacros) {
+    elements.healthCardMacros.textContent = `탄 ${totalCarbs}g | 단 ${totalProtein}g | 지 ${totalFat}g`;
+  }
+
+  // 1-3. Body Composition
+  const bodyRecords = [...(appState.healthData.body || [])];
+  bodyRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const latestBody = bodyRecords[0] || null;
+
+  if (latestBody) {
+    if (elements.healthCardWeight) {
+      elements.healthCardWeight.innerHTML = `${latestBody.weight || '--'} <span class="unit">kg</span>`;
+    }
+    if (elements.healthCardBodyDetail) {
+      elements.healthCardBodyDetail.textContent = `골격근 ${latestBody.muscleMass || '--'} kg | 체지방 ${latestBody.bodyFatPercent || '--'} %`;
+    }
+  } else {
+    if (elements.healthCardWeight) elements.healthCardWeight.innerHTML = `-- <span class="unit">kg</span>`;
+    if (elements.healthCardBodyDetail) elements.healthCardBodyDetail.textContent = `골격근 -- kg | 체지방 -- %`;
+  }
+
+  // 1-4. Sleep & Vitals
+  const sleepList = appState.healthData.sleep || [];
+  const latestSleep = sleepList.length > 0 ? sleepList[sleepList.length - 1] : null;
+  if (latestSleep && latestSleep.durationMinutes) {
+    const mins = Number(latestSleep.durationMinutes) || 0;
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    if (elements.healthCardSleep) {
+      elements.healthCardSleep.innerHTML = `${hrs}시간 ${remMins}분 <span class="unit">(${latestSleep.sleepScore ? latestSleep.sleepScore + '점' : '기록됨'})</span>`;
+    }
+  } else {
+    if (elements.healthCardSleep) elements.healthCardSleep.innerHTML = `-- <span class="unit">시간</span>`;
+  }
+
+  const vitalsList = appState.healthData.vitals || [];
+  const latestVitals = vitalsList.length > 0 ? vitalsList[vitalsList.length - 1] : null;
+  if (latestVitals) {
+    if (elements.healthCardHr) {
+      elements.healthCardHr.textContent = `평균 심박수: ${latestVitals.heartRate || '--'} bpm`;
+    }
+  } else {
+    if (elements.healthCardHr) elements.healthCardHr.textContent = `평균 심박수: -- bpm`;
+  }
+
+  // 1-5. Today's Diet List Feed
+  if (elements.healthTodayDietList) {
+    if (todayDiets.length === 0) {
+      elements.healthTodayDietList.innerHTML = `<div class="empty-state" style="padding: 2rem 1rem; color: var(--text-muted); font-size: 0.85rem; text-align: center;"><i class="fa-solid fa-utensils" style="font-size: 1.5rem; margin-bottom: 6px; opacity: 0.5;"></i><p>오늘 기록된 식단이 없습니다.<br>상단 '식단 관리'에서 끼니를 추가해보세요.</p></div>`;
+    } else {
+      elements.healthTodayDietList.innerHTML = todayDiets.map(item => {
+        const subTypeColors = {
+          '아침': 'badge-orange',
+          '점심': 'badge-blue',
+          '저녁': 'badge-purple',
+          '간식': 'badge-green'
+        };
+        const badgeCls = subTypeColors[item.subType] || 'badge-blue';
+        return `
+          <div class="recent-item" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="badge ${badgeCls}" style="font-size: 0.75rem;">${escapeHtml(item.subType || '식사')}</span>
+              <div>
+                <strong style="color: var(--text-color); font-size: 0.9rem;">${escapeHtml(item.title || '')}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(item.time || '')} | 탄 ${item.carbs || 0}g 단 ${item.protein || 0}g 지 ${item.fat || 0}g</div>
+              </div>
+            </div>
+            <div style="font-weight: 700; color: #f59e0b; font-size: 0.9rem;">
+              ${(Number(item.calories) || 0).toLocaleString()} kcal
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 1-6. Today's Workout List Feed
+  const workoutItems = dbItems.filter(item => (item.category || '').toLowerCase() === 'workout');
+  const todayWorkouts = workoutItems.filter(item => item.date && item.date.startsWith(today));
+  if (elements.healthTodayWorkoutList) {
+    if (todayWorkouts.length === 0) {
+      elements.healthTodayWorkoutList.innerHTML = `<div class="empty-state" style="padding: 2rem 1rem; color: var(--text-muted); font-size: 0.85rem; text-align: center;"><i class="fa-solid fa-dumbbell" style="font-size: 1.5rem; margin-bottom: 6px; opacity: 0.5;"></i><p>오늘 기록된 운동 일지가 없습니다.<br>'운동 기록'에서 루틴을 추가해보세요.</p></div>`;
+    } else {
+      elements.healthTodayWorkoutList.innerHTML = todayWorkouts.map(item => {
+        return `
+          <div class="recent-item" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="badge badge-green" style="font-size: 0.75rem;">${escapeHtml(item.subType || '운동')}</span>
+              <div>
+                <strong style="color: var(--text-color); font-size: 0.9rem;">${escapeHtml(item.title || '')}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(item.time || '')} | ${item.duration || 0}분</div>
+              </div>
+            </div>
+            <div style="font-weight: 700; color: #10b981; font-size: 0.9rem;">
+              ${(Number(item.calories) || 0).toLocaleString()} kcal
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 1-7. Chart.js: Calorie Balance & Body Composition
+  renderDashboardCharts(activities, dietItems, bodyRecords);
+}
+
+// Render Dashboard Chart.js Charts
+function renderDashboardCharts(activities, dietItems, bodyRecords) {
+  if (typeof window.Chart === 'undefined') return;
+
+  const isLight = document.body.classList.contains('light-theme');
+  const textColor = isLight ? '#475569' : '#94a3b8';
+  const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)';
+
+  // Chart 1: Calorie Balance (Last 7 Days)
+  const canvasCalorie = document.getElementById('chart-calorie-balance');
+  if (canvasCalorie) {
+    if (healthCharts.calorieBalance) {
+      healthCharts.calorieBalance.destroy();
+      healthCharts.calorieBalance = null;
+    }
+
+    // Generate last 7 days date strings
+    const days = [];
+    const dateLabels = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const iso = d.toISOString().split('T')[0];
+      days.push(iso);
+      dateLabels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+    }
+
+    const intakeData = days.map(day => {
+      const dayDiets = dietItems.filter(it => it.date && it.date.startsWith(day));
+      return dayDiets.reduce((sum, it) => sum + (Number(it.calories) || 0), 0);
+    });
+
+    const burnData = days.map(day => {
+      const dayAct = activities.find(it => it.date && it.date.startsWith(day));
+      return dayAct ? (Number(dayAct.activeCalories) || 0) : 0;
+    });
+
+    healthCharts.calorieBalance = new window.Chart(canvasCalorie, {
+      type: 'bar',
+      data: {
+        labels: dateLabels,
+        datasets: [
+          {
+            label: '섭취 칼로리 (kcal)',
+            data: intakeData,
+            backgroundColor: 'rgba(245, 158, 11, 0.75)',
+            borderColor: '#f59e0b',
+            borderWidth: 1.5,
+            borderRadius: 4
+          },
+          {
+            label: '활동 소모 칼로리 (kcal)',
+            data: burnData,
+            backgroundColor: 'rgba(16, 185, 129, 0.75)',
+            borderColor: '#10b981',
+            borderWidth: 1.5,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: textColor, font: { size: 11 } }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 } }
+          },
+          y: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 } },
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+
+  // Chart 2: Body Composition Trend (Recent records)
+  const canvasBody = document.getElementById('chart-body-composition');
+  if (canvasBody) {
+    if (healthCharts.bodyComposition) {
+      healthCharts.bodyComposition.destroy();
+      healthCharts.bodyComposition = null;
+    }
+
+    const sortedBody = [...bodyRecords].reverse().slice(-7); // Last 7 records chronological
+    const labels = sortedBody.map(b => {
+      if (!b.date) return '';
+      const parts = b.date.split('-');
+      return parts.length >= 3 ? `${Number(parts[1])}/${Number(parts[2])}` : b.date;
+    });
+    const weightData = sortedBody.map(b => Number(b.weight) || null);
+    const muscleData = sortedBody.map(b => Number(b.muscleMass) || null);
+
+    healthCharts.bodyComposition = new window.Chart(canvasBody, {
+      type: 'line',
+      data: {
+        labels: labels.length > 0 ? labels : ['기록 없음'],
+        datasets: [
+          {
+            label: '체중 (kg)',
+            data: weightData.length > 0 ? weightData : [0],
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56, 189, 248, 0.1)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 4
+          },
+          {
+            label: '골격근량 (kg)',
+            data: muscleData.length > 0 ? muscleData : [0],
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: textColor, font: { size: 11 } }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 } }
+          },
+          y: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 } }
+          }
+        }
+      }
+    });
+  }
+}
+
+// 2. Health Diet Tab
+function renderHealthDiet() {
+  if (!elements.healthDietGrid) return;
+
+  const dbItems = appState.healthData.db || [];
+  let dietItems = dbItems.filter(item => (item.category || '').toLowerCase() === 'diet');
+
+  // Filter by Subtype
+  if (appState.dietFilter && appState.dietFilter !== 'all') {
+    dietItems = dietItems.filter(item => item.subType === appState.dietFilter);
+  }
+
+  // Sort by date desc, time desc
+  dietItems.sort((a, b) => {
+    const dtA = `${a.date || ''} ${a.time || ''}`;
+    const dtB = `${b.date || ''} ${b.time || ''}`;
+    return dtB.localeCompare(dtA);
+  });
+
+  if (dietItems.length === 0) {
+    elements.healthDietGrid.innerHTML = `
+      <div class="empty-state-card" style="grid-column: 1 / -1; padding: 3rem 1rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">
+        <i class="fa-solid fa-utensils" style="font-size: 2.5rem; color: #10b981; margin-bottom: 12px; opacity: 0.7;"></i>
+        <h3 style="color: var(--text-color); margin-bottom: 6px;">기록된 식단이 없습니다</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">음식 사진을 찍어 올리거나 먹은 메뉴를 적으면 Gemini AI가 칼로리를 자동 분석합니다.</p>
+        <button class="btn-primary" id="btn-empty-add-diet"><i class="fa-solid fa-plus"></i> 첫 식단 기록하기</button>
+      </div>
+    `;
+    document.getElementById('btn-empty-add-diet')?.addEventListener('click', () => {
+      openAddDietModal();
+    });
+    return;
+  }
+
+  const subTypeClasses = {
+    '아침': 'badge-orange',
+    '점심': 'badge-blue',
+    '저녁': 'badge-purple',
+    '간식': 'badge-green'
+  };
+
+  elements.healthDietGrid.innerHTML = dietItems.map(item => {
+    const badgeCls = subTypeClasses[item.subType] || 'badge-blue';
+    const hasImage = !!item.imageUrl;
+    
+    // Macro percentages for visual bar
+    const carbs = Number(item.carbs) || 0;
+    const protein = Number(item.protein) || 0;
+    const fat = Number(item.fat) || 0;
+    const totalGrams = (carbs + protein + fat) || 1;
+    const carbPct = Math.round((carbs / totalGrams) * 100);
+    const protPct = Math.round((protein / totalGrams) * 100);
+    const fatPct = Math.max(0, 100 - carbPct - protPct);
+
+    return `
+      <div class="card health-feed-card">
+        ${hasImage ? `
+          <div class="health-card-img-wrap">
+            <img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" loading="lazy">
+          </div>
+        ` : ''}
+        <div class="health-card-header">
+          <span class="badge ${badgeCls}">${escapeHtml(item.subType || '식단')}</span>
+          <span class="health-date-time"><i class="fa-regular fa-clock"></i> ${escapeHtml(item.date || '')} ${escapeHtml(item.time || '')}</span>
+        </div>
+        <h3 class="health-item-title">${escapeHtml(item.title || '식단')}</h3>
+        <div class="health-calorie-chip">
+          <span class="cal-val">${(Number(item.calories) || 0).toLocaleString()}</span> <span class="cal-unit">kcal</span>
+        </div>
+        
+        <!-- Macro Breakdown -->
+        <div class="macro-breakdown">
+          <div class="macro-bar">
+            <div class="macro-segment carb" style="width: ${carbPct}%;" title="탄수화물 ${carbs}g (${carbPct}%)"></div>
+            <div class="macro-segment prot" style="width: ${protPct}%;" title="단백질 ${protein}g (${protPct}%)"></div>
+            <div class="macro-segment fat" style="width: ${fatPct}%;" title="지방 ${fat}g (${fatPct}%)"></div>
+          </div>
+          <div class="macro-labels">
+            <span>탄 <strong>${carbs}g</strong></span>
+            <span>단 <strong>${protein}g</strong></span>
+            <span>지 <strong>${fat}g</strong></span>
+          </div>
+        </div>
+
+        ${item.content ? `<p class="health-item-desc">${escapeHtml(item.content)}</p>` : ''}
+
+        ${appState.isAdmin ? `
+          <div class="health-item-actions">
+            <button type="button" class="btn-secondary btn-sm btn-edit-diet" data-id="${escapeHtml(item.id)}"><i class="fa-regular fa-pen-to-square"></i> 수정</button>
+            <button type="button" class="btn-danger btn-sm btn-delete-diet" data-id="${escapeHtml(item.id)}"><i class="fa-regular fa-trash-can"></i> 삭제</button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  // Attach Edit & Delete Listeners
+  elements.healthDietGrid.querySelectorAll('.btn-edit-diet').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      openEditDietModal(id);
+    });
+  });
+
+  elements.healthDietGrid.querySelectorAll('.btn-delete-diet').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      deleteDietItem(id);
+    });
+  });
+}
+
+function openAddDietModal() {
+  if (elements.formHealthDiet) elements.formHealthDiet.reset();
+  if (elements.dietEditId) elements.dietEditId.value = '';
+  if (elements.dietModalTitle) {
+    elements.dietModalTitle.innerHTML = '<i class="fa-solid fa-utensils" style="color: #10b981;"></i> 식단 기록 추가 (AI)';
+  }
+
+  // Auto set current date and time
+  const now = new Date();
+  if (elements.dietInputDate) elements.dietInputDate.value = now.toISOString().split('T')[0];
+  if (elements.dietInputTime) {
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    elements.dietInputTime.value = `${hours}:${minutes}`;
+  }
+
+  currentDietImageBase64 = '';
+  currentDietImageMime = 'image/jpeg';
+  if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'none';
+  if (elements.dietImageFilename) elements.dietImageFilename.textContent = '선택된 사진 없음';
+  if (elements.dietAiStatus) elements.dietAiStatus.textContent = '사진이나 텍스트를 입력해 보세요';
+
+  if (elements.modalHealthDiet) elements.modalHealthDiet.style.display = 'flex';
+}
+
+function openEditDietModal(id) {
+  const dbItems = appState.healthData.db || [];
+  const target = dbItems.find(it => it.id === id);
+  if (!target) return;
+
+  if (elements.dietEditId) elements.dietEditId.value = target.id;
+  if (elements.dietModalTitle) {
+    elements.dietModalTitle.innerHTML = `<i class="fa-solid fa-pen-to-square" style="color: #10b981;"></i> 식단 기록 수정 (${escapeHtml(target.title || '')})`;
+  }
+  if (elements.dietInputDate) elements.dietInputDate.value = target.date || '';
+  if (elements.dietInputTime) elements.dietInputTime.value = target.time || '';
+  if (elements.dietInputSubtype) elements.dietInputSubtype.value = target.subType || '점심';
+  if (elements.dietInputTitle) elements.dietInputTitle.value = target.title || '';
+  if (elements.dietInputCalories) elements.dietInputCalories.value = target.calories || 0;
+  if (elements.dietInputCarbs) elements.dietInputCarbs.value = target.carbs || 0;
+  if (elements.dietInputProtein) elements.dietInputProtein.value = target.protein || 0;
+  if (elements.dietInputFat) elements.dietInputFat.value = target.fat || 0;
+  if (elements.dietInputContent) elements.dietInputContent.value = target.content || '';
+
+  if (target.imageUrl) {
+    currentDietImageBase64 = target.imageUrl;
+    if (elements.dietImagePreview) elements.dietImagePreview.src = target.imageUrl;
+    if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'inline-flex';
+    if (elements.dietImageFilename) elements.dietImageFilename.textContent = '기존 사진 등록됨';
+  } else {
+    currentDietImageBase64 = '';
+    if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'none';
+    if (elements.dietImageFilename) elements.dietImageFilename.textContent = '선택된 사진 없음';
+  }
+
+  if (elements.dietAiStatus) elements.dietAiStatus.textContent = '수정 모드입니다';
+  if (elements.modalHealthDiet) elements.modalHealthDiet.style.display = 'flex';
+}
+
+async function saveDietItem() {
+  const title = elements.dietInputTitle ? elements.dietInputTitle.value.trim() : '';
+  const date = elements.dietInputDate ? elements.dietInputDate.value.trim() : '';
+  if (!title || !date) {
+    alert('날짜와 메뉴명은 필수 입력 항목입니다.');
+    return;
+  }
+
+  const editId = elements.dietEditId ? elements.dietEditId.value : '';
+  const item = {
+    id: editId || `diet-${Date.now()}`,
+    category: 'Diet',
+    date: date,
+    time: elements.dietInputTime ? elements.dietInputTime.value.trim() : '',
+    subType: elements.dietInputSubtype ? elements.dietInputSubtype.value : '점심',
+    title: title,
+    calories: elements.dietInputCalories ? Number(elements.dietInputCalories.value) || 0 : 0,
+    carbs: elements.dietInputCarbs ? Number(elements.dietInputCarbs.value) || 0 : 0,
+    protein: elements.dietInputProtein ? Number(elements.dietInputProtein.value) || 0 : 0,
+    fat: elements.dietInputFat ? Number(elements.dietInputFat.value) || 0 : 0,
+    imageUrl: currentDietImageBase64 || '',
+    content: elements.dietInputContent ? elements.dietInputContent.value.trim() : '',
+    created_at: new Date().toISOString()
+  };
+
+  if (appState.isAdmin && appState.adminPassword) {
+    try {
+      await sendToHealthGasApi('saveDBItem', { item });
+    } catch (err) {
+      alert(err.message);
+      return;
+    }
+  }
+
+  const db = appState.healthData.db || [];
+  if (editId) {
+    const idx = db.findIndex(it => it.id === editId);
+    if (idx !== -1) db[idx] = item;
+  } else {
+    db.unshift(item);
+  }
+  appState.healthData.db = db;
+  localStorage.setItem('health_data', JSON.stringify(appState.healthData));
+
+  if (elements.modalHealthDiet) elements.modalHealthDiet.style.display = 'none';
+  renderHealthDiet();
+  if (appState.currentHealthTab === 'health-dashboard') {
+    renderHealthDashboard();
+  }
+  alert('식단 기록이 성공적으로 저장되었습니다.');
+}
+
+async function deleteDietItem(id) {
+  if (!confirm('이 식단 기록을 삭제하시겠습니까?')) return;
+
+  if (appState.isAdmin && appState.adminPassword) {
+    try {
+      await sendToHealthGasApi('deleteDBItem', { id });
+    } catch (err) {
+      alert(err.message);
+      return;
+    }
+  }
+
+  appState.healthData.db = (appState.healthData.db || []).filter(it => it.id !== id);
+  localStorage.setItem('health_data', JSON.stringify(appState.healthData));
+  renderHealthDiet();
+  if (appState.currentHealthTab === 'health-dashboard') {
+    renderHealthDashboard();
+  }
+}
+
+// Multimodal Nutrition Analysis with Google AI Studio Gemini API
+async function analyzeDietWithGemini() {
+  if (!appState.geminiApiKey) {
+    alert('Google AI Studio Gemini API 키가 설정되지 않았습니다.\n우측 상단의 톱니바퀴(⚙️) 버튼을 눌러 API 키를 등록해 주세요.');
+    if (elements.modalGeminiSettings) elements.modalGeminiSettings.style.display = 'flex';
+    return;
+  }
+
+  const promptText = elements.dietTextPrompt ? elements.dietTextPrompt.value.trim() : '';
+  if (!promptText && !currentDietImageBase64) {
+    alert('분석할 음식 사진을 업로드하거나, 무엇을 먹었는지 텍스트로 설명해 주세요.');
+    return;
+  }
+
+  if (elements.dietAiStatus) {
+    elements.dietAiStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color: #10b981;"></i> Gemini AI가 사진과 메뉴를 분석하고 있습니다...';
+  }
+  if (elements.btnRunDietAi) elements.btnRunDietAi.disabled = true;
+
+  try {
+    const parts = [];
+
+    // If image exists, add inline data
+    if (currentDietImageBase64 && currentDietImageBase64.includes(',')) {
+      const base64Data = currentDietImageBase64.split(',')[1];
+      parts.push({
+        inline_data: {
+          mime_type: currentDietImageMime || 'image/jpeg',
+          data: base64Data
+        }
+      });
+    }
+
+    const systemInstruction = `당신은 최고 수준의 임상 영양사 및 식단 분석 전문가입니다.
+제공된 음식 사진과 사용자 설명을 바탕으로 음식 종류, 예상 칼로리(kcal), 3대 영양소(탄수화물g, 단백질g, 지방g)를 전문적으로 분석해 주세요.
+반드시 아래의 유효한 JSON 형식으로만 응답해야 하며, 어떠한 마크다운 코드블록(\`\`\`json 등)이나 서문/결문 없이 오직 순수한 JSON 문자열 하나만 출력해야 합니다:
+{
+  "title": "대표 메뉴명 (예: 소고기 구이와 된장찌개)",
+  "subType": "아침 | 점심 | 저녁 | 간식",
+  "calories": 650,
+  "carbs": 45,
+  "protein": 52,
+  "fat": 28,
+  "content": "영양 평가 및 식단 균형에 대한 전문적 피드백 한 줄"
+}`;
+
+    parts.push({
+      text: `${systemInstruction}\n\n사용자 식단 설명: ${promptText || '사진 속 음식의 영양 성분과 칼로리를 정확히 분석해줘.'}`
+    });
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${appState.geminiModel}:generateContent?key=${appState.geminiApiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: parts }]
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData?.error?.message || `API 호출 오류 (${response.status})`);
+    }
+
+    const result = await response.json();
+    const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    // Clean markdown code blocks if Gemini returned them
+    const cleanJson = candidateText.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanJson);
+
+    // Auto-fill form fields
+    if (elements.dietInputTitle && parsed.title) elements.dietInputTitle.value = parsed.title;
+    if (elements.dietInputSubtype && parsed.subType) {
+      const validSubTypes = ['아침', '점심', '저녁', '간식'];
+      if (validSubTypes.includes(parsed.subType)) {
+        elements.dietInputSubtype.value = parsed.subType;
+      }
+    }
+    if (elements.dietInputCalories && parsed.calories !== undefined) elements.dietInputCalories.value = parsed.calories;
+    if (elements.dietInputCarbs && parsed.carbs !== undefined) elements.dietInputCarbs.value = parsed.carbs;
+    if (elements.dietInputProtein && parsed.protein !== undefined) elements.dietInputProtein.value = parsed.protein;
+    if (elements.dietInputFat && parsed.fat !== undefined) elements.dietInputFat.value = parsed.fat;
+    if (elements.dietInputContent && parsed.content) elements.dietInputContent.value = parsed.content;
+
+    if (elements.dietAiStatus) {
+      elements.dietAiStatus.innerHTML = '<i class="fa-solid fa-circle-check" style="color: #10b981;"></i> AI 분석 완료! 아래 영양 정보를 확인해 보세요.';
+    }
+  } catch (err) {
+    console.error('Gemini Analysis error:', err);
+    if (elements.dietAiStatus) {
+      elements.dietAiStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> AI 분석 실패: ${escapeHtml(err.message)}`;
+    }
+  } finally {
+    if (elements.btnRunDietAi) elements.btnRunDietAi.disabled = false;
+  }
+}
+
+// 3. Health Workout Tab
+function renderHealthWorkout() {
+  const activities = appState.healthData.activity || [];
+  const latestAct = activities.length > 0 ? activities[activities.length - 1] : null;
+
+  if (latestAct) {
+    if (elements.samsungSteps) elements.samsungSteps.textContent = `${(Number(latestAct.steps) || 0).toLocaleString()} 보`;
+    if (elements.samsungDistance) elements.samsungDistance.textContent = `${(Number(latestAct.distanceKm) || 0).toFixed(1)} km`;
+    if (elements.samsungActiveCal) elements.samsungActiveCal.textContent = `${(Number(latestAct.activeCalories) || 0).toLocaleString()} kcal`;
+    if (elements.samsungActiveTime) elements.samsungActiveTime.textContent = `${(Number(latestAct.activeMinutes) || 0)} 분`;
+    if (elements.samsungStatsDate) elements.samsungStatsDate.textContent = latestAct.date ? `${latestAct.date} 기준` : '최신 연동';
+  }
+
+  const dbItems = appState.healthData.db || [];
+  const workoutItems = dbItems.filter(item => (item.category || '').toLowerCase() === 'workout');
+
+  workoutItems.sort((a, b) => {
+    const dtA = `${a.date || ''} ${a.time || ''}`;
+    const dtB = `${b.date || ''} ${b.time || ''}`;
+    return dtB.localeCompare(dtA);
+  });
+
+  if (!elements.healthWorkoutGrid) return;
+
+  if (workoutItems.length === 0) {
+    elements.healthWorkoutGrid.innerHTML = `
+      <div class="empty-state-card" style="grid-column: 1 / -1; padding: 3rem 1rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">
+        <i class="fa-solid fa-dumbbell" style="font-size: 2.5rem; color: #10b981; margin-bottom: 12px; opacity: 0.7;"></i>
+        <h3 style="color: var(--text-color); margin-bottom: 6px;">작성된 추가 운동 일지가 없습니다</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">웨이트 트레이닝 세트, 런닝, 크로스핏 루틴을 상세하게 기록해 보세요.</p>
+        <button class="btn-primary" id="btn-empty-add-workout"><i class="fa-solid fa-plus"></i> 첫 운동 일지 작성</button>
+      </div>
+    `;
+    document.getElementById('btn-empty-add-workout')?.addEventListener('click', () => {
+      openAddWorkoutModal();
+    });
+    return;
+  }
+
+  elements.healthWorkoutGrid.innerHTML = workoutItems.map(item => {
+    return `
+      <div class="card health-feed-card">
+        <div class="health-card-header">
+          <span class="badge badge-green">${escapeHtml(item.subType || '웨이트')}</span>
+          <span class="health-date-time"><i class="fa-regular fa-clock"></i> ${escapeHtml(item.date || '')} ${escapeHtml(item.time || '')}</span>
+        </div>
+        <h3 class="health-item-title">${escapeHtml(item.title || '운동')}</h3>
+        
+        <div class="health-workout-stats-row">
+          <div class="stat-pill"><i class="fa-regular fa-hourglass-half"></i> ${item.duration || 0}분</div>
+          <div class="stat-pill cal"><i class="fa-solid fa-fire"></i> ${(Number(item.calories) || 0).toLocaleString()} kcal</div>
+        </div>
+
+        ${item.content ? `
+          <div class="workout-sets-box">
+            ${escapeHtml(item.content).replace(/\n/g, '<br>')}
+          </div>
+        ` : ''}
+
+        ${appState.isAdmin ? `
+          <div class="health-item-actions">
+            <button type="button" class="btn-secondary btn-sm btn-edit-workout" data-id="${escapeHtml(item.id)}"><i class="fa-regular fa-pen-to-square"></i> 수정</button>
+            <button type="button" class="btn-danger btn-sm btn-delete-workout" data-id="${escapeHtml(item.id)}"><i class="fa-regular fa-trash-can"></i> 삭제</button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  elements.healthWorkoutGrid.querySelectorAll('.btn-edit-workout').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      openEditWorkoutModal(id);
+    });
+  });
+
+  elements.healthWorkoutGrid.querySelectorAll('.btn-delete-workout').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      deleteWorkoutItem(id);
+    });
+  });
+}
+
+function openAddWorkoutModal() {
+  if (elements.formHealthWorkout) elements.formHealthWorkout.reset();
+  if (elements.workoutEditId) elements.workoutEditId.value = '';
+  if (elements.workoutModalTitle) {
+    elements.workoutModalTitle.innerHTML = '<i class="fa-solid fa-dumbbell" style="color: #10b981;"></i> 추가 운동 일지 작성';
+  }
+
+  const now = new Date();
+  if (elements.workoutInputDate) elements.workoutInputDate.value = now.toISOString().split('T')[0];
+  if (elements.workoutInputTime) {
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    elements.workoutInputTime.value = `${hours}:${minutes}`;
+  }
+
+  if (elements.modalHealthWorkout) elements.modalHealthWorkout.style.display = 'flex';
+}
+
+function openEditWorkoutModal(id) {
+  const dbItems = appState.healthData.db || [];
+  const target = dbItems.find(it => it.id === id);
+  if (!target) return;
+
+  if (elements.workoutEditId) elements.workoutEditId.value = target.id;
+  if (elements.workoutModalTitle) {
+    elements.workoutModalTitle.innerHTML = `<i class="fa-solid fa-pen-to-square" style="color: #10b981;"></i> 운동 일지 수정 (${escapeHtml(target.title || '')})`;
+  }
+  if (elements.workoutInputDate) elements.workoutInputDate.value = target.date || '';
+  if (elements.workoutInputTime) elements.workoutInputTime.value = target.time || '';
+  if (elements.workoutInputSubtype) elements.workoutInputSubtype.value = target.subType || '웨이트';
+  if (elements.workoutInputTitle) elements.workoutInputTitle.value = target.title || '';
+  if (elements.workoutInputDuration) elements.workoutInputDuration.value = target.duration || 60;
+  if (elements.workoutInputCalories) elements.workoutInputCalories.value = target.calories || 0;
+  if (elements.workoutInputContent) elements.workoutInputContent.value = target.content || '';
+
+  if (elements.modalHealthWorkout) elements.modalHealthWorkout.style.display = 'flex';
+}
+
+async function saveWorkoutItem() {
+  const title = elements.workoutInputTitle ? elements.workoutInputTitle.value.trim() : '';
+  const date = elements.workoutInputDate ? elements.workoutInputDate.value.trim() : '';
+  if (!title || !date) {
+    alert('날짜와 운동 종목명은 필수 입력 항목입니다.');
+    return;
+  }
+
+  const editId = elements.workoutEditId ? elements.workoutEditId.value : '';
+  const item = {
+    id: editId || `workout-${Date.now()}`,
+    category: 'Workout',
+    date: date,
+    time: elements.workoutInputTime ? elements.workoutInputTime.value.trim() : '',
+    subType: elements.workoutInputSubtype ? elements.workoutInputSubtype.value : '웨이트',
+    title: title,
+    duration: elements.workoutInputDuration ? Number(elements.workoutInputDuration.value) || 0 : 0,
+    calories: elements.workoutInputCalories ? Number(elements.workoutInputCalories.value) || 0 : 0,
+    content: elements.workoutInputContent ? elements.workoutInputContent.value.trim() : '',
+    created_at: new Date().toISOString()
+  };
+
+  if (appState.isAdmin && appState.adminPassword) {
+    try {
+      await sendToHealthGasApi('saveDBItem', { item });
+    } catch (err) {
+      alert(err.message);
+      return;
+    }
+  }
+
+  const db = appState.healthData.db || [];
+  if (editId) {
+    const idx = db.findIndex(it => it.id === editId);
+    if (idx !== -1) db[idx] = item;
+  } else {
+    db.unshift(item);
+  }
+  appState.healthData.db = db;
+  localStorage.setItem('health_data', JSON.stringify(appState.healthData));
+
+  if (elements.modalHealthWorkout) elements.modalHealthWorkout.style.display = 'none';
+  renderHealthWorkout();
+  if (appState.currentHealthTab === 'health-dashboard') {
+    renderHealthDashboard();
+  }
+  alert('운동 일지가 성공적으로 저장되었습니다.');
+}
+
+async function deleteWorkoutItem(id) {
+  if (!confirm('이 운동 일지를 삭제하시겠습니까?')) return;
+
+  if (appState.isAdmin && appState.adminPassword) {
+    try {
+      await sendToHealthGasApi('deleteDBItem', { id });
+    } catch (err) {
+      alert(err.message);
+      return;
+    }
+  }
+
+  appState.healthData.db = (appState.healthData.db || []).filter(it => it.id !== id);
+  localStorage.setItem('health_data', JSON.stringify(appState.healthData));
+  renderHealthWorkout();
+  if (appState.currentHealthTab === 'health-dashboard') {
+    renderHealthDashboard();
+  }
+}
+
+// 4. Health Body Tab (InBody)
+function renderHealthBody() {
+  const bodyRecords = [...(appState.healthData.body || [])];
+  bodyRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  // 4-1. Latest Body Summary Card
+  if (elements.bodyLatestSummary) {
+    const latest = bodyRecords[0];
+    if (latest) {
+      const weight = Number(latest.weight) || 0;
+      const muscle = Number(latest.muscleMass) || 0;
+      const fat = Number(latest.bodyFatPercent) || 0;
+      const bmi = latest.bmi || (weight ? (weight / (1.75 * 1.75)).toFixed(1) : '--');
+      const bmr = latest.bmr || (weight ? Math.round(10 * weight + 6.25 * 175 - 5 * 28 + 5) : '--');
+
+      elements.bodyLatestSummary.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="stat-box" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted);">현재 체중</div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: #38bdf8;">${weight} <span style="font-size: 0.85rem;">kg</span></div>
+          </div>
+          <div class="stat-box" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted);">골격근량</div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: #10b981;">${muscle} <span style="font-size: 0.85rem;">kg</span></div>
+          </div>
+          <div class="stat-box" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted);">체지방률</div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: #f59e0b;">${fat} <span style="font-size: 0.85rem;">%</span></div>
+          </div>
+          <div class="stat-box" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted);">BMI 지수</div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-color);">${bmi}</div>
+          </div>
+        </div>
+        <div style="padding: 10px; background: rgba(16, 185, 129, 0.08); border-radius: 8px; font-size: 0.85rem; color: #10b981; text-align: center;">
+          <i class="fa-solid fa-bolt"></i> 추정 기초대사량(BMR): <strong>${bmr} kcal</strong>
+        </div>
+      `;
+    } else {
+      elements.bodyLatestSummary.innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); padding: 1.5rem 0;">
+          <i class="fa-solid fa-weight-scale" style="font-size: 2rem; margin-bottom: 8px; opacity: 0.5;"></i>
+          <p>등록된 신체 지표가 없습니다.<br>우측 상단 '신체 지표 기록' 버튼을 눌러보세요.</p>
+        </div>
+      `;
+    }
+  }
+
+  // 4-2. History Table
+  if (elements.healthBodyTableBody) {
+    if (bodyRecords.length === 0) {
+      elements.healthBodyTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">기록된 신체 데이터가 없습니다.</td></tr>`;
+    } else {
+      elements.healthBodyTableBody.innerHTML = bodyRecords.map(item => {
+        const weight = Number(item.weight) || 0;
+        const bmi = item.bmi || (weight ? (weight / (1.75 * 1.75)).toFixed(1) : '--');
+        const bmr = item.bmr || (weight ? Math.round(10 * weight + 6.25 * 175 - 5 * 28 + 5) : '--');
+        return `
+          <tr>
+            <td><strong>${escapeHtml(item.date || '')}</strong></td>
+            <td><span style="color: #38bdf8; font-weight: 600;">${item.weight || '--'}</span> kg</td>
+            <td><span style="color: #10b981; font-weight: 600;">${item.muscleMass || '--'}</span> kg</td>
+            <td><span style="color: #f59e0b; font-weight: 600;">${item.bodyFatPercent || '--'}</span> %</td>
+            <td>${bmi}</td>
+            <td>${bmr} kcal</td>
+            <td style="color: var(--text-muted); font-size: 0.85rem;">${escapeHtml(item.notes || '-')}</td>
+            <td>
+              ${appState.isAdmin ? `
+                <button type="button" class="btn-secondary btn-sm btn-edit-body" data-id="${escapeHtml(item.id)}" title="수정"><i class="fa-regular fa-pen-to-square"></i></button>
+                <button type="button" class="btn-danger btn-sm btn-delete-body" data-id="${escapeHtml(item.id)}" title="삭제"><i class="fa-regular fa-trash-can"></i></button>
+              ` : '-'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      elements.healthBodyTableBody.querySelectorAll('.btn-edit-body').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          openEditBodyModal(id);
+        });
+      });
+
+      elements.healthBodyTableBody.querySelectorAll('.btn-delete-body').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          deleteBodyItem(id);
+        });
+      });
+    }
+  }
+
+  // 4-3. Trend Chart
+  renderBodyDetailTrendChart(bodyRecords);
+}
+
+function renderBodyDetailTrendChart(bodyRecords) {
+  if (typeof window.Chart === 'undefined') return;
+
+  const canvas = document.getElementById('chart-body-detail-trend');
+  if (!canvas) return;
+
+  if (healthCharts.bodyDetailTrend) {
+    healthCharts.bodyDetailTrend.destroy();
+    healthCharts.bodyDetailTrend = null;
+  }
+
+  const isLight = document.body.classList.contains('light-theme');
+  const textColor = isLight ? '#475569' : '#94a3b8';
+  const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)';
+
+  const sortedBody = [...bodyRecords].reverse().slice(-10); // Chronological
+  const labels = sortedBody.map(b => {
+    if (!b.date) return '';
+    const parts = b.date.split('-');
+    return parts.length >= 3 ? `${Number(parts[1])}/${Number(parts[2])}` : b.date;
+  });
+
+  const muscleData = sortedBody.map(b => Number(b.muscleMass) || null);
+  const fatData = sortedBody.map(b => Number(b.bodyFatPercent) || null);
+
+  healthCharts.bodyDetailTrend = new window.Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: labels.length > 0 ? labels : ['기록 없음'],
+      datasets: [
+        {
+          label: '골격근량 (kg)',
+          data: muscleData.length > 0 ? muscleData : [0],
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          tension: 0.3,
+          pointRadius: 5,
+          yAxisID: 'y'
+        },
+        {
+          label: '체지방률 (%)',
+          data: fatData.length > 0 ? fatData : [0],
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          tension: 0.3,
+          pointRadius: 5,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { color: textColor, font: { size: 11 } }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: textColor, font: { size: 11 } }
+        },
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          title: { display: true, text: '골격근량 (kg)', color: textColor },
+          grid: { color: gridColor },
+          ticks: { color: textColor }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: { display: true, text: '체지방률 (%)', color: textColor },
+          grid: { drawOnChartArea: false },
+          ticks: { color: textColor }
+        }
+      }
+    }
+  });
+}
+
+function openAddBodyModal() {
+  if (elements.formHealthBody) elements.formHealthBody.reset();
+  if (elements.bodyEditId) elements.bodyEditId.value = '';
+  if (elements.bodyModalTitle) {
+    elements.bodyModalTitle.innerHTML = '<i class="fa-solid fa-weight-scale" style="color: #38bdf8;"></i> 신체 데이터 기록 (인바디)';
+  }
+
+  const now = new Date();
+  if (elements.bodyInputDate) elements.bodyInputDate.value = now.toISOString().split('T')[0];
+  if (elements.modalHealthBody) elements.modalHealthBody.style.display = 'flex';
+}
+
+function openEditBodyModal(id) {
+  const bodyRecords = appState.healthData.body || [];
+  const target = bodyRecords.find(it => it.id === id);
+  if (!target) return;
+
+  if (elements.bodyEditId) elements.bodyEditId.value = target.id;
+  if (elements.bodyModalTitle) {
+    elements.bodyModalTitle.innerHTML = `<i class="fa-solid fa-pen-to-square" style="color: #38bdf8;"></i> 신체 지표 수정 (${escapeHtml(target.date || '')})`;
+  }
+  if (elements.bodyInputDate) elements.bodyInputDate.value = target.date || '';
+  if (elements.bodyInputWeight) elements.bodyInputWeight.value = target.weight || '';
+  if (elements.bodyInputMuscle) elements.bodyInputMuscle.value = target.muscleMass || '';
+  if (elements.bodyInputFat) elements.bodyInputFat.value = target.bodyFatPercent || '';
+  if (elements.bodyInputNotes) elements.bodyInputNotes.value = target.notes || '';
+
+  if (elements.modalHealthBody) elements.modalHealthBody.style.display = 'flex';
+}
+
+async function saveBodyItem() {
+  const date = elements.bodyInputDate ? elements.bodyInputDate.value.trim() : '';
+  const weight = elements.bodyInputWeight ? Number(elements.bodyInputWeight.value) || 0 : 0;
+  if (!date || !weight) {
+    alert('측정 일자와 체중은 필수 입력 항목입니다.');
+    return;
+  }
+
+  const editId = elements.bodyEditId ? elements.bodyEditId.value : '';
+  const muscle = elements.bodyInputMuscle ? Number(elements.bodyInputMuscle.value) || 0 : 0;
+  const fat = elements.bodyInputFat ? Number(elements.bodyInputFat.value) || 0 : 0;
+  const bmi = (weight / (1.75 * 1.75)).toFixed(1);
+  const bmr = Math.round(10 * weight + 6.25 * 175 - 5 * 28 + 5);
+
+  const item = {
+    id: editId || `body-${Date.now()}`,
+    date: date,
+    weight: weight,
+    muscleMass: muscle,
+    bodyFatPercent: fat,
+    bmi: Number(bmi),
+    bmr: bmr,
+    notes: elements.bodyInputNotes ? elements.bodyInputNotes.value.trim() : '',
+    created_at: new Date().toISOString()
+  };
+
+  if (appState.isAdmin && appState.adminPassword) {
+    try {
+      await sendToHealthGasApi('saveBodyItem', { item });
+    } catch (err) {
+      alert(err.message);
+      return;
+    }
+  }
+
+  const bodyList = appState.healthData.body || [];
+  if (editId) {
+    const idx = bodyList.findIndex(it => it.id === editId);
+    if (idx !== -1) bodyList[idx] = item;
+  } else {
+    bodyList.unshift(item);
+  }
+  appState.healthData.body = bodyList;
+  localStorage.setItem('health_data', JSON.stringify(appState.healthData));
+
+  if (elements.modalHealthBody) elements.modalHealthBody.style.display = 'none';
+  renderHealthBody();
+  if (appState.currentHealthTab === 'health-dashboard') {
+    renderHealthDashboard();
+  }
+  alert('신체 지표가 성공적으로 저장되었습니다.');
+}
+
+async function deleteBodyItem(id) {
+  if (!confirm('이 신체 측정 기록을 삭제하시겠습니까?')) return;
+
+  if (appState.isAdmin && appState.adminPassword) {
+    try {
+      await sendToHealthGasApi('deleteBodyItem', { id });
+    } catch (err) {
+      alert(err.message);
+      return;
+    }
+  }
+
+  appState.healthData.body = (appState.healthData.body || []).filter(it => it.id !== id);
+  localStorage.setItem('health_data', JSON.stringify(appState.healthData));
+  renderHealthBody();
+  if (appState.currentHealthTab === 'health-dashboard') {
+    renderHealthDashboard();
+  }
+}
+
+// 5. Setup Health Event Listeners
+function setupHealthEventListeners() {
+  // Mode Toggle Button (Green Heart / Shield)
+  elements.modeHealthToggleBtn?.addEventListener('click', () => {
+    toggleAppMode();
+  });
+
+  // Gemini Settings Button (Gear / Magic Sparkles)
+  elements.geminiSettingsBtn?.addEventListener('click', () => {
+    if (elements.geminiApiKeyInput) elements.geminiApiKeyInput.value = appState.geminiApiKey || '';
+    if (elements.geminiModelSelect) elements.geminiModelSelect.value = appState.geminiModel || 'gemini-1.5-flash';
+    if (elements.geminiKeyStatus) {
+      elements.geminiKeyStatus.textContent = appState.geminiApiKey ? 'API 키 등록됨' : '미설정';
+      elements.geminiKeyStatus.style.color = appState.geminiApiKey ? '#10b981' : 'var(--text-muted)';
+    }
+    if (elements.modalGeminiSettings) elements.modalGeminiSettings.style.display = 'flex';
+  });
+
+  elements.btnCloseGeminiModal?.addEventListener('click', () => {
+    if (elements.modalGeminiSettings) elements.modalGeminiSettings.style.display = 'none';
+  });
+
+  elements.btnCancelGeminiSettings?.addEventListener('click', () => {
+    if (elements.modalGeminiSettings) elements.modalGeminiSettings.style.display = 'none';
+  });
+
+  elements.btnSaveGeminiSettings?.addEventListener('click', () => {
+    const key = elements.geminiApiKeyInput ? elements.geminiApiKeyInput.value.trim() : '';
+    const model = elements.geminiModelSelect ? elements.geminiModelSelect.value : 'gemini-1.5-flash';
+    
+    appState.geminiApiKey = key;
+    appState.geminiModel = model;
+    localStorage.setItem('gemini_api_key', key);
+    localStorage.setItem('gemini_model', model);
+
+    if (elements.modalGeminiSettings) elements.modalGeminiSettings.style.display = 'none';
+    alert('Gemini API 설정이 저장되었습니다.');
+  });
+
+  // Diet Modal Controls
+  elements.btnOpenAddDiet?.addEventListener('click', () => {
+    openAddDietModal();
+  });
+
+  elements.btnCloseDietModal?.addEventListener('click', () => {
+    if (elements.modalHealthDiet) elements.modalHealthDiet.style.display = 'none';
+  });
+
+  elements.btnCancelDiet?.addEventListener('click', () => {
+    if (elements.modalHealthDiet) elements.modalHealthDiet.style.display = 'none';
+  });
+
+  // Image Upload / Preview / Remove
+  elements.dietImageInput?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    currentDietImageMime = file.type || 'image/jpeg';
+    if (elements.dietImageFilename) elements.dietImageFilename.textContent = file.name;
+
+    const reader = new FileReader();
+    reader.onload = (loadEvt) => {
+      currentDietImageBase64 = loadEvt.target.result;
+      if (elements.dietImagePreview) elements.dietImagePreview.src = currentDietImageBase64;
+      if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'inline-flex';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  elements.btnRemoveDietImage?.addEventListener('click', () => {
+    currentDietImageBase64 = '';
+    if (elements.dietImageInput) elements.dietImageInput.value = '';
+    if (elements.dietImagePreview) elements.dietImagePreview.src = '';
+    if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'none';
+    if (elements.dietImageFilename) elements.dietImageFilename.textContent = '선택된 사진 없음';
+  });
+
+  // Support Image Paste directly into Diet Modal
+  elements.modalHealthDiet?.addEventListener('paste', (e) => {
+    const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        currentDietImageMime = file.type;
+        if (elements.dietImageFilename) elements.dietImageFilename.textContent = '클립보드 붙여넣은 이미지';
+        const reader = new FileReader();
+        reader.onload = (loadEvt) => {
+          currentDietImageBase64 = loadEvt.target.result;
+          if (elements.dietImagePreview) elements.dietImagePreview.src = currentDietImageBase64;
+          if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'inline-flex';
+        };
+        reader.readAsDataURL(file);
+        break;
+      }
+    }
+  });
+
+  // Run AI Analysis Button
+  elements.btnRunDietAi?.addEventListener('click', () => {
+    analyzeDietWithGemini();
+  });
+
+  // Diet Form Submit
+  elements.formHealthDiet?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveDietItem();
+  });
+
+  // Diet Subtype Filter Bar
+  elements.dietFilterBar?.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      elements.dietFilterBar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      appState.dietFilter = btn.getAttribute('data-diet-filter') || 'all';
+      renderHealthDiet();
+    });
+  });
+
+  // Workout Modal Controls
+  elements.btnOpenAddWorkout?.addEventListener('click', () => {
+    openAddWorkoutModal();
+  });
+
+  elements.btnCloseWorkoutModal?.addEventListener('click', () => {
+    if (elements.modalHealthWorkout) elements.modalHealthWorkout.style.display = 'none';
+  });
+
+  elements.btnCancelWorkout?.addEventListener('click', () => {
+    if (elements.modalHealthWorkout) elements.modalHealthWorkout.style.display = 'none';
+  });
+
+  elements.formHealthWorkout?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveWorkoutItem();
+  });
+
+  // Body Modal Controls
+  elements.btnOpenAddBody?.addEventListener('click', () => {
+    openAddBodyModal();
+  });
+
+  elements.btnCloseBodyModal?.addEventListener('click', () => {
+    if (elements.modalHealthBody) elements.modalHealthBody.style.display = 'none';
+  });
+
+  elements.btnCancelBody?.addEventListener('click', () => {
+    if (elements.modalHealthBody) elements.modalHealthBody.style.display = 'none';
+  });
+
+  elements.formHealthBody?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveBodyItem();
+  });
+
+  // Dashboard "전체보기" buttons to navigate to diet/workout tabs
+  document.querySelectorAll('.btn-more[data-target-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-target-tab');
+      if (target) switchTab(target);
+    });
+  });
+}
+
 
