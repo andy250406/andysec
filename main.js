@@ -2262,6 +2262,15 @@ function hideLoader(callback = null) {
   }, 500);
 }
 
+// Aliases for Deploy Overlay / Spinner Helpers
+function showDeployOverlay(title, desc) {
+  showLoader(title, desc);
+}
+
+function hideDeployOverlay(callback = null) {
+  hideLoader(callback);
+}
+
 // Top-Right Red Popup Toast Message (5초 후 fadeout)
 function showTopRightError(message = 'DB에서 데이터를 불러오지 못했습니다. 잠시후 다시 시도해주세요.') {
   let toast = document.getElementById('top-right-error-toast');
