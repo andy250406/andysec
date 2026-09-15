@@ -64,7 +64,8 @@ let appState = {
   healthData: { db: [], body: [], activity: [], sleep: [], vitals: [] },
   geminiApiKey: localStorage.getItem('gemini_api_key') || '',
   geminiModel: localStorage.getItem('gemini_model') || 'gemini-1.5-flash',
-  dietFilter: 'all'
+  dietFilter: 'all',
+  activeDietDate: null
 };
 
 // DOM Elements
@@ -356,6 +357,14 @@ const elements = {
   dietAiStatus: document.getElementById('diet-ai-status'),
   dietFilterBar: document.getElementById('diet-filter-bar'),
   healthDietGrid: document.getElementById('health-diet-grid'),
+  dietDateListView: document.getElementById('diet-date-list-view'),
+  dietDateList: document.getElementById('diet-date-list'),
+  dietDateDetailView: document.getElementById('diet-date-detail-view'),
+  btnBackToDietList: document.getElementById('btn-back-to-diet-list'),
+  dietDetailDateTitle: document.getElementById('diet-detail-date-title'),
+  btnDetailAddMeal: document.getElementById('btn-detail-add-meal'),
+  dietDailySummaryBanner: document.getElementById('diet-daily-summary-banner'),
+  dietDetailMealsStack: document.getElementById('diet-detail-meals-stack'),
   btnCloseDietModal: document.getElementById('btn-close-diet-modal'),
   btnCancelDiet: document.getElementById('btn-cancel-diet'),
 
@@ -625,6 +634,10 @@ function initRouter() {
     } else if (hash.startsWith('#/project/')) {
       const projectId = hash.replace('#/project/', '');
       showProjectDetail(projectId);
+    } else if (hash.startsWith('#/health-diet/')) {
+      const date = hash.replace('#/health-diet/', '');
+      switchTab('health-diet');
+      showDietDateDetail(date);
     } else {
       let targetTab = 'dashboard';
       if (hash.startsWith('#/tab/')) {
@@ -1046,6 +1059,11 @@ function switchTab(tabId) {
   appState.activePostType = null;
   appState.activeProjectId = null;
   appState.activeDiagId = null;
+  if (tabId !== 'health-diet' || !window.location.hash.startsWith('#/health-diet/')) {
+    appState.activeDietDate = null;
+    if (elements.dietDateDetailView) elements.dietDateDetailView.style.display = 'none';
+    if (elements.dietDateListView) elements.dietDateListView.style.display = 'block';
+  }
   
   if (elements.articlePane) elements.articlePane.style.display = 'none';
   if (elements.noteEditorPane) elements.noteEditorPane.style.display = 'none';
@@ -4718,7 +4736,7 @@ function renderHealthDashboard() {
         };
         const badgeCls = subTypeColors[item.subType] || 'badge-blue';
         return `
-          <div class="recent-item" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color);">
+          <div class="recent-item diet-recent-item" data-date="${escapeHtml(item.date || '')}" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s ease;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <span class="badge ${badgeCls}" style="font-size: 0.75rem;">${escapeHtml(item.subType || '식사')}</span>
               <div>
@@ -4732,6 +4750,13 @@ function renderHealthDashboard() {
           </div>
         `;
       }).join('');
+
+      elements.healthTodayDietList.querySelectorAll('.diet-recent-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const d = el.getAttribute('data-date');
+          if (d) window.location.hash = `#/health-diet/${d}`;
+        });
+      });
     }
   }
 
@@ -4915,28 +4940,72 @@ function renderDashboardCharts(activities, dietItems, bodyRecords) {
   }
 }
 
-// 2. Health Diet Tab
-function renderHealthDiet() {
-  if (!elements.healthDietGrid) return;
+// // Utility: Format Date for Diet List (e.g. '2026-09-15 (화)')
+function formatDietDate(dateStr) {
+  if (!dateStr) return '';
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return dateStr;
+  const dayName = days[d.getDay()];
+  return `${dateStr} (${dayName})`;
+}
 
-  const dbItems = appState.healthData.db || [];
-  let dietItems = dbItems.filter(item => (item.category || '').toLowerCase() === 'diet');
+// Utility: Long Format Date (e.g. '2026년 9월 15일 (화) 식단 일지')
+function formatDietDateLong(dateStr) {
+  if (!dateStr) return '식단 상세 일지';
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return dateStr;
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1;
+  const date = d.getDate();
+  const dayName = days[d.getDay()];
+  return `${year}년 ${month}월 ${date}일 (${dayName}) 식단 일지`;
+}
 
-  // Filter by Subtype
-  if (appState.dietFilter && appState.dietFilter !== 'all') {
-    dietItems = dietItems.filter(item => item.subType === appState.dietFilter);
+// Utility: Get Daily Recommended Calorie Target (SSOT)
+function getDailyTargetCalories(date) {
+  // 1. Samsung Health activity total calories for the date
+  const activities = appState.healthData.activity || [];
+  const act = activities.find(a => a.date && a.date.startsWith(date));
+  if (act && Number(act.totalCalories) > 0) {
+    return Math.round(Number(act.totalCalories));
   }
 
-  // Sort by date desc, time desc
-  dietItems.sort((a, b) => {
-    const dtA = `${a.date || ''} ${a.time || ''}`;
-    const dtB = `${b.date || ''} ${b.time || ''}`;
-    return dtB.localeCompare(dtA);
-  });
+  // 2. Latest Body BMR * 1.35
+  const bodyRecords = appState.healthData.body || [];
+  if (bodyRecords.length > 0) {
+    const latest = bodyRecords[0];
+    const bmr = Number(latest.bmr) || 0;
+    if (bmr > 0) {
+      return Math.round(bmr * 1.35);
+    }
+  }
+
+  // 3. Fallback standard adult recommendation
+  return 2400;
+}
+
+// 2. Health Diet Tab (Master: 날짜별 2줄 요약 목록)
+function renderHealthDiet() {
+  // If activeDietDate is specified and we're navigating directly
+  if (appState.activeDietDate) {
+    showDietDateDetail(appState.activeDietDate);
+    return;
+  }
+
+  if (elements.dietDateDetailView) elements.dietDateDetailView.style.display = 'none';
+  if (elements.dietDateListView) elements.dietDateListView.style.display = 'block';
+
+  const container = elements.dietDateList || elements.healthDietGrid;
+  if (!container) return;
+
+  const dbItems = appState.healthData.db || [];
+  const dietItems = dbItems.filter(item => (item.category || '').toLowerCase() === 'diet');
 
   if (dietItems.length === 0) {
-    elements.healthDietGrid.innerHTML = `
-      <div class="empty-state-card" style="grid-column: 1 / -1; padding: 3rem 1rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">
+    container.innerHTML = `
+      <div class="empty-state-card" style="padding: 3rem 1rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">
         <i class="fa-solid fa-utensils" style="font-size: 2.5rem; color: #10b981; margin-bottom: 12px; opacity: 0.7;"></i>
         <h3 style="color: var(--text-color); margin-bottom: 6px;">기록된 식단이 없습니다</h3>
         <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">음식 사진을 찍어 올리거나 먹은 메뉴를 적으면 Gemini AI가 칼로리를 자동 분석합니다.</p>
@@ -4949,85 +5018,347 @@ function renderHealthDiet() {
     return;
   }
 
-  const subTypeClasses = {
-    '아침': 'badge-orange',
-    '점심': 'badge-blue',
-    '저녁': 'badge-purple',
-    '간식': 'badge-green'
-  };
+  // Group by date: { 'YYYY-MM-DD': [ items... ] }
+  const dateGroups = {};
+  dietItems.forEach(item => {
+    const d = item.date || '날짜 미지정';
+    if (!dateGroups[d]) dateGroups[d] = [];
+    dateGroups[d].push(item);
+  });
 
-  elements.healthDietGrid.innerHTML = dietItems.map(item => {
-    const badgeCls = subTypeClasses[item.subType] || 'badge-blue';
-    const hasImage = !!item.imageUrl;
-    
-    // Macro percentages for visual bar
-    const carbs = Number(item.carbs) || 0;
-    const protein = Number(item.protein) || 0;
-    const fat = Number(item.fat) || 0;
-    const totalGrams = (carbs + protein + fat) || 1;
-    const carbPct = Math.round((carbs / totalGrams) * 100);
-    const protPct = Math.round((protein / totalGrams) * 100);
-    const fatPct = Math.max(0, 100 - carbPct - protPct);
+  // Sort dates descending
+  let sortedDates = Object.keys(dateGroups).sort((a, b) => b.localeCompare(a));
+
+  // Filter by Subtype if selected
+  if (appState.dietFilter && appState.dietFilter !== 'all') {
+    sortedDates = sortedDates.filter(d => {
+      return dateGroups[d].some(it => it.subType === appState.dietFilter);
+    });
+  }
+
+  if (sortedDates.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state-card" style="padding: 2.5rem 1rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">선택하신 끼니('${escapeHtml(appState.dietFilter)}')가 포함된 날짜의 식단 기록이 없습니다.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = sortedDates.map(dateStr => {
+    const items = dateGroups[dateStr];
+    let totalCal = 0;
+    let totalCarb = 0;
+    let totalProt = 0;
+    let totalFat = 0;
+
+    // Map meals by subtype
+    const mealMap = { '아침': [], '점심': [], '저녁': [], '간식': [] };
+
+    items.forEach(it => {
+      totalCal += Number(it.calories) || 0;
+      totalCarb += Number(it.carbs) || 0;
+      totalProt += Number(it.protein) || 0;
+      totalFat += Number(it.fat) || 0;
+
+      const sub = it.subType || '기타';
+      if (mealMap[sub]) {
+        mealMap[sub].push(it.title || '메뉴');
+      } else {
+        mealMap[sub] = [it.title || '메뉴'];
+      }
+    });
+
+    const targetCal = getDailyTargetCalories(dateStr);
+    const calPct = Math.round((totalCal / targetCal) * 100);
+    const isOver = calPct > 100;
+    const formattedDate = formatDietDate(dateStr);
+
+    // Build bottom line meals string
+    const subTypes = ['아침', '점심', '저녁', '간식'];
+    const subTypeClasses = {
+      '아침': 'morning',
+      '점심': 'lunch',
+      '저녁': 'dinner',
+      '간식': 'snack'
+    };
+
+    const mealSummariesHtml = subTypes.map((st, idx) => {
+      const cls = subTypeClasses[st] || 'lunch';
+      const menus = mealMap[st];
+      const menuText = (menus && menus.length > 0) ? escapeHtml(menus.join(', ')) : null;
+      return `
+        <span class="meal-segment">
+          <span class="meal-tag ${cls}">${st}</span>
+          ${menuText ? `<span class="meal-title-text" title="${menuText}">${menuText}</span>` : `<span class="meal-none">-</span>`}
+        </span>
+        ${idx < subTypes.length - 1 ? `<span class="meal-divider">|</span>` : ''}
+      `;
+    }).join('');
 
     return `
-      <div class="card health-feed-card">
-        ${hasImage ? `
-          <div class="health-card-img-wrap">
-            <img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" loading="lazy">
+      <div class="diet-date-row" data-date="${escapeHtml(dateStr)}">
+        <!-- 윗줄: 해당 날짜, 전체 영양성분, 전체 칼로리/일일권장소비칼로리 -->
+        <div class="date-row-top">
+          <div class="date-row-title-wrap">
+            <i class="fa-regular fa-calendar-check date-icon"></i>
+            <span class="date-text">${escapeHtml(formattedDate)}</span>
+            <span class="date-meal-badge">${items.length}끼</span>
           </div>
-        ` : ''}
-        <div class="health-card-header">
-          <span class="badge ${badgeCls}">${escapeHtml(item.subType || '식단')}</span>
-          <span class="health-date-time"><i class="fa-regular fa-clock"></i> ${escapeHtml(item.date || '')} ${escapeHtml(item.time || '')}</span>
-        </div>
-        <h3 class="health-item-title">${escapeHtml(item.title || '식단')}</h3>
-        <div class="health-calorie-chip">
-          <span class="cal-val">${(Number(item.calories) || 0).toLocaleString()}</span> <span class="cal-unit">kcal</span>
-        </div>
-        
-        <!-- Macro Breakdown -->
-        <div class="macro-breakdown">
-          <div class="macro-bar">
-            <div class="macro-segment carb" style="width: ${carbPct}%;" title="탄수화물 ${carbs}g (${carbPct}%)"></div>
-            <div class="macro-segment prot" style="width: ${protPct}%;" title="단백질 ${protein}g (${protPct}%)"></div>
-            <div class="macro-segment fat" style="width: ${fatPct}%;" title="지방 ${fat}g (${fatPct}%)"></div>
+
+          <div class="date-row-macros-wrap">
+            <span>탄 <strong>${Math.round(totalCarb)}g</strong></span>
+            <span class="macro-dot">·</span>
+            <span>단 <strong>${Math.round(totalProt)}g</strong></span>
+            <span class="macro-dot">·</span>
+            <span>지 <strong>${Math.round(totalFat)}g</strong></span>
           </div>
-          <div class="macro-labels">
-            <span>탄 <strong>${carbs}g</strong></span>
-            <span>단 <strong>${protein}g</strong></span>
-            <span>지 <strong>${fat}g</strong></span>
+
+          <div class="date-row-calories-wrap">
+            <span class="cal-val">${totalCal.toLocaleString()}</span>
+            <span class="cal-slash">/</span>
+            <span class="cal-target">${targetCal.toLocaleString()} kcal</span>
+            <span class="cal-pct-badge ${isOver ? 'over' : ''}">${calPct}%</span>
+            <i class="fa-solid fa-chevron-right arrow-icon"></i>
           </div>
         </div>
 
-        ${item.content ? `<p class="health-item-desc">${escapeHtml(item.content)}</p>` : ''}
-
-        ${appState.isAdmin ? `
-          <div class="health-item-actions">
-            <button type="button" class="btn-secondary btn-sm btn-edit-diet" data-id="${escapeHtml(item.id)}"><i class="fa-regular fa-pen-to-square"></i> 수정</button>
-            <button type="button" class="btn-danger btn-sm btn-delete-diet" data-id="${escapeHtml(item.id)}"><i class="fa-regular fa-trash-can"></i> 삭제</button>
-          </div>
-        ` : ''}
+        <!-- 아랫줄: 아침: ~ | 점심: ~ | 저녁: ~ | 간식: ~ -->
+        <div class="date-row-bottom">
+          ${mealSummariesHtml}
+        </div>
       </div>
     `;
   }).join('');
 
-  // Attach Edit & Delete Listeners
-  elements.healthDietGrid.querySelectorAll('.btn-edit-diet').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.getAttribute('data-id');
-      openEditDietModal(id);
-    });
-  });
-
-  elements.healthDietGrid.querySelectorAll('.btn-delete-diet').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.getAttribute('data-id');
-      deleteDietItem(id);
+  // Attach click listener on each date row to open Detail Post View
+  container.querySelectorAll('.diet-date-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const date = row.getAttribute('data-date');
+      if (date) {
+        window.location.hash = `#/health-diet/${date}`;
+      }
     });
   });
 }
 
-function openAddDietModal() {
+// 2-B. Health Diet Detail View (Detail: 날짜별 게시글 상세 화면, 명함형 세로 1열 카드)
+function showDietDateDetail(date) {
+  appState.activeDietDate = date;
+
+  if (elements.dietDateListView) elements.dietDateListView.style.display = 'none';
+  if (elements.dietDateDetailView) elements.dietDateDetailView.style.display = 'block';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Update Detail Title
+  if (elements.dietDetailDateTitle) {
+    elements.dietDetailDateTitle.innerHTML = `<i class="fa-regular fa-calendar-days" style="color: #10b981;"></i> ${escapeHtml(formatDietDateLong(date))}`;
+  }
+
+  const dbItems = appState.healthData.db || [];
+  const dateMeals = dbItems.filter(item => (item.category || '').toLowerCase() === 'diet' && item.date === date);
+
+  if (dateMeals.length === 0) {
+    backToDietList();
+    return;
+  }
+
+  // Sort meals in logical meal order (아침 -> 점심 -> 저녁 -> 간식), then time
+  const orderWeight = { '아침': 1, '점심': 2, '저녁': 3, '간식': 4 };
+  dateMeals.sort((a, b) => {
+    const wA = orderWeight[a.subType] || 99;
+    const wB = orderWeight[b.subType] || 99;
+    if (wA !== wB) return wA - wB;
+    return (a.time || '').localeCompare(b.time || '');
+  });
+
+  // Calculate Daily Totals
+  let totalCal = 0;
+  let totalCarb = 0;
+  let totalProt = 0;
+  let totalFat = 0;
+
+  dateMeals.forEach(m => {
+    totalCal += Number(m.calories) || 0;
+    totalCarb += Number(m.carbs) || 0;
+    totalProt += Number(m.protein) || 0;
+    totalFat += Number(m.fat) || 0;
+  });
+
+  const targetCal = getDailyTargetCalories(date);
+  const calPct = Math.round((totalCal / targetCal) * 100);
+  const totalMacroGrams = (totalCarb + totalProt + totalFat) || 1;
+  const dayCarbPct = Math.round((totalCarb / totalMacroGrams) * 100);
+  const dayProtPct = Math.round((totalProt / totalMacroGrams) * 100);
+  const dayFatPct = Math.max(0, 100 - dayCarbPct - dayProtPct);
+
+  // Render Daily Summary Banner
+  if (elements.dietDailySummaryBanner) {
+    elements.dietDailySummaryBanner.innerHTML = `
+      <div class="summary-banner-top">
+        <div class="summary-cal-headline">
+          <span class="cal-big">${totalCal.toLocaleString()}</span>
+          <span class="cal-sub">/ 권장 소비 ${targetCal.toLocaleString()} kcal (${calPct}%)</span>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">
+          총 <strong>${dateMeals.length}</strong>회의 끼니 기록
+        </div>
+      </div>
+
+      <!-- Macro Visual Bar -->
+      <div class="macro-bar" style="height: 10px;">
+        <div class="macro-segment carb" style="width: ${dayCarbPct}%;" title="탄수화물 ${Math.round(totalCarb)}g (${dayCarbPct}%)"></div>
+        <div class="macro-segment prot" style="width: ${dayProtPct}%;" title="단백질 ${Math.round(totalProt)}g (${dayProtPct}%)"></div>
+        <div class="macro-segment fat" style="width: ${dayFatPct}%;" title="지방 ${Math.round(totalFat)}g (${dayFatPct}%)"></div>
+      </div>
+
+      <!-- Macro Details Grid -->
+      <div class="summary-macros-grid">
+        <div class="summary-macro-card">
+          <span class="sm-label">탄수화물 (Carbs)</span>
+          <span class="sm-val" style="color: #38bdf8;">${Math.round(totalCarb)}g <small style="font-size: 0.75rem; opacity: 0.8;">(${dayCarbPct}%)</small></span>
+        </div>
+        <div class="summary-macro-card">
+          <span class="sm-label">단백질 (Protein)</span>
+          <span class="sm-val" style="color: #10b981;">${Math.round(totalProt)}g <small style="font-size: 0.75rem; opacity: 0.8;">(${dayProtPct}%)</small></span>
+        </div>
+        <div class="summary-macro-card">
+          <span class="sm-label">지방 (Fat)</span>
+          <span class="sm-val" style="color: #ec4899;">${Math.round(totalFat)}g <small style="font-size: 0.75rem; opacity: 0.8;">(${dayFatPct}%)</small></span>
+        </div>
+      </div>
+    `;
+  }
+
+  // Render Horizontal Meal Cards (명함형 세로 1열 카드)
+  if (elements.dietDetailMealsStack) {
+    const subTypeClasses = {
+      '아침': { badge: 'badge-orange', icon: 'fa-sun', tag: 'morning' },
+      '점심': { badge: 'badge-blue', icon: 'fa-cloud-sun', tag: 'lunch' },
+      '저녁': { badge: 'badge-purple', icon: 'fa-moon', tag: 'dinner' },
+      '간식': { badge: 'badge-green', icon: 'fa-mug-hot', tag: 'snack' }
+    };
+
+    elements.dietDetailMealsStack.innerHTML = dateMeals.map(meal => {
+      const info = subTypeClasses[meal.subType] || { badge: 'badge-blue', icon: 'fa-utensils', tag: 'lunch' };
+      const hasImage = !!meal.imageUrl;
+
+      const c = Number(meal.carbs) || 0;
+      const p = Number(meal.protein) || 0;
+      const f = Number(meal.fat) || 0;
+      const totalG = (c + p + f) || 1;
+      const cPct = Math.round((c / totalG) * 100);
+      const pPct = Math.round((p / totalG) * 100);
+      const fPct = Math.max(0, 100 - cPct - pPct);
+
+      return `
+        <div class="diet-card-horizontal">
+          <!-- 좌측 전체: 음식 이미지 (사진 전체 꽉 찬 형태 또는 플레이스홀더) -->
+          <div class="diet-card-left">
+            <span class="badge ${info.badge} diet-card-img-badge">${escapeHtml(meal.subType || '식단')}</span>
+            ${hasImage ? `
+              <img src="${escapeHtml(meal.imageUrl)}" alt="${escapeHtml(meal.title)}" class="diet-card-cover-img" loading="lazy">
+            ` : `
+              <div class="diet-card-placeholder">
+                <i class="fa-solid ${info.icon}"></i>
+                <span>${escapeHtml(meal.subType || '식단')} 사진 없음</span>
+              </div>
+            `}
+          </div>
+
+          <!-- 우측: 메뉴명, 영양성분표, 칼로리, 상세설명, AI분석 등 -->
+          <div class="diet-card-right">
+            <div>
+              <div class="diet-card-meta">
+                <div class="diet-card-meta-left">
+                  <span class="badge ${info.badge}">${escapeHtml(meal.subType || '식단')}</span>
+                  <span class="diet-card-time">
+                    <i class="fa-regular fa-clock"></i> ${escapeHtml(meal.time || '--:--')}
+                  </span>
+                </div>
+                <div class="diet-card-calories">
+                  <span class="val">${(Number(meal.calories) || 0).toLocaleString()}</span>
+                  <span class="unit">kcal</span>
+                </div>
+              </div>
+
+              <h3 class="diet-card-title" style="margin-top: 8px;">${escapeHtml(meal.title || '식단')}</h3>
+            </div>
+
+            <!-- 영양성분표 (프로그레스 바 & 세부 수치) -->
+            <div class="diet-card-macros-section">
+              <div class="macro-bar">
+                <div class="macro-segment carb" style="width: ${cPct}%;" title="탄수화물 ${c}g (${cPct}%)"></div>
+                <div class="macro-segment prot" style="width: ${pPct}%;" title="단백질 ${p}g (${pPct}%)"></div>
+                <div class="macro-segment fat" style="width: ${fPct}%;" title="지방 ${f}g (${fPct}%)"></div>
+              </div>
+              <div class="macro-labels">
+                <span>탄수화물 <strong>${c}g</strong> <small>(${cPct}%)</small></span>
+                <span>단백질 <strong>${p}g</strong> <small>(${pPct}%)</small></span>
+                <span>지방 <strong>${f}g</strong> <small>(${fPct}%)</small></span>
+              </div>
+            </div>
+
+            <!-- 상세설명 및 AI 분석 피드백 -->
+            ${meal.content ? `
+              <div class="diet-card-ai-box">
+                <div class="ai-box-title">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i>
+                  <span>AI 영양 분석 & 피드백</span>
+                </div>
+                <p class="ai-box-content">${escapeHtml(meal.content)}</p>
+              </div>
+            ` : ''}
+
+            <!-- 관리자 액션 버튼 (수정, 삭제) -->
+            ${appState.isAdmin ? `
+              <div class="diet-card-footer">
+                <button type="button" class="btn-secondary btn-sm btn-edit-diet" data-id="${escapeHtml(meal.id)}">
+                  <i class="fa-regular fa-pen-to-square"></i> 수정
+                </button>
+                <button type="button" class="btn-danger btn-sm btn-delete-diet" data-id="${escapeHtml(meal.id)}">
+                  <i class="fa-regular fa-trash-can"></i> 삭제
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Attach Edit & Delete Listeners
+    elements.dietDetailMealsStack.querySelectorAll('.btn-edit-diet').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        openEditDietModal(id);
+      });
+    });
+
+    elements.dietDetailMealsStack.querySelectorAll('.btn-delete-diet').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        deleteDietItem(id);
+      });
+    });
+  }
+}
+
+// Back to Diet List
+function backToDietList() {
+  appState.activeDietDate = null;
+  if (elements.dietDateDetailView) elements.dietDateDetailView.style.display = 'none';
+  if (elements.dietDateListView) elements.dietDateListView.style.display = 'block';
+  if (window.location.hash.startsWith('#/health-diet/')) {
+    window.location.hash = '#/tab/health-diet';
+  } else {
+    renderHealthDiet();
+  }
+}
+
+function openAddDietModal(presetDate = null) {
   if (elements.formHealthDiet) elements.formHealthDiet.reset();
   if (elements.dietEditId) elements.dietEditId.value = '';
   if (elements.dietModalTitle) {
@@ -5036,7 +5367,9 @@ function openAddDietModal() {
 
   // Auto set current date and time
   const now = new Date();
-  if (elements.dietInputDate) elements.dietInputDate.value = now.toISOString().split('T')[0];
+  if (elements.dietInputDate) {
+    elements.dietInputDate.value = presetDate || appState.activeDietDate || now.toISOString().split('T')[0];
+  }
   if (elements.dietInputTime) {
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
@@ -5131,6 +5464,9 @@ async function saveDietItem() {
   localStorage.setItem('health_data', JSON.stringify(appState.healthData));
 
   if (elements.modalHealthDiet) elements.modalHealthDiet.style.display = 'none';
+  if (appState.activeDietDate) {
+    showDietDateDetail(appState.activeDietDate);
+  }
   renderHealthDiet();
   if (appState.currentHealthTab === 'health-dashboard') {
     renderHealthDashboard();
@@ -5152,10 +5488,20 @@ async function deleteDietItem(id) {
 
   appState.healthData.db = (appState.healthData.db || []).filter(it => it.id !== id);
   localStorage.setItem('health_data', JSON.stringify(appState.healthData));
+
+  if (appState.activeDietDate) {
+    const remaining = appState.healthData.db.filter(it => (it.category || '').toLowerCase() === 'diet' && it.date === appState.activeDietDate);
+    if (remaining.length > 0) {
+      showDietDateDetail(appState.activeDietDate);
+    } else {
+      backToDietList();
+    }
+  }
   renderHealthDiet();
   if (appState.currentHealthTab === 'health-dashboard') {
     renderHealthDashboard();
   }
+  alert('식단 기록이 삭제되었습니다.');
 }
 
 // Multimodal Nutrition Analysis with Google AI Studio Gemini API
@@ -5849,6 +6195,15 @@ function setupHealthEventListeners() {
       appState.dietFilter = btn.getAttribute('data-diet-filter') || 'all';
       renderHealthDiet();
     });
+  });
+
+  // Diet Detail View Controls (Back to list & Add meal on active date)
+  elements.btnBackToDietList?.addEventListener('click', () => {
+    backToDietList();
+  });
+
+  elements.btnDetailAddMeal?.addEventListener('click', () => {
+    openAddDietModal(appState.activeDietDate);
   });
 
   // Workout Modal Controls

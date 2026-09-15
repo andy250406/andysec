@@ -774,30 +774,63 @@
 
         <!-- 2. HEALTH DIET TAB -->
         <div class="tab-pane" id="tab-health-diet">
-          <div class="tab-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-            <div>
-              <h2 style="font-size: 1.4rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-utensils" style="color: #10b981;"></i> 식단 관리
-              </h2>
-              <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">매일 매 끼니 음식 사진과 함께 AI 분석으로 칼로리와 영양성분을 정밀 기록합니다.</p>
+          <!-- 2-A. DIET MASTER DATE LIST VIEW -->
+          <div id="diet-date-list-view">
+            <div class="tab-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h2 style="font-size: 1.4rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-utensils" style="color: #10b981;"></i> 식단 관리
+                </h2>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">날짜별 식단 요약 및 끼니별 AI 정밀 분석 일지를 확인합니다.</p>
+              </div>
+              <button class="btn-primary" id="btn-open-add-diet">
+                <i class="fa-solid fa-plus"></i> 식단 기록 추가 (AI)
+              </button>
             </div>
-            <button class="btn-primary" id="btn-open-add-diet">
-              <i class="fa-solid fa-plus"></i> 식단 기록 추가 (AI)
-            </button>
+
+            <!-- Diet Filter Bar -->
+            <div class="filter-bar" id="diet-filter-bar">
+              <button class="filter-btn active" data-diet-filter="all">전체 날짜</button>
+              <button class="filter-btn" data-diet-filter="아침">🌅 아침 포함</button>
+              <button class="filter-btn" data-diet-filter="점심">☀️ 점심 포함</button>
+              <button class="filter-btn" data-diet-filter="저녁">🌙 저녁 포함</button>
+              <button class="filter-btn" data-diet-filter="간식">☕ 간식 포함</button>
+            </div>
+
+            <!-- Date-based 2-line List Container -->
+            <div class="diet-date-list-container" id="diet-date-list">
+              <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Legacy container kept for compatibility -->
+            <div class="health-feed-grid" id="health-diet-grid" style="display: none;"></div>
           </div>
 
-          <!-- Diet Filter Bar -->
-          <div class="filter-bar" id="diet-filter-bar">
-            <button class="filter-btn active" data-diet-filter="all">전체 끼니</button>
-            <button class="filter-btn" data-diet-filter="아침">🌅 아침</button>
-            <button class="filter-btn" data-diet-filter="점심">☀️ 점심</button>
-            <button class="filter-btn" data-diet-filter="저녁">🌙 저녁</button>
-            <button class="filter-btn" data-diet-filter="간식">☕ 간식</button>
-          </div>
+          <!-- 2-B. DIET DETAIL POST VIEW (게시글 상세 화면) -->
+          <div id="diet-date-detail-view" style="display: none;">
+            <div class="tab-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <button class="btn-secondary btn-sm" id="btn-back-to-diet-list" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; cursor: pointer; border-radius: 8px;">
+                  <i class="fa-solid fa-arrow-left"></i> 목록으로
+                </button>
+                <h2 id="diet-detail-date-title" style="font-size: 1.35rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+                  <!-- Dynamic Date Title -->
+                </h2>
+              </div>
+              <button class="btn-primary btn-sm" id="btn-detail-add-meal">
+                <i class="fa-solid fa-plus"></i> 이 날짜에 끼니 추가
+              </button>
+            </div>
 
-          <!-- Diet Grid -->
-          <div class="health-feed-grid" id="health-diet-grid">
-            <!-- Dynamic diet cards -->
+            <!-- Daily Summary Banner (Total Calories / Target & Macros) -->
+            <div class="diet-daily-summary-banner" id="diet-daily-summary-banner">
+              <!-- Dynamic summary card -->
+            </div>
+
+            <!-- Meals Single Column Vertical Stack (명함형 카드 세로 나열) -->
+            <div class="diet-detail-meals-stack" id="diet-detail-meals-stack">
+              <!-- Dynamic horizontal meal cards -->
+            </div>
           </div>
         </div>
 
