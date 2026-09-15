@@ -4325,6 +4325,244 @@ body.light-theme .diet-card-footer {
   border-top-color: #e2e8f0;
 }
 
+/* ==========================================================================
+   Health Workout Master-Detail Layout Styles (가변 1/2줄 목록 & 일일 상세)
+   ========================================================================== */
+
+/* 1. Workout Filter Bar */
+.workout-filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+/* 2. Workout Date List */
+.workout-date-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.workout-date-row {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.workout-date-row:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(16, 185, 129, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* 추가 운동을 완료한 날: 둘째 줄 있음 + 에메랄드/스카이블루 하이라이트 */
+.workout-date-row.has-workout {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(56, 189, 248, 0.04) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.38);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.08);
+}
+
+.workout-date-row.has-workout:hover {
+  border-color: rgba(16, 185, 129, 0.7);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
+}
+
+/* 배지 스타일 */
+.workout-badge {
+  font-size: 0.75rem;
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.workout-badge.completed {
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.workout-badge.normal {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+/* 첫째 줄 메트릭스 랩 */
+.workout-row-metrics-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.workout-row-metrics-wrap strong {
+  color: var(--text-highlight);
+  font-weight: 700;
+}
+
+/* 둘째 줄: 추가 운동 요약 (가변형) */
+.workout-custom-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 0.85rem;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.workout-item-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.workout-item-pill .w-name {
+  color: var(--text-highlight);
+  font-weight: 600;
+}
+
+.workout-item-pill .w-cal {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.workout-item-pill .w-dur {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+/* 3. Detail View Banner */
+.workout-daily-summary-banner {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(56, 189, 248, 0.05) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* 4. Workout Detail Stack & Cards */
+.workout-detail-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.workout-detail-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.workout-detail-card:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+.workout-detail-card .workout-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workout-detail-card .workout-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workout-detail-card .workout-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-highlight);
+  margin: 0;
+}
+
+.workout-detail-card .workout-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.workout-detail-card .workout-sets-content {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text-main);
+  white-space: pre-line;
+}
+
+.workout-detail-card .workout-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Light Theme Overrides for Workout */
+body.light-theme .workout-date-row.has-workout {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.09) 0%, rgba(56, 189, 248, 0.05) 100%);
+  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.08);
+}
+
+body.light-theme .workout-row-metrics-wrap {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+body.light-theme .workout-custom-row {
+  border-top-color: #e2e8f0;
+}
+
+body.light-theme .workout-daily-summary-banner {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(56, 189, 248, 0.04) 100%);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+body.light-theme .workout-detail-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+body.light-theme .workout-detail-card .workout-sets-content {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
 /* Responsive Overrides */
 @media (max-width: 768px) {
   .diet-card-horizontal {
@@ -4341,7 +4579,8 @@ body.light-theme .diet-card-footer {
     align-items: flex-start;
     gap: 8px;
   }
-  .date-row-macros-wrap {
+  .date-row-macros-wrap,
+  .workout-row-metrics-wrap {
     width: 100%;
     justify-content: space-around;
   }
@@ -4353,4 +4592,5 @@ body.light-theme .diet-card-footer {
     max-width: 100%;
   }
 }
+
 

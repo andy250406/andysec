@@ -65,7 +65,9 @@ let appState = {
   geminiApiKey: localStorage.getItem('gemini_api_key') || '',
   geminiModel: localStorage.getItem('gemini_model') || 'gemini-1.5-flash',
   dietFilter: 'all',
-  activeDietDate: null
+  activeDietDate: null,
+  workoutFilter: 'all',
+  activeWorkoutDate: null
 };
 
 // DOM Elements
@@ -384,6 +386,15 @@ const elements = {
   workoutInputCalories: document.getElementById('workout-input-calories'),
   workoutInputContent: document.getElementById('workout-input-content'),
   healthWorkoutGrid: document.getElementById('health-workout-grid'),
+  workoutDateListView: document.getElementById('workout-date-list-view'),
+  workoutDateList: document.getElementById('workout-date-list'),
+  workoutFilterBar: document.getElementById('workout-filter-bar'),
+  workoutDateDetailView: document.getElementById('workout-date-detail-view'),
+  btnBackToWorkoutList: document.getElementById('btn-back-to-workout-list'),
+  workoutDetailDateTitle: document.getElementById('workout-detail-date-title'),
+  btnDetailAddWorkout: document.getElementById('btn-detail-add-workout'),
+  workoutDailySummaryBanner: document.getElementById('workout-daily-summary-banner'),
+  workoutDetailStack: document.getElementById('workout-detail-stack'),
   btnCloseWorkoutModal: document.getElementById('btn-close-workout-modal'),
   btnCancelWorkout: document.getElementById('btn-cancel-workout'),
   samsungSteps: document.getElementById('samsung-steps'),
@@ -658,6 +669,10 @@ function initRouter() {
       const date = hash.replace('#/health-diet/', '');
       switchTab('health-diet');
       showDietDateDetail(date);
+    } else if (hash.startsWith('#/health-workout/')) {
+      const date = hash.replace('#/health-workout/', '');
+      switchTab('health-workout');
+      showWorkoutDateDetail(date);
     } else {
       let targetTab = 'dashboard';
       if (hash.startsWith('#/tab/')) {
@@ -1089,6 +1104,11 @@ function switchTab(tabId) {
     appState.activeDietDate = null;
     if (elements.dietDateDetailView) elements.dietDateDetailView.style.display = 'none';
     if (elements.dietDateListView) elements.dietDateListView.style.display = 'block';
+  }
+  if (tabId !== 'health-workout' || !window.location.hash.startsWith('#/health-workout/')) {
+    appState.activeWorkoutDate = null;
+    if (elements.workoutDateDetailView) elements.workoutDateDetailView.style.display = 'none';
+    if (elements.workoutDateListView) elements.workoutDateListView.style.display = 'block';
   }
   
   if (elements.articlePane) elements.articlePane.style.display = 'none';
@@ -4801,7 +4821,7 @@ function renderHealthDashboard() {
     } else {
       elements.healthTodayWorkoutList.innerHTML = todayWorkouts.map(item => {
         return `
-          <div class="recent-item" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color);">
+          <div class="recent-item workout-recent-item" data-date="${escapeHtml(item.date || '')}" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s ease;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <span class="badge badge-green" style="font-size: 0.75rem;">${escapeHtml(item.subType || '운동')}</span>
               <div>
@@ -4815,6 +4835,13 @@ function renderHealthDashboard() {
           </div>
         `;
       }).join('');
+
+      elements.healthTodayWorkoutList.querySelectorAll('.workout-recent-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const d = el.getAttribute('data-date');
+          if (d) window.location.hash = `#/health-workout/${d}`;
+        });
+      });
     }
   }
 
@@ -5339,6 +5366,19 @@ function formatDietDateLong(dateStr) {
   const date = d.getDate();
   const dayName = days[d.getDay()];
   return `${year}년 ${month}월 ${date}일 (${dayName}) 식단 일지`;
+}
+
+// Utility: Long Format Date for Workout (e.g. '2026년 9월 15일 (화) 운동 및 활동 일지')
+function formatWorkoutDateLong(dateStr) {
+  if (!dateStr) return '운동 및 활동 상세 일지';
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return dateStr;
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1;
+  const date = d.getDate();
+  const dayName = days[d.getDay()];
+  return `${year}년 ${month}월 ${date}일 (${dayName}) 운동 및 활동 일지`;
 }
 
 // Utility: Get Daily Recommended Calorie Target (SSOT)
@@ -6229,10 +6269,21 @@ async function analyzeDietWithGemini() {
   }
 }
 
-// 3. Health Workout Tab
+// 3. Health Workout Tab (Master: 날짜별 1줄/2줄 가변형 운동 및 활동 목록)
 function renderHealthWorkout() {
+  // If activeWorkoutDate is specified and we're navigating directly to detail view
+  if (appState.activeWorkoutDate) {
+    showWorkoutDateDetail(appState.activeWorkoutDate);
+    return;
+  }
+
+  if (elements.workoutDateDetailView) elements.workoutDateDetailView.style.display = 'none';
+  if (elements.workoutDateListView) elements.workoutDateListView.style.display = 'block';
+
+  // 3-1. Realtime Samsung Health Live Stats Bar (당일 빠른 통계)
   const activities = appState.healthData.activity || [];
-  const latestAct = activities.length > 0 ? activities[activities.length - 1] : null;
+  const today = new Date().toISOString().split('T')[0];
+  const latestAct = activities.find(a => a.date && a.date.startsWith(today)) || (activities.length > 0 ? activities[activities.length - 1] : null);
 
   if (latestAct) {
     if (elements.samsungSteps) elements.samsungSteps.textContent = `${(Number(latestAct.steps) || 0).toLocaleString()} 보`;
@@ -6242,23 +6293,37 @@ function renderHealthWorkout() {
     if (elements.samsungStatsDate) elements.samsungStatsDate.textContent = latestAct.date ? `${latestAct.date} 기준` : '최신 연동';
   }
 
+  // Sync filter bar buttons active state
+  if (elements.workoutFilterBar) {
+    elements.workoutFilterBar.querySelectorAll('.filter-btn').forEach(btn => {
+      const f = btn.getAttribute('data-workout-filter') || btn.getAttribute('data-filter') || 'all';
+      btn.classList.toggle('active', f === (appState.workoutFilter || 'all'));
+    });
+  }
+
+  const container = elements.workoutDateList || elements.healthWorkoutGrid;
+  if (!container) return;
+
   const dbItems = appState.healthData.db || [];
   const workoutItems = dbItems.filter(item => (item.category || '').toLowerCase() === 'workout');
 
-  workoutItems.sort((a, b) => {
-    const dtA = `${a.date || ''} ${a.time || ''}`;
-    const dtB = `${b.date || ''} ${b.time || ''}`;
-    return dtB.localeCompare(dtA);
+  // 3-2. Collect unique dates from both Samsung Health activities and custom workouts
+  const dateSet = new Set();
+  activities.forEach(a => {
+    if (a.date) dateSet.add(a.date.split('T')[0]);
+  });
+  workoutItems.forEach(w => {
+    if (w.date) dateSet.add(w.date.split('T')[0]);
   });
 
-  if (!elements.healthWorkoutGrid) return;
+  const sortedDates = Array.from(dateSet).sort((a, b) => b.localeCompare(a));
 
-  if (workoutItems.length === 0) {
-    elements.healthWorkoutGrid.innerHTML = `
-      <div class="empty-state-card" style="grid-column: 1 / -1; padding: 3rem 1rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">
+  if (sortedDates.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state-card" style="padding: 3rem 1rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">
         <i class="fa-solid fa-dumbbell" style="font-size: 2.5rem; color: #10b981; margin-bottom: 12px; opacity: 0.7;"></i>
-        <h3 style="color: var(--text-color); margin-bottom: 6px;">작성된 추가 운동 일지가 없습니다</h3>
-        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">웨이트 트레이닝 세트, 런닝, 크로스핏 루틴을 상세하게 기록해 보세요.</p>
+        <h3 style="color: var(--text-color); margin-bottom: 6px;">기록된 운동 및 활동 데이터가 없습니다</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">삼성헬스 앱에서 걸음수가 연동되거나 추가 운동 일지를 작성하면 일일 기록이 자동으로 생성됩니다.</p>
         <button class="btn-primary" id="btn-empty-add-workout"><i class="fa-solid fa-plus"></i> 첫 운동 일지 작성</button>
       </div>
     `;
@@ -6268,52 +6333,301 @@ function renderHealthWorkout() {
     return;
   }
 
-  elements.healthWorkoutGrid.innerHTML = workoutItems.map(item => {
+  // 3-3. Build Date-Based Row Objects
+  const dateRowsData = sortedDates.map(d => {
+    const dayActs = activities.filter(a => a.date && a.date.startsWith(d));
+    const steps = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.steps) || 0)) : 0;
+    const distKm = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.distanceKm) || 0)) : 0;
+    const actCal = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.activeCalories) || 0)) : 0;
+    const totalCal = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.totalCalories) || 0)) : 0;
+    const actMins = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.activeMinutes) || 0)) : 0;
+
+    const dayWorkouts = workoutItems.filter(w => w.date && w.date.startsWith(d));
+    const customDuration = dayWorkouts.reduce((sum, w) => sum + (Number(w.duration) || 0), 0);
+    const customCalories = dayWorkouts.reduce((sum, w) => sum + (Number(w.calories) || 0), 0);
+    const hasCustomWorkout = dayWorkouts.length > 0;
+
+    const totalBurned = (totalCal > 0 ? totalCal : actCal) + customCalories;
+    const totalTime = actMins + customDuration;
+
+    return {
+      date: d,
+      steps,
+      distKm,
+      actCal,
+      totalCal,
+      actMins,
+      dayWorkouts,
+      customDuration,
+      customCalories,
+      hasCustomWorkout,
+      totalBurned,
+      totalTime
+    };
+  });
+
+  // 3-4. Filter by appState.workoutFilter ('all' | 'has-workout' | 'no-workout')
+  let filteredRows = dateRowsData;
+  if (appState.workoutFilter === 'has-workout') {
+    filteredRows = dateRowsData.filter(r => r.hasCustomWorkout);
+  } else if (appState.workoutFilter === 'no-workout') {
+    filteredRows = dateRowsData.filter(r => !r.hasCustomWorkout);
+  }
+
+  if (filteredRows.length === 0) {
+    const filterLabels = {
+      'has-workout': '추가 운동을 완료한 날(운동+)',
+      'no-workout': '일상 활동만 기록된 날(일상+)'
+    };
+    const label = filterLabels[appState.workoutFilter] || '선택된 필터';
+    container.innerHTML = `
+      <div class="empty-state-card" style="padding: 2.5rem 1rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">${label}의 기록이 없습니다.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // 3-5. Render Rows (가변 1줄/2줄 & 색상 차별화)
+  container.innerHTML = filteredRows.map(r => {
+    const formattedDate = formatDietDate(r.date);
     return `
-      <div class="card health-feed-card">
-        <div class="health-card-header">
-          <span class="badge badge-green">${escapeHtml(item.subType || '웨이트')}</span>
-          <span class="health-date-time"><i class="fa-regular fa-clock"></i> ${escapeHtml(item.date || '')} ${escapeHtml(item.time || '')}</span>
-        </div>
-        <h3 class="health-item-title">${escapeHtml(item.title || '운동')}</h3>
-        
-        <div class="health-workout-stats-row">
-          <div class="stat-pill"><i class="fa-regular fa-hourglass-half"></i> ${item.duration || 0}분</div>
-          <div class="stat-pill cal"><i class="fa-solid fa-fire"></i> ${(Number(item.calories) || 0).toLocaleString()} kcal</div>
-        </div>
-
-        ${item.content ? `
-          <div class="workout-sets-box">
-            ${escapeHtml(item.content).replace(/\n/g, '<br>')}
+      <div class="workout-date-row ${r.hasCustomWorkout ? 'has-workout' : 'normal'}" data-date="${escapeHtml(r.date)}">
+        <!-- 첫째 줄 (기본 1줄): 날짜, 배지, 걸음수, 이동거리, 활동시간, 총 소비 칼로리 -->
+        <div class="date-row-top">
+          <div class="date-row-title-wrap">
+            <i class="fa-regular fa-calendar-check date-icon"></i>
+            <span class="date-text">${escapeHtml(formattedDate)}</span>
+            ${r.hasCustomWorkout ? `
+              <span class="workout-badge completed"><i class="fa-solid fa-dumbbell"></i> 운동+</span>
+            ` : `
+              <span class="workout-badge normal">일상+</span>
+            `}
           </div>
-        ` : ''}
 
-        ${appState.isAdmin ? `
-          <div class="health-item-actions">
-            <button type="button" class="btn-secondary btn-sm btn-edit-workout" data-id="${escapeHtml(item.id)}"><i class="fa-regular fa-pen-to-square"></i> 수정</button>
-            <button type="button" class="btn-danger btn-sm btn-delete-workout" data-id="${escapeHtml(item.id)}"><i class="fa-regular fa-trash-can"></i> 삭제</button>
+          <div class="workout-row-metrics-wrap">
+            <span><i class="fa-solid fa-person-walking" style="color: #10b981;"></i> <strong>${r.steps.toLocaleString()}</strong>보</span>
+            <span class="macro-dot">·</span>
+            <span><i class="fa-solid fa-route" style="color: #38bdf8;"></i> <strong>${r.distKm > 0 ? r.distKm.toFixed(1) + 'km' : '--'}</strong></span>
+            <span class="macro-dot">·</span>
+            <span><i class="fa-regular fa-clock" style="color: #a855f7;"></i> <strong>${r.totalTime > 0 ? r.totalTime + '분' : '--'}</strong></span>
+          </div>
+
+          <div class="date-row-calories-wrap">
+            <span class="cal-val" style="color: ${r.hasCustomWorkout ? '#10b981' : '#f59e0b'};">${r.totalBurned > 0 ? r.totalBurned.toLocaleString() : (r.actCal + r.customCalories).toLocaleString()}</span>
+            <span class="cal-target">kcal</span>
+            <i class="fa-solid fa-chevron-right arrow-icon"></i>
+          </div>
+        </div>
+
+        <!-- 둘째 줄 (가변형 - 추가 운동이 있는 날만 표기: 달리기: ~kcal | 랫풀다운: ~kcal) -->
+        ${r.hasCustomWorkout ? `
+          <div class="workout-custom-row">
+            ${r.dayWorkouts.map((w, idx) => `
+              <span class="workout-item-pill">
+                <strong class="w-name">${escapeHtml(w.title || w.subType || '운동')}</strong>:
+                <span class="w-cal">${(Number(w.calories) || 0).toLocaleString()} kcal</span>
+                ${w.duration ? `<span class="w-dur">(${w.duration}분)</span>` : ''}
+              </span>
+              ${idx < r.dayWorkouts.length - 1 ? `<span class="meal-divider">|</span>` : ''}
+            `).join('')}
           </div>
         ` : ''}
       </div>
     `;
   }).join('');
 
-  elements.healthWorkoutGrid.querySelectorAll('.btn-edit-workout').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.getAttribute('data-id');
-      openEditWorkoutModal(id);
-    });
-  });
-
-  elements.healthWorkoutGrid.querySelectorAll('.btn-delete-workout').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.getAttribute('data-id');
-      deleteWorkoutItem(id);
+  // Attach click listener on each date row to open Detail View
+  container.querySelectorAll('.workout-date-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const date = row.getAttribute('data-date');
+      if (date) {
+        window.location.hash = `#/health-workout/${date}`;
+      }
     });
   });
 }
 
-function openAddWorkoutModal() {
+// 3-B. Health Workout Detail View (Detail: 날짜별 일일 활동량 상세 및 추가 운동 카드 목록)
+function showWorkoutDateDetail(date) {
+  appState.activeWorkoutDate = date;
+
+  if (elements.workoutDateListView) elements.workoutDateListView.style.display = 'none';
+  if (elements.workoutDateDetailView) elements.workoutDateDetailView.style.display = 'block';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Update Detail Title
+  if (elements.workoutDetailDateTitle) {
+    elements.workoutDetailDateTitle.innerHTML = `<i class="fa-solid fa-dumbbell" style="color: #10b981;"></i> ${escapeHtml(formatWorkoutDateLong(date))}`;
+  }
+
+  // 1. Samsung Health activity data for the date
+  const activities = appState.healthData.activity || [];
+  const dayActs = activities.filter(a => a.date && a.date.startsWith(date));
+  const steps = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.steps) || 0)) : 0;
+  const distKm = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.distanceKm) || 0)) : 0;
+  const actCal = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.activeCalories) || 0)) : 0;
+  const totalCal = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.totalCalories) || 0)) : 0;
+  const actMins = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.activeMinutes) || 0)) : 0;
+  const stepGoalPct = Math.min(150, Math.round((steps / 10000) * 100));
+
+  // 2. Custom workouts for the date
+  const dbItems = appState.healthData.db || [];
+  const dayWorkouts = dbItems.filter(item => (item.category || '').toLowerCase() === 'workout' && item.date && item.date.startsWith(date));
+  
+  dayWorkouts.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+  const customCalories = dayWorkouts.reduce((sum, w) => sum + (Number(w.calories) || 0), 0);
+  const customDuration = dayWorkouts.reduce((sum, w) => sum + (Number(w.duration) || 0), 0);
+  const totalBurned = (totalCal > 0 ? totalCal : actCal) + customCalories;
+  const totalActivityTime = actMins + customDuration;
+
+  // 3. Render Daily Activity & Combined Burn Summary Banner
+  if (elements.workoutDailySummaryBanner) {
+    elements.workoutDailySummaryBanner.innerHTML = `
+      <div class="summary-banner-top">
+        <div class="summary-cal-headline">
+          <span class="cal-big">${totalBurned.toLocaleString()}</span>
+          <span class="cal-sub">kcal 총 소비 (삼성헬스 ${totalCal > 0 ? totalCal.toLocaleString() : actCal.toLocaleString()} kcal + 추가 운동 ${customCalories.toLocaleString()} kcal)</span>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">
+          총 활동·운동 시간: <strong>${totalActivityTime}분</strong> | 추가 운동 <strong>${dayWorkouts.length}건</strong>
+        </div>
+      </div>
+
+      <!-- Step Goal Progress Bar -->
+      <div style="margin: 4px 0;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">
+          <span>오늘 걸음 수 <strong>${steps.toLocaleString()}보</strong> / 목표 10,000보</span>
+          <span style="color: #10b981; font-weight: 700;">${stepGoalPct}% 달성</span>
+        </div>
+        <div class="macro-bar" style="height: 8px;">
+          <div class="macro-segment carb" style="width: ${Math.min(100, stepGoalPct)}%; background: linear-gradient(90deg, #10b981, #0284c7);"></div>
+        </div>
+      </div>
+
+      <!-- Samsung Health 4-Stats Grid -->
+      <div class="summary-macros-grid">
+        <div class="summary-macro-card">
+          <span class="sm-label">걸음 수</span>
+          <span class="sm-val" style="color: #10b981;">${steps.toLocaleString()} <small style="font-size: 0.75rem; font-weight: normal;">보</small></span>
+        </div>
+        <div class="summary-macro-card">
+          <span class="sm-label">이동 거리</span>
+          <span class="sm-val" style="color: #38bdf8;">${distKm > 0 ? distKm.toFixed(1) : '--'} <small style="font-size: 0.75rem; font-weight: normal;">km</small></span>
+        </div>
+        <div class="summary-macro-card">
+          <span class="sm-label">활동 소모 / 총소비</span>
+          <span class="sm-val" style="color: #f59e0b;">${actCal > 0 ? actCal.toLocaleString() : (totalCal > 0 ? totalCal.toLocaleString() : '--')} <small style="font-size: 0.75rem; font-weight: normal;">kcal</small></span>
+        </div>
+        <div class="summary-macro-card">
+          <span class="sm-label">활동 시간</span>
+          <span class="sm-val" style="color: #a855f7;">${actMins > 0 ? actMins : (totalActivityTime > 0 ? totalActivityTime : '--')} <small style="font-size: 0.75rem; font-weight: normal;">분</small></span>
+        </div>
+      </div>
+    `;
+  }
+
+  // 4. Render Additional Workouts Stack
+  if (elements.workoutDetailStack) {
+    if (dayWorkouts.length === 0) {
+      elements.workoutDetailStack.innerHTML = `
+        <div class="empty-state-card" style="padding: 2.5rem 1.5rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1.5px dashed var(--border-color);">
+          <i class="fa-solid fa-dumbbell" style="font-size: 2.5rem; color: #10b981; margin-bottom: 12px; opacity: 0.7;"></i>
+          <h3 style="color: var(--text-color); margin-bottom: 6px;">이 날짜에 등록된 추가 운동이 없습니다</h3>
+          <p style="color: var(--text-muted); font-size: 0.88rem; max-width: 500px; margin: 0 auto 1.25rem; line-height: 1.6;">
+            삼성헬스 일일 활동량 외에 헬스장 웨이트 트레이닝, 러닝머신, 크로스핏 루틴을 수행하셨다면 상세 세트와 소모 칼로리를 기록해 보세요.
+          </p>
+          <button class="btn-primary" id="btn-empty-add-workout-detail">
+            <i class="fa-solid fa-plus"></i> 이 날짜에 추가 운동 일지 작성
+          </button>
+        </div>
+      `;
+      document.getElementById('btn-empty-add-workout-detail')?.addEventListener('click', () => {
+        openAddWorkoutModal(date);
+      });
+    } else {
+      elements.workoutDetailStack.innerHTML = `
+        <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-highlight); margin: 0.5rem 0; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-list-check" style="color: #10b981;"></i> 추가 운동 일지 (${dayWorkouts.length}건)
+        </h3>
+        ${dayWorkouts.map(w => {
+          const subTypeIcons = {
+            '웨이트': 'fa-dumbbell',
+            '유산소': 'fa-person-running',
+            '크로스핏': 'fa-bolt',
+            '스트레칭': 'fa-spa',
+            '기타': 'fa-futbol'
+          };
+          const icon = subTypeIcons[w.subType] || 'fa-dumbbell';
+
+          return `
+            <div class="workout-detail-card">
+              <div class="workout-card-header">
+                <div class="workout-card-title-row">
+                  <span class="badge badge-green"><i class="fa-solid ${icon}"></i> ${escapeHtml(w.subType || '운동')}</span>
+                  <h4 class="workout-card-title">${escapeHtml(w.title || '운동 일지')}</h4>
+                </div>
+                <div class="workout-card-stats">
+                  ${w.time ? `<span><i class="fa-regular fa-clock"></i> ${escapeHtml(w.time)}</span>` : ''}
+                  <span><i class="fa-regular fa-hourglass-half"></i> ${w.duration || 0}분</span>
+                  <span style="color: #10b981; font-weight: 700;"><i class="fa-solid fa-fire"></i> ${(Number(w.calories) || 0).toLocaleString()} kcal</span>
+                </div>
+              </div>
+
+              ${w.content ? `
+                <div class="workout-sets-content">${escapeHtml(w.content)}</div>
+              ` : ''}
+
+              ${appState.isAdmin ? `
+                <div class="workout-card-actions">
+                  <button type="button" class="btn-secondary btn-sm btn-edit-workout" data-id="${escapeHtml(w.id)}">
+                    <i class="fa-regular fa-pen-to-square"></i> 수정
+                  </button>
+                  <button type="button" class="btn-danger btn-sm btn-delete-workout" data-id="${escapeHtml(w.id)}">
+                    <i class="fa-regular fa-trash-can"></i> 삭제
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('')}
+      `;
+
+      // Attach edit & delete listeners
+      elements.workoutDetailStack.querySelectorAll('.btn-edit-workout').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.getAttribute('data-id');
+          openEditWorkoutModal(id);
+        });
+      });
+
+      elements.workoutDetailStack.querySelectorAll('.btn-delete-workout').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.getAttribute('data-id');
+          deleteWorkoutItem(id);
+        });
+      });
+    }
+  }
+}
+
+// Back to Workout Date List
+function backToWorkoutList() {
+  appState.activeWorkoutDate = null;
+  if (elements.workoutDateDetailView) elements.workoutDateDetailView.style.display = 'none';
+  if (elements.workoutDateListView) elements.workoutDateListView.style.display = 'block';
+  if (window.location.hash.startsWith('#/health-workout/')) {
+    window.location.hash = '#/tab/health-workout';
+  } else {
+    renderHealthWorkout();
+  }
+}
+
+function openAddWorkoutModal(presetDate = null) {
   if (elements.formHealthWorkout) elements.formHealthWorkout.reset();
   if (elements.workoutEditId) elements.workoutEditId.value = '';
   if (elements.workoutModalTitle) {
@@ -6321,7 +6635,9 @@ function openAddWorkoutModal() {
   }
 
   const now = new Date();
-  if (elements.workoutInputDate) elements.workoutInputDate.value = now.toISOString().split('T')[0];
+  if (elements.workoutInputDate) {
+    elements.workoutInputDate.value = presetDate || appState.activeWorkoutDate || now.toISOString().split('T')[0];
+  }
   if (elements.workoutInputTime) {
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
@@ -6393,6 +6709,9 @@ async function saveWorkoutItem() {
   localStorage.setItem('health_data', JSON.stringify(appState.healthData));
 
   if (elements.modalHealthWorkout) elements.modalHealthWorkout.style.display = 'none';
+  if (appState.activeWorkoutDate) {
+    showWorkoutDateDetail(appState.activeWorkoutDate);
+  }
   renderHealthWorkout();
   if (appState.currentHealthTab === 'health-dashboard') {
     renderHealthDashboard();
@@ -6414,6 +6733,9 @@ async function deleteWorkoutItem(id) {
 
   appState.healthData.db = (appState.healthData.db || []).filter(it => it.id !== id);
   localStorage.setItem('health_data', JSON.stringify(appState.healthData));
+  if (appState.activeWorkoutDate) {
+    showWorkoutDateDetail(appState.activeWorkoutDate);
+  }
   renderHealthWorkout();
   if (appState.currentHealthTab === 'health-dashboard') {
     renderHealthDashboard();
@@ -6839,6 +7161,28 @@ function setupHealthEventListeners() {
   elements.formHealthWorkout?.addEventListener('submit', (e) => {
     e.preventDefault();
     saveWorkoutItem();
+  });
+
+  // Workout Filter Bar Controls ([전체 날짜], [운동+], [일상+])
+  if (elements.workoutFilterBar) {
+    elements.workoutFilterBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      const filter = btn.getAttribute('data-workout-filter') || btn.getAttribute('data-filter') || 'all';
+      appState.workoutFilter = filter;
+      elements.workoutFilterBar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderHealthWorkout();
+    });
+  }
+
+  // Workout Detail View Controls (Back to list & Add workout on active date)
+  elements.btnBackToWorkoutList?.addEventListener('click', () => {
+    backToWorkoutList();
+  });
+
+  elements.btnDetailAddWorkout?.addEventListener('click', () => {
+    openAddWorkoutModal(appState.activeWorkoutDate);
   });
 
   // Body Modal Controls

@@ -837,47 +837,87 @@
 
         <!-- 3. HEALTH WORKOUT TAB -->
         <div class="tab-pane" id="tab-health-workout">
-          <div class="tab-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-            <div>
-              <h2 style="font-size: 1.4rem; font-weight: 700; color: var(--text-highlight); display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-dumbbell" style="color: #10b981;"></i> 운동 및 활동 기록
-              </h2>
-              <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">삼성헬스 자동 연동 활동량과 추가 웨이트/유산소 운동 일지를 통합 관리합니다.</p>
+          <!-- 3-A. WORKOUT MASTER DATE LIST VIEW -->
+          <div id="workout-date-list-view">
+            <div class="tab-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h2 style="font-size: 1.4rem; font-weight: 700; color: var(--text-highlight); display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-dumbbell" style="color: #10b981;"></i> 운동 및 활동 기록
+                </h2>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">삼성헬스 자동 연동 활동량과 추가 헬스·운동 일지를 통합 관리합니다.</p>
+              </div>
+              <button class="btn-primary" id="btn-open-add-workout">
+                <i class="fa-solid fa-plus"></i> 추가 운동 일지 작성
+              </button>
             </div>
-            <button class="btn-primary" id="btn-open-add-workout">
-              <i class="fa-solid fa-plus"></i> 추가 운동 일지 작성
-            </button>
+
+            <!-- Samsung Health Live Stats Bar (당일 실시간 빠른 통계) -->
+            <div class="card samsung-health-banner" id="health-workout-samsung-stats" style="margin-bottom: 1.25rem;">
+              <div class="samsung-banner-header">
+                <span><i class="fa-solid fa-heart-pulse" style="color: #10b981;"></i> 삼성헬스 당일 활동 통계</span>
+                <span id="samsung-stats-date" style="font-size: 0.8rem; color: var(--text-muted);">실시간 연동</span>
+              </div>
+              <div class="samsung-stats-grid">
+                <div class="samsung-stat-item">
+                  <span class="label">걸음 수</span>
+                  <span class="val" id="samsung-steps">0 보</span>
+                </div>
+                <div class="samsung-stat-item">
+                  <span class="label">이동 거리</span>
+                  <span class="val" id="samsung-distance">0.0 km</span>
+                </div>
+                <div class="samsung-stat-item">
+                  <span class="label">활동 칼로리</span>
+                  <span class="val" id="samsung-active-cal">0 kcal</span>
+                </div>
+                <div class="samsung-stat-item">
+                  <span class="label">활동 시간</span>
+                  <span class="val" id="samsung-active-time">0 분</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Workout Filter Bar ([전체 날짜] [운동+] [일상+]) -->
+            <div class="filter-bar workout-filter-bar" id="workout-filter-bar">
+              <button class="filter-btn active" data-workout-filter="all">전체 날짜</button>
+              <button class="filter-btn" data-workout-filter="has-workout">운동+</button>
+              <button class="filter-btn" data-workout-filter="no-workout">일상+</button>
+            </div>
+
+            <!-- Date-based Workout List Container -->
+            <div class="workout-date-list-container" id="workout-date-list">
+              <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Legacy container kept hidden for compatibility -->
+            <div class="health-feed-grid" id="health-workout-grid" style="display: none;"></div>
           </div>
 
-          <!-- Samsung Health Live Stats Bar -->
-          <div class="card samsung-health-banner" id="health-workout-samsung-stats">
-            <div class="samsung-banner-header">
-              <span><i class="fa-solid fa-heart-pulse" style="color: #10b981;"></i> 삼성헬스 당일 활동 통계</span>
-              <span id="samsung-stats-date" style="font-size: 0.8rem; color: var(--text-muted);">실시간 연동</span>
+          <!-- 3-B. WORKOUT DETAIL POST VIEW (일일 운동 상세 화면) -->
+          <div id="workout-date-detail-view" style="display: none;">
+            <div class="tab-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <button class="btn-secondary btn-sm" id="btn-back-to-workout-list" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; cursor: pointer; border-radius: 8px;">
+                  <i class="fa-solid fa-arrow-left"></i> 목록으로
+                </button>
+                <h2 id="workout-detail-date-title" style="font-size: 1.35rem; font-weight: 700; color: var(--text-highlight); margin: 0; display: flex; align-items: center; gap: 8px;">
+                  <!-- Dynamic Date Title -->
+                </h2>
+              </div>
+              <button class="btn-primary btn-sm" id="btn-detail-add-workout">
+                <i class="fa-solid fa-plus"></i> 이 날짜에 추가 운동 기록
+              </button>
             </div>
-            <div class="samsung-stats-grid">
-              <div class="samsung-stat-item">
-                <span class="label">걸음 수</span>
-                <span class="val" id="samsung-steps">0 보</span>
-              </div>
-              <div class="samsung-stat-item">
-                <span class="label">이동 거리</span>
-                <span class="val" id="samsung-distance">0.0 km</span>
-              </div>
-              <div class="samsung-stat-item">
-                <span class="label">활동 칼로리</span>
-                <span class="val" id="samsung-active-cal">0 kcal</span>
-              </div>
-              <div class="samsung-stat-item">
-                <span class="label">활동 시간</span>
-                <span class="val" id="samsung-active-time">0 분</span>
-              </div>
-            </div>
-          </div>
 
-          <!-- Workout Grid -->
-          <div class="health-feed-grid" id="health-workout-grid" style="margin-top: 1.5rem;">
-            <!-- Dynamic workout cards -->
+            <!-- Daily Activity & Combined Burn Summary Banner -->
+            <div class="workout-daily-summary-banner" id="workout-daily-summary-banner">
+              <!-- Dynamic Summary Banner -->
+            </div>
+
+            <!-- Additional Workouts Stack (추가 운동 일지 세로 카드 목록) -->
+            <div class="workout-detail-stack" id="workout-detail-stack">
+              <!-- Dynamic Workout Cards with Edit & Delete -->
+            </div>
           </div>
         </div>
 
