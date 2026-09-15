@@ -4884,7 +4884,7 @@ function renderDashboardCharts(activities, dietItems, bodyRecords) {
 
     const burnData = days.map(day => {
       const dayAct = activities.find(it => it.date && it.date.startsWith(day));
-      return dayAct ? (Number(dayAct.activeCalories) || 0) : 0;
+      return dayAct ? (Number(dayAct.totalCalories) || Number(dayAct.activeCalories) || 0) : 0;
     });
 
     healthCharts.calorieBalance = new window.Chart(canvasCalorie, {
@@ -4901,7 +4901,7 @@ function renderDashboardCharts(activities, dietItems, bodyRecords) {
             borderRadius: 4
           },
           {
-            label: '활동 소모 칼로리 (kcal)',
+            label: '총 소비 칼로리 (kcal)',
             data: burnData,
             backgroundColor: 'rgba(16, 185, 129, 0.75)',
             borderColor: '#10b981',
@@ -5061,7 +5061,7 @@ function openHealthMetricModal(type) {
               <tr>
                 <th>날짜</th>
                 <th>걸음 수</th>
-                <th>활동 칼로리</th>
+                <th>총 소비 칼로리</th>
                 <th>이동 거리</th>
                 <th>활동 시간</th>
               </tr>
@@ -5071,7 +5071,7 @@ function openHealthMetricModal(type) {
                 <tr>
                   <td><strong>${escapeHtml(a.date || '')}</strong></td>
                   <td>${(Number(a.steps) || 0).toLocaleString()}보</td>
-                  <td style="color: #f59e0b;">${(Number(a.activeCalories) || 0).toLocaleString()} kcal</td>
+                  <td style="color: #38bdf8;">${(Number(a.totalCalories) || Number(a.activeCalories) || 0).toLocaleString()} kcal</td>
                   <td>${(Number(a.distanceKm) || 0).toFixed(1)} km</td>
                   <td>${a.activeMinutes || 0}분</td>
                 </tr>
