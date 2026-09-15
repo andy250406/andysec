@@ -4175,6 +4175,31 @@ body.light-theme .corner-mode-btn.active-health {
   font-weight: 600;
 }
 
+.btn-diet-fav {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1.15rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-diet-fav:hover {
+  transform: scale(1.2);
+  color: #f59e0b;
+}
+
+.btn-diet-fav.active {
+  color: #f59e0b;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+}
+
 /* Macro Bar Styles */
 .macro-bar {
   width: 100%;

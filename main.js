@@ -352,6 +352,7 @@ const elements = {
   dietInputDate: document.getElementById('diet-input-date'),
   dietInputTime: document.getElementById('diet-input-time'),
   dietInputSubtype: document.getElementById('diet-input-subtype'),
+  dietInputFavorite: document.getElementById('diet-input-favorite'),
   dietInputTitle: document.getElementById('diet-input-title'),
   dietInputLocation: document.getElementById('diet-input-location'),
   dietInputCalories: document.getElementById('diet-input-calories'),
@@ -5903,9 +5904,12 @@ function showDietDateDetail(date) {
                     </span>
                   ` : ''}
                 </div>
-                <div class="diet-card-calories">
+                <div class="diet-card-calories" style="display: flex; align-items: center; gap: 6px;">
                   <span class="val">${(Number(meal.calories) || 0).toLocaleString()}</span>
                   <span class="unit">kcal</span>
+                  <button type="button" class="btn-diet-fav ${isDietFavorite(meal) ? 'active' : ''}" data-id="${escapeHtml(meal.id)}" title="${isDietFavorite(meal) ? '자주 먹는 식단 즐겨찾기 해제' : '자주 먹는 식단으로 즐겨찾기 등록'}">
+                    <i class="${isDietFavorite(meal) ? 'fa-solid' : 'fa-regular'} fa-star"></i>
+                  </button>
                 </div>
               </div>
 
@@ -5963,6 +5967,23 @@ function showDietDateDetail(date) {
         </div>
       `;
     }).join('');
+
+    // Attach Favorite Toggle Listener
+    elements.dietDetailMealsStack.querySelectorAll('.btn-diet-fav').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const meal = dateMeals.find(m => m.id === id);
+        if (!meal) return;
+        const isNowFav = toggleDietFavorite(meal);
+        btn.classList.toggle('active', isNowFav);
+        const starIcon = btn.querySelector('i');
+        if (starIcon) {
+          starIcon.className = isNowFav ? 'fa-solid fa-star' : 'fa-regular fa-star';
+        }
+        btn.title = isNowFav ? '자주 먹는 식단 즐겨찾기 해제' : '자주 먹는 식단으로 즐겨찾기 등록';
+      });
+    });
 
     // Attach Edit & Delete Listeners
     elements.dietDetailMealsStack.querySelectorAll('.btn-edit-diet').forEach(btn => {
@@ -6136,21 +6157,19 @@ async function runDailyDietAiAnalysis(date) {
 리포트는 반드시 다음 3가지 핵심 영역을 명확한 마크다운 소제목(### 1., ### 2., ### 3.)으로 구분하여 상세히 분석해 주어야 합니다:
 
 ### 1. 🍽️ 오늘 전체 식단 & 칼로리/영양성분 종합 피드백
-- 오늘 하루 총 칼로리 섭취량(${totCal} kcal)과 일일 권장 소비 칼로리(${targetCal} kcal) 비교 및 적정성 평가
-- 3대 영양소(탄수화물 ${Math.round(totCarb)}g, 단백질 ${Math.round(totProt)}g, 지방 ${Math.round(totFat)}g)의 비율과 질적 구성 평가 (단백질 충족도, 당류/지방 과다 여부 등)
-- 끼니별(아침/점심/저녁/간식) 배분 상태 및 식사 시간 간격에 대한 영양학적 코멘트
+- 오늘 하루 총 칼로리 섭취량(${totCal} kcal)과 일일 권장 소비 칼로리(${targetCal} kcal) 비교 및 적정성 평가 한 줄 요약
+- 3대 영양소(탄수화물 ${Math.round(totCarb)}g, 단백질 ${Math.round(totProt)}g, 지방 ${Math.round(totFat)}g)의 비율과 질적 구성 평가 (단백질 충족도, 당류/지방 과다 여부 등) 한 줄 요약
 
 ### 2. 📅 저번 주 동일 요일(${prev7Str}, ${weekdayName}) 대비 비교 분석
-- 저번 주 같은 요일의 식단 및 영양소와의 직접적인 비교 수치와 변화 추이
-- 저번 주 대비 개선된 점과 아쉬운 점(또는 반복되는 식습관 패턴) 객관적 대조
-(저번 주 동일 요일 기록이 없는 경우, 신규 기록임을 명시하고 일반적인 권장 식단 가이드와 비교하여 조언)
+- 저번 주 같은 요일의 식단 및 영양소와의 직접적인 비교 수치와 변화 추이 한 줄 요약
+- 저번 주 대비 개선된 점과 아쉬운 점(또는 반복되는 식습관 패턴) 객관적 대조 한 줄 요약
+(저번 주 동일 요일 기록이 없는 경우, 해당 내용은 아예 제거하고 3번으로 넘어갈 것, 3번 표기를 2번으로 바꿔 기입할 것)
 
 ### 3. 🏃 현재 신체 지표 & 활동량/소비칼로리 연계 맞춤형 건강 피드백
-- 현재 체성분(체중, 골격근, 체지방)을 감안한 섭취 칼로리의 잉여/적자 상태 분석
-- 오늘의 활동량(걸음 수, 활동 소모 칼로리) 및 운동 일지(수행 종목, 운동 소모 칼로리)와 영양 섭취의 유기적 매칭 평가
-- 건강 목표(체중 감량/근성장/유지) 달성을 위한 내일 식단 및 라이프스타일 권장사항 2~3가지 제언
+- 현재 체성분(체중, 골격근, 체지방)을 감안한 섭취 칼로리의 잉여/적자 상태 분석 한 줄 요약
+- 오늘의 활동량(걸음 수, 활동 소모 칼로리) 및 운동 일지(수행 종목, 운동 소모 칼로리)와 영양 섭취의 유기적 매칭 평가 한 줄 요약
 
-어조: 친절하면서도 전문적이고 동기부여가 되는 헬스케어 코칭 어조로 작성해 주세요.`;
+어조: 지표를 기반으로 분석적인 보고하는 사무적인 비서의 어투로 작성해주세요.`;
 
     const userContentText = `[분석 대상 일자]: ${date} (${weekdayName})
 [일일 권장 소비 칼로리]: ${targetCal} kcal
@@ -6234,12 +6253,121 @@ function backToDietList() {
   }
 }
 
+// ==========================================
+// DIET FAVORITES (자주 먹는 식단 템플릿 관리)
+// ==========================================
+function getDietFavorites() {
+  try {
+    return JSON.parse(localStorage.getItem('diet_favorites') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveDietFavorites(favs) {
+  localStorage.setItem('diet_favorites', JSON.stringify(favs));
+}
+
+function isDietFavorite(meal) {
+  if (!meal) return false;
+  const favs = getDietFavorites();
+  return favs.some(f => f.id === meal.id || (f.title === meal.title && Number(f.calories) === Number(meal.calories)));
+}
+
+function toggleDietFavorite(meal) {
+  if (!meal) return false;
+  const favs = getDietFavorites();
+  const idx = favs.findIndex(f => f.id === meal.id || (f.title === meal.title && Number(f.calories) === Number(meal.calories)));
+  let isNowFav = false;
+  if (idx !== -1) {
+    favs.splice(idx, 1);
+    isNowFav = false;
+  } else {
+    favs.push({
+      id: meal.id || `fav-${Date.now()}`,
+      title: meal.title || '식단',
+      subType: meal.subType || '점심',
+      calories: Number(meal.calories) || 0,
+      carbs: Number(meal.carbs) || 0,
+      protein: Number(meal.protein) || 0,
+      fat: Number(meal.fat) || 0,
+      location: meal.location || '',
+      memo: meal.memo || '',
+      content: meal.content || '',
+      imageUrl: meal.imageUrl || ''
+    });
+    isNowFav = true;
+  }
+  saveDietFavorites(favs);
+  return isNowFav;
+}
+
+function renderDietFavoriteOptions() {
+  if (!elements.dietInputFavorite) return;
+  const favs = getDietFavorites();
+  if (favs.length === 0) {
+    elements.dietInputFavorite.innerHTML = '<option value="">⭐ 등록된 즐겨찾기 없음</option>';
+    return;
+  }
+  elements.dietInputFavorite.innerHTML = `
+    <option value="">⭐ 자주 먹는 식단 선택 (자동 입력)</option>
+    ${favs.map(f => `
+      <option value="${escapeHtml(f.id)}">[${escapeHtml(f.subType || '식사')}] ${escapeHtml(f.title || '식단')} (${(Number(f.calories) || 0).toLocaleString()}kcal)</option>
+    `).join('')}
+  `;
+}
+
+function applyDietFavoriteTemplate(fav) {
+  if (!fav) return;
+  if (elements.dietInputTitle) elements.dietInputTitle.value = fav.title || '';
+  if (elements.dietInputSubtype && fav.subType) {
+    elements.dietInputSubtype.value = fav.subType;
+  }
+  if (elements.dietInputLocation) elements.dietInputLocation.value = fav.location || '';
+  if (elements.dietInputMemo) elements.dietInputMemo.value = fav.memo || '';
+  
+  if (elements.dietInputCalories) elements.dietInputCalories.value = fav.calories || 0;
+  if (elements.dietInputCarbs) elements.dietInputCarbs.value = fav.carbs || 0;
+  if (elements.dietInputProtein) elements.dietInputProtein.value = fav.protein || 0;
+  if (elements.dietInputFat) elements.dietInputFat.value = fav.fat || 0;
+  if (elements.dietInputContent) elements.dietInputContent.value = fav.content || '';
+
+  // Image restore
+  if (fav.imageUrl) {
+    currentDietImageBase64 = fav.imageUrl;
+    if (elements.dietImagePreview) elements.dietImagePreview.src = fav.imageUrl;
+    if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'inline-flex';
+    if (elements.dietImageFilename) elements.dietImageFilename.textContent = '즐겨찾기 사진 등록됨';
+  } else {
+    currentDietImageBase64 = '';
+    if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'none';
+    if (elements.dietImageFilename) elements.dietImageFilename.textContent = '선택된 사진 없음';
+  }
+
+  // Show AI Nutrition Preview Banner
+  if (elements.dietAiNutritionPreview) {
+    elements.dietAiNutritionPreview.style.display = 'block';
+    if (elements.dietAiPreviewCal) elements.dietAiPreviewCal.textContent = `${(Number(fav.calories) || 0).toLocaleString()} kcal`;
+    if (elements.dietAiPreviewCarbs) elements.dietAiPreviewCarbs.textContent = `${fav.carbs || 0}g`;
+    if (elements.dietAiPreviewProtein) elements.dietAiPreviewProtein.textContent = `${fav.protein || 0}g`;
+    if (elements.dietAiPreviewFat) elements.dietAiPreviewFat.textContent = `${fav.fat || 0}g`;
+    if (elements.dietAiPreviewComment) elements.dietAiPreviewComment.textContent = fav.content || '';
+  }
+
+  if (elements.dietAiStatus) {
+    elements.dietAiStatus.innerHTML = '<i class="fa-solid fa-star" style="color: #f59e0b;"></i> 즐겨찾기 식단 데이터를 불러왔습니다.';
+  }
+}
+
 function openAddDietModal(presetDate = null) {
   if (elements.formHealthDiet) elements.formHealthDiet.reset();
   if (elements.dietEditId) elements.dietEditId.value = '';
   if (elements.dietModalTitle) {
     elements.dietModalTitle.innerHTML = '<i class="fa-solid fa-utensils" style="color: #10b981;"></i> 식단 기록 추가 (AI)';
   }
+
+  // Render Favorites Options
+  renderDietFavoriteOptions();
 
   // Auto set current date and time
   const now = new Date();
@@ -7536,6 +7664,17 @@ function setupHealthEventListeners() {
   elements.formHealthDiet?.addEventListener('submit', (e) => {
     e.preventDefault();
     saveDietItem();
+  });
+
+  // Diet Favorite Select Change Handler
+  elements.dietInputFavorite?.addEventListener('change', (e) => {
+    const selId = e.target.value;
+    if (!selId) return;
+    const favs = getDietFavorites();
+    const target = favs.find(f => f.id === selId);
+    if (target) {
+      applyDietFavoriteTemplate(target);
+    }
   });
 
   // Diet Detail View Controls (Back to list & Add meal on active date)
