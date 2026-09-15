@@ -666,7 +666,7 @@
             <!-- Health Top 4 Summary Cards -->
             <div class="health-metrics-row">
               <!-- 1. Activity (Samsung Health) -->
-              <div class="card health-summary-card">
+              <div class="card health-summary-card" data-metric-type="activity" title="클릭하여 삼성헬스 활동 상세 데이터 확인">
                 <div class="health-card-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
                   <i class="fa-solid fa-person-walking"></i>
                 </div>
@@ -675,10 +675,11 @@
                   <div class="health-card-value" id="health-card-steps">0 <span class="unit">보</span></div>
                   <div class="health-card-sub" id="health-card-active-cal">활동 소모: 0 kcal</div>
                 </div>
+                <span class="health-card-zoom-icon" title="상세 팝업 열기"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
               </div>
 
               <!-- 2. Diet Nutrition Intake -->
-              <div class="card health-summary-card">
+              <div class="card health-summary-card" data-metric-type="diet" title="클릭하여 오늘의 식단 섭취 영양 상세 확인">
                 <div class="health-card-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
                   <i class="fa-solid fa-fire"></i>
                 </div>
@@ -687,10 +688,11 @@
                   <div class="health-card-value" id="health-card-calories">0 <span class="unit">kcal</span></div>
                   <div class="health-card-sub" id="health-card-macros">탄 0g | 단 0g | 지 0g</div>
                 </div>
+                <span class="health-card-zoom-icon" title="상세 팝업 열기"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
               </div>
 
               <!-- 3. Body Composition -->
-              <div class="card health-summary-card">
+              <div class="card health-summary-card" data-metric-type="body" title="클릭하여 최근 신체 인바디 상세 지표 확인">
                 <div class="health-card-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
                   <i class="fa-solid fa-weight-scale"></i>
                 </div>
@@ -699,10 +701,11 @@
                   <div class="health-card-value" id="health-card-weight">-- <span class="unit">kg</span></div>
                   <div class="health-card-sub" id="health-card-body-detail">골격근 -- kg | 체지방 -- %</div>
                 </div>
+                <span class="health-card-zoom-icon" title="상세 팝업 열기"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
               </div>
 
               <!-- 4. Sleep & Vitals (Samsung Health) -->
-              <div class="card health-summary-card">
+              <div class="card health-summary-card" data-metric-type="sleep-vitals" title="클릭하여 수면 및 심박/생체 상세 데이터 확인">
                 <div class="health-card-icon" style="background: rgba(168, 85, 247, 0.15); color: #a855f7;">
                   <i class="fa-solid fa-moon"></i>
                 </div>
@@ -711,6 +714,7 @@
                   <div class="health-card-value" id="health-card-sleep">-- <span class="unit">시간</span></div>
                   <div class="health-card-sub" id="health-card-hr">평균 심박수: -- bpm</div>
                 </div>
+                <span class="health-card-zoom-icon" title="상세 팝업 열기"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
               </div>
             </div>
 
@@ -789,15 +793,6 @@
               </button>
             </div>
 
-            <!-- Diet Filter Bar -->
-            <div class="filter-bar" id="diet-filter-bar">
-              <button class="filter-btn active" data-diet-filter="all">전체 날짜</button>
-              <button class="filter-btn" data-diet-filter="아침">🌅 아침 포함</button>
-              <button class="filter-btn" data-diet-filter="점심">☀️ 점심 포함</button>
-              <button class="filter-btn" data-diet-filter="저녁">🌙 저녁 포함</button>
-              <button class="filter-btn" data-diet-filter="간식">☕ 간식 포함</button>
-            </div>
-
             <!-- Date-based 2-line List Container -->
             <div class="diet-date-list-container" id="diet-date-list">
               <!-- Rendered dynamically -->
@@ -821,6 +816,11 @@
               <button class="btn-primary btn-sm" id="btn-detail-add-meal">
                 <i class="fa-solid fa-plus"></i> 이 날짜에 끼니 추가
               </button>
+            </div>
+
+            <!-- Daily AI Whole-Day Diet Analysis & Weekly Comparison Box -->
+            <div class="diet-daily-ai-container" id="diet-daily-ai-container">
+              <!-- Dynamic AI daily analysis card -->
             </div>
 
             <!-- Daily Summary Banner (Total Calories / Target & Macros) -->
@@ -1594,6 +1594,23 @@ print("Hello Security")
       <div class="modal-footer">
         <button type="button" class="btn-secondary" id="btn-cancel-gemini-settings">닫기</button>
         <button type="button" class="btn-primary" id="btn-save-gemini-settings"><i class="fa-solid fa-check"></i> 설정 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. HEALTH METRIC DETAIL POPUP MODAL (대시보드 상단 4대 카드 상세 팝업) -->
+  <div class="modal" id="modal-health-metric-detail">
+    <div class="modal-content" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3 id="metric-detail-modal-title"><i class="fa-solid fa-chart-simple" style="color: #10b981;"></i> 지표 상세 데이터</h3>
+        <button class="close-btn" id="btn-close-metric-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="metric-detail-modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <!-- Dynamic rich content based on clicked card -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btn-close-metric-modal-footer">닫기</button>
+        <button type="button" class="btn-primary" id="btn-metric-tab-link"><i class="fa-solid fa-arrow-right"></i> 관련 탭으로 이동</button>
       </div>
     </div>
   </div>

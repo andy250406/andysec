@@ -415,7 +415,16 @@ const elements = {
   geminiKeyStatus: document.getElementById('gemini-key-status'),
   btnCloseGeminiModal: document.getElementById('btn-close-gemini-modal'),
   btnCancelGeminiSettings: document.getElementById('btn-cancel-gemini-settings'),
-  btnSaveGeminiSettings: document.getElementById('btn-save-gemini-settings')
+  btnSaveGeminiSettings: document.getElementById('btn-save-gemini-settings'),
+
+  // Health Metric Detail Popup Elements
+  modalHealthMetricDetail: document.getElementById('modal-health-metric-detail'),
+  metricDetailModalTitle: document.getElementById('metric-detail-modal-title'),
+  metricDetailModalBody: document.getElementById('metric-detail-modal-body'),
+  btnCloseMetricModal: document.getElementById('btn-close-metric-modal'),
+  btnCloseMetricModalFooter: document.getElementById('btn-close-metric-modal-footer'),
+  btnMetricTabLink: document.getElementById('btn-metric-tab-link'),
+  dietDailyAiContainer: document.getElementById('diet-daily-ai-container')
 };
 
 // Initialize App
@@ -4963,6 +4972,352 @@ function renderDashboardCharts(activities, dietItems, bodyRecords) {
   }
 }
 
+// Health Metric Detail Popup Modal (대시보드 상단 4대 카드 상세 분석 팝업)
+function openHealthMetricModal(type) {
+  if (!elements.modalHealthMetricDetail) return;
+  const today = new Date().toISOString().split('T')[0];
+  let titleHtml = '';
+  let bodyHtml = '';
+  let tabTarget = 'health-dashboard';
+  let tabButtonText = '관련 탭으로 이동';
+
+  if (type === 'activity') {
+    titleHtml = '<i class="fa-solid fa-person-walking" style="color: #10b981;"></i> 일일 활동량 & 걸음 수 상세 분석';
+    tabTarget = 'health-workout';
+    tabButtonText = '운동 관리 탭으로 이동';
+
+    const activities = appState.healthData.activity || [];
+    const todayAct = activities.find(a => a.date && a.date.startsWith(today)) || (activities.length > 0 ? activities[activities.length - 1] : null);
+    const steps = Number(todayAct?.steps) || 0;
+    const activeCal = Number(todayAct?.activeCalories) || 0;
+    const totalCal = Number(todayAct?.totalCalories) || 0;
+    const distanceKm = Number(todayAct?.distanceKm) || 0;
+    const activeMins = Number(todayAct?.activeMinutes) || 0;
+    const stepGoalPct = Math.min(100, Math.round((steps / 10000) * 100));
+
+    const recentActivities = [...activities].slice(-7).reverse();
+
+    bodyHtml = `
+      <div class="metric-detail-grid">
+        <div class="metric-stat-box">
+          <span class="lbl">오늘 걸음 수</span>
+          <span class="val" style="color: #10b981;">${steps.toLocaleString()} <small style="font-size: 0.75rem; font-weight: normal;">보</small></span>
+          <span class="sub">목표(10,000보) 대비 ${stepGoalPct}%</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">활동 소모 칼로리</span>
+          <span class="val" style="color: #f59e0b;">${activeCal.toLocaleString()} <small style="font-size: 0.75rem; font-weight: normal;">kcal</small></span>
+          <span class="sub">순수 유산소/활동 소모량</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">총 소비 칼로리</span>
+          <span class="val" style="color: #38bdf8;">${totalCal.toLocaleString()} <small style="font-size: 0.75rem; font-weight: normal;">kcal</small></span>
+          <span class="sub">기초대사 + 활동 합계</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">이동 거리 & 활동 시간</span>
+          <span class="val">${distanceKm.toFixed(1)} <small style="font-size: 0.75rem; font-weight: normal;">km</small></span>
+          <span class="sub">활동 시간 ${activeMins}분</span>
+        </div>
+      </div>
+
+      <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.92rem; color: var(--text-color); display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i> 최근 7일 활동 이력 (삼성헬스 연동)
+      </h4>
+      ${recentActivities.length === 0 ? `
+        <p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">활동 기록이 없습니다.</p>
+      ` : `
+        <div style="overflow-x: auto;">
+          <table class="metric-history-mini-table">
+            <thead>
+              <tr>
+                <th>날짜</th>
+                <th>걸음 수</th>
+                <th>활동 칼로리</th>
+                <th>이동 거리</th>
+                <th>활동 시간</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${recentActivities.map(a => `
+                <tr>
+                  <td><strong>${escapeHtml(a.date || '')}</strong></td>
+                  <td>${(Number(a.steps) || 0).toLocaleString()}보</td>
+                  <td style="color: #f59e0b;">${(Number(a.activeCalories) || 0).toLocaleString()} kcal</td>
+                  <td>${(Number(a.distanceKm) || 0).toFixed(1)} km</td>
+                  <td>${a.activeMinutes || 0}분</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
+    `;
+  } else if (type === 'diet') {
+    titleHtml = '<i class="fa-solid fa-utensils" style="color: #10b981;"></i> 일일 식단 & 영양 상세 분석';
+    tabTarget = 'health-diet';
+    tabButtonText = '식단 관리 탭으로 이동';
+
+    const dbItems = appState.healthData.db || [];
+    const todayDiets = dbItems.filter(item => (item.category || '').toLowerCase() === 'diet' && item.date && item.date.startsWith(today));
+    
+    let totalCal = 0, totalCarb = 0, totalProt = 0, totalFat = 0;
+    todayDiets.forEach(it => {
+      totalCal += Number(it.calories) || 0;
+      totalCarb += Number(it.carbs) || 0;
+      totalProt += Number(it.protein) || 0;
+      totalFat += Number(it.fat) || 0;
+    });
+
+    const targetCal = getDailyTargetCalories(today);
+    const calPct = Math.round((totalCal / targetCal) * 100);
+    const totalMacroG = (totalCarb + totalProt + totalFat) || 1;
+    const cPct = Math.round((totalCarb / totalMacroG) * 100);
+    const pPct = Math.round((totalProt / totalMacroG) * 100);
+    const fPct = Math.max(0, 100 - cPct - pPct);
+
+    bodyHtml = `
+      <div class="metric-detail-grid">
+        <div class="metric-stat-box">
+          <span class="lbl">오늘 섭취 칼로리</span>
+          <span class="val" style="color: #f59e0b;">${totalCal.toLocaleString()} <small style="font-size: 0.75rem; font-weight: normal;">kcal</small></span>
+          <span class="sub">권장 대비 ${calPct}%</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">일일 권장 칼로리</span>
+          <span class="val">${targetCal.toLocaleString()} <small style="font-size: 0.75rem; font-weight: normal;">kcal</small></span>
+          <span class="sub">체성분 기반 자동 산출</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">식사 기록 횟수</span>
+          <span class="val" style="color: #10b981;">${todayDiets.length} <small style="font-size: 0.75rem; font-weight: normal;">끼</small></span>
+          <span class="sub">오늘 입력된 식사 수</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">칼로리 여유/초과</span>
+          <span class="val" style="color: ${targetCal >= totalCal ? '#10b981' : '#ef4444'};">
+            ${Math.abs(targetCal - totalCal).toLocaleString()} <small style="font-size: 0.75rem; font-weight: normal;">kcal</small>
+          </span>
+          <span class="sub">${targetCal >= totalCal ? '여유 칼로리' : '권장량 초과'}</span>
+        </div>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin-bottom: 1rem;">
+        <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-color); margin-bottom: 8px;">
+          3대 영양소 섭취 비율 (탄:단:지)
+        </div>
+        <div class="macro-bar" style="height: 10px; margin-bottom: 8px;">
+          <div class="macro-segment carb" style="width: ${cPct}%;" title="탄수화물 ${Math.round(totalCarb)}g (${cPct}%)"></div>
+          <div class="macro-segment prot" style="width: ${pPct}%;" title="단백질 ${Math.round(totalProt)}g (${pPct}%)"></div>
+          <div class="macro-segment fat" style="width: ${fPct}%;" title="지방 ${Math.round(totalFat)}g (${fPct}%)"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
+          <span>탄수화물 <strong style="color: #38bdf8;">${Math.round(totalCarb)}g</strong> (${cPct}%)</span>
+          <span>단백질 <strong style="color: #10b981;">${Math.round(totalProt)}g</strong> (${pPct}%)</span>
+          <span>지방 <strong style="color: #ec4899;">${Math.round(totalFat)}g</strong> (${fPct}%)</span>
+        </div>
+      </div>
+
+      <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.92rem; color: var(--text-color); display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-list-check" style="color: #10b981;"></i> 오늘 끼니별 기록 목록
+      </h4>
+      ${todayDiets.length === 0 ? `
+        <p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">오늘 기록된 식단이 없습니다.</p>
+      ` : `
+        <div style="overflow-x: auto;">
+          <table class="metric-history-mini-table">
+            <thead>
+              <tr>
+                <th>끼니 구분</th>
+                <th>시간</th>
+                <th>메뉴명</th>
+                <th>칼로리</th>
+                <th>영양소 (탄/단/지)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${todayDiets.map(m => `
+                <tr>
+                  <td><span class="badge badge-green" style="font-size: 0.72rem;">${escapeHtml(m.subType || '식사')}</span></td>
+                  <td>${escapeHtml(m.time || '--:--')}</td>
+                  <td><strong>${escapeHtml(m.title || '메뉴')}</strong>${m.location ? ` <span style="font-size: 0.75rem; color: var(--text-muted);">(${escapeHtml(m.location)})</span>` : ''}</td>
+                  <td style="color: #f59e0b; font-weight: 600;">${(Number(m.calories) || 0).toLocaleString()} kcal</td>
+                  <td style="font-size: 0.78rem; color: var(--text-muted);">${m.carbs || 0}g / ${m.protein || 0}g / ${m.fat || 0}g</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
+    `;
+  } else if (type === 'body') {
+    titleHtml = '<i class="fa-solid fa-weight-scale" style="color: #10b981;"></i> 체성분 & 인바디 상세 분석';
+    tabTarget = 'health-body';
+    tabButtonText = '체성분 관리 탭으로 이동';
+
+    const bodyRecords = [...(appState.healthData.body || [])];
+    bodyRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const latest = bodyRecords[0] || null;
+    const prev = bodyRecords[1] || null;
+
+    const weightDelta = (latest && prev && latest.weight && prev.weight) 
+      ? (Number(latest.weight) - Number(prev.weight)).toFixed(1) 
+      : null;
+    const muscleDelta = (latest && prev && latest.muscleMass && prev.muscleMass)
+      ? (Number(latest.muscleMass) - Number(prev.muscleMass)).toFixed(1)
+      : null;
+    const fatDelta = (latest && prev && latest.bodyFatPercent && prev.bodyFatPercent)
+      ? (Number(latest.bodyFatPercent) - Number(prev.bodyFatPercent)).toFixed(1)
+      : null;
+
+    bodyHtml = `
+      <div class="metric-detail-grid">
+        <div class="metric-stat-box">
+          <span class="lbl">현재 체중</span>
+          <span class="val" style="color: #38bdf8;">${latest?.weight || '--'} <small style="font-size: 0.75rem; font-weight: normal;">kg</small></span>
+          <span class="sub">${weightDelta !== null ? `이전 대비 ${Number(weightDelta) > 0 ? '+' + weightDelta : weightDelta} kg` : '최신 측정치'}</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">골격근량</span>
+          <span class="val" style="color: #10b981;">${latest?.muscleMass || '--'} <small style="font-size: 0.75rem; font-weight: normal;">kg</small></span>
+          <span class="sub">${muscleDelta !== null ? `이전 대비 ${Number(muscleDelta) > 0 ? '+' + muscleDelta : muscleDelta} kg` : '최신 측정치'}</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">체지방률</span>
+          <span class="val" style="color: #ec4899;">${latest?.bodyFatPercent || '--'} <small style="font-size: 0.75rem; font-weight: normal;">%</small></span>
+          <span class="sub">${fatDelta !== null ? `이전 대비 ${Number(fatDelta) > 0 ? '+' + fatDelta : fatDelta} %` : '최신 측정치'}</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">기초대사량 (BMR)</span>
+          <span class="val">${latest?.bmr ? Number(latest.bmr).toLocaleString() : '--'} <small style="font-size: 0.75rem; font-weight: normal;">kcal</small></span>
+          <span class="sub">BMI: ${latest?.bmi || '--'}</span>
+        </div>
+      </div>
+
+      <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.92rem; color: var(--text-color); display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i> 최근 인바디 측정 추이
+      </h4>
+      ${bodyRecords.length === 0 ? `
+        <p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">등록된 체성분 기록이 없습니다.</p>
+      ` : `
+        <div style="overflow-x: auto;">
+          <table class="metric-history-mini-table">
+            <thead>
+              <tr>
+                <th>측정일</th>
+                <th>체중 (kg)</th>
+                <th>골격근량 (kg)</th>
+                <th>체지방률 (%)</th>
+                <th>BMI</th>
+                <th>기초대사량</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${bodyRecords.slice(0, 6).map(b => `
+                <tr>
+                  <td><strong>${escapeHtml(b.date || '')}</strong></td>
+                  <td style="color: #38bdf8; font-weight: 600;">${b.weight || '--'}</td>
+                  <td style="color: #10b981;">${b.muscleMass || '--'}</td>
+                  <td style="color: #ec4899;">${b.bodyFatPercent || '--'}%</td>
+                  <td>${b.bmi || '--'}</td>
+                  <td>${b.bmr ? Number(b.bmr).toLocaleString() + ' kcal' : '--'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
+    `;
+  } else if (type === 'sleep-vitals') {
+    titleHtml = '<i class="fa-solid fa-heart-pulse" style="color: #10b981;"></i> 수면 & 활력 징후(Vitals) 상세 분석';
+    tabTarget = 'health-dashboard';
+    tabButtonText = '건강 대시보드로 이동';
+
+    const sleepList = appState.healthData.sleep || [];
+    const latestSleep = sleepList.length > 0 ? sleepList[sleepList.length - 1] : null;
+    const vitalsList = appState.healthData.vitals || [];
+    const latestVitals = vitalsList.length > 0 ? vitalsList[vitalsList.length - 1] : null;
+
+    const sleepMins = Number(latestSleep?.durationMinutes) || 0;
+    const sleepHrs = Math.floor(sleepMins / 60);
+    const sleepRemMins = sleepMins % 60;
+
+    bodyHtml = `
+      <div class="metric-detail-grid">
+        <div class="metric-stat-box">
+          <span class="lbl">최근 총 수면 시간</span>
+          <span class="val" style="color: #a855f7;">${sleepHrs}<small style="font-size: 0.75rem; font-weight: normal;">시간</small> ${sleepRemMins}<small style="font-size: 0.75rem; font-weight: normal;">분</small></span>
+          <span class="sub">수면 점수: ${latestSleep?.sleepScore ? latestSleep.sleepScore + '점' : '기록됨'}</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">평균 심박수</span>
+          <span class="val" style="color: #ef4444;">${latestVitals?.heartRate || '--'} <small style="font-size: 0.75rem; font-weight: normal;">bpm</small></span>
+          <span class="sub">안정시: ${latestVitals?.restingHeartRate || '--'} bpm</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">심박 범위 (최저~최고)</span>
+          <span class="val" style="font-size: 1rem;">${latestVitals?.minHeartRate || '--'} ~ ${latestVitals?.maxHeartRate || '--'} <small style="font-size: 0.75rem; font-weight: normal;">bpm</small></span>
+          <span class="sub">일일 심박 변동폭</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">산소포화도 & 혈압</span>
+          <span class="val" style="color: #38bdf8; font-size: 1.1rem;">${latestVitals?.oxygenSaturation ? latestVitals.oxygenSaturation + '%' : (latestVitals?.bloodPressure || '--')}</span>
+          <span class="sub">${latestVitals?.bloodPressure ? '혈압 ' + latestVitals.bloodPressure : 'SpO2 산소포화도'}</span>
+        </div>
+      </div>
+
+      <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.92rem; color: var(--text-color); display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i> 최근 수면 및 생체 신호 기록
+      </h4>
+      ${sleepList.length === 0 && vitalsList.length === 0 ? `
+        <p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">수면 및 생체 기록이 없습니다.</p>
+      ` : `
+        <div style="overflow-x: auto;">
+          <table class="metric-history-mini-table">
+            <thead>
+              <tr>
+                <th>날짜</th>
+                <th>수면 시간</th>
+                <th>수면 점수</th>
+                <th>평균 심박수</th>
+                <th>안정시 심박</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${[...sleepList].slice(-5).reverse().map(s => {
+                const matchedVitals = vitalsList.find(v => v.date === s.date);
+                const m = Number(s.durationMinutes) || 0;
+                return `
+                  <tr>
+                    <td><strong>${escapeHtml(s.date || '')}</strong></td>
+                    <td>${Math.floor(m / 60)}시간 ${m % 60}분</td>
+                    <td style="color: #a855f7;">${s.sleepScore ? s.sleepScore + '점' : '--'}</td>
+                    <td style="color: #ef4444;">${matchedVitals?.heartRate ? matchedVitals.heartRate + ' bpm' : '--'}</td>
+                    <td>${matchedVitals?.restingHeartRate ? matchedVitals.restingHeartRate + ' bpm' : '--'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
+    `;
+  }
+
+  if (elements.metricDetailModalTitle) elements.metricDetailModalTitle.innerHTML = titleHtml;
+  if (elements.metricDetailModalBody) elements.metricDetailModalBody.innerHTML = bodyHtml;
+
+  if (elements.btnMetricTabLink) {
+    elements.btnMetricTabLink.innerHTML = `<i class="fa-solid fa-arrow-right"></i> ${tabButtonText}`;
+    elements.btnMetricTabLink.onclick = () => {
+      elements.modalHealthMetricDetail.style.display = 'none';
+      switchTab(tabTarget);
+    };
+  }
+
+  elements.modalHealthMetricDetail.style.display = 'flex';
+}
+
 // // Utility: Format Date for Diet List (e.g. '2026-09-15 (화)')
 function formatDietDate(dateStr) {
   if (!dateStr) return '';
@@ -5050,23 +5405,7 @@ function renderHealthDiet() {
   });
 
   // Sort dates descending
-  let sortedDates = Object.keys(dateGroups).sort((a, b) => b.localeCompare(a));
-
-  // Filter by Subtype if selected
-  if (appState.dietFilter && appState.dietFilter !== 'all') {
-    sortedDates = sortedDates.filter(d => {
-      return dateGroups[d].some(it => it.subType === appState.dietFilter);
-    });
-  }
-
-  if (sortedDates.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state-card" style="padding: 2.5rem 1rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">
-        <p style="color: var(--text-muted); font-size: 0.9rem;">선택하신 끼니('${escapeHtml(appState.dietFilter)}')가 포함된 날짜의 식단 기록이 없습니다.</p>
-      </div>
-    `;
-    return;
-  }
+  const sortedDates = Object.keys(dateGroups).sort((a, b) => b.localeCompare(a));
 
   container.innerHTML = sortedDates.map(dateStr => {
     const items = dateGroups[dateStr];
@@ -5179,6 +5518,9 @@ function showDietDateDetail(date) {
   if (elements.dietDetailDateTitle) {
     elements.dietDetailDateTitle.innerHTML = `<i class="fa-regular fa-calendar-days" style="color: #10b981;"></i> ${escapeHtml(formatDietDateLong(date))}`;
   }
+
+  // Render Daily AI Whole-Day Diet Analysis & Comparison Box
+  renderDailyAiDietAnalysis(date);
 
   const dbItems = appState.healthData.db || [];
   const dateMeals = dbItems.filter(item => (item.category || '').toLowerCase() === 'diet' && item.date === date);
@@ -5383,6 +5725,245 @@ function showDietDateDetail(date) {
         deleteDietItem(id);
       });
     });
+  }
+}
+
+// 2-C. Daily AI Whole-Day Diet Analysis & Weekly Comparison
+function renderDailyAiDietAnalysis(date) {
+  const container = elements.dietDailyAiContainer || document.getElementById('diet-daily-ai-container');
+  if (!container) return;
+
+  const dbItems = appState.healthData.db || [];
+  const existingSummary = dbItems.find(it => 
+    it.id === `diet-summary-${date}` || ((it.category || '').toLowerCase() === 'dietsummary' && it.date === date)
+  );
+
+  if (existingSummary && existingSummary.content) {
+    // Analysis exists: Show full analysis result and HIDE [AI분석] button
+    container.innerHTML = `
+      <div class="diet-daily-ai-box">
+        <div class="ai-box-header">
+          <div class="ai-header-title">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Gemini AI 일일 식단 종합 분석 & 비교 리포트</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="ai-status-tag completed"><i class="fa-solid fa-check"></i> 분석 완료</span>
+            <button type="button" class="btn-ai-reanalyze" id="btn-reanalyze-daily-ai" title="AI 종합 분석 다시 실행">
+              <i class="fa-solid fa-arrows-rotate"></i> 재분석
+            </button>
+          </div>
+        </div>
+        <div class="ai-daily-content">
+          ${marked.parse(existingSummary.content)}
+        </div>
+      </div>
+    `;
+
+    document.getElementById('btn-reanalyze-daily-ai')?.addEventListener('click', () => {
+      if (confirm('오늘 식단을 다시 종합 분석하시겠습니까? 기존 분석 내용이 갱신됩니다.')) {
+        runDailyDietAiAnalysis(date);
+      }
+    });
+  } else {
+    // No analysis: Show empty prompt box with [AI 일일 식단 종합 분석] button
+    container.innerHTML = `
+      <div class="diet-daily-ai-box empty">
+        <div class="ai-box-header">
+          <div class="ai-header-title">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Gemini AI 일일 식단 종합 분석</span>
+          </div>
+          <span class="ai-status-tag pending"><i class="fa-solid fa-hourglass-start"></i> 분석 대기</span>
+        </div>
+        <div class="ai-box-empty-body">
+          <p class="ai-empty-desc">
+            오늘 기록된 전체 식단(아침/점심/저녁/간식)과 칼로리·영양성분을 종합 평가하고,<br>
+            <strong>저번 주 동일 요일 식단</strong> 및 <strong>현재 체중·운동 소비 칼로리</strong>와 입체적으로 비교 분석한 리포트를 받아보세요.
+          </p>
+          <button type="button" class="btn-ai-analyze-day" id="btn-run-daily-ai">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> AI 일일 식단 종합 분석
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('btn-run-daily-ai')?.addEventListener('click', () => {
+      runDailyDietAiAnalysis(date);
+    });
+  }
+}
+
+// Run Daily Whole-Day Diet AI Analysis
+async function runDailyDietAiAnalysis(date) {
+  if (!appState.geminiApiKey) {
+    alert('Gemini API 키가 설정되지 않았습니다. 우측 상단 마법봉/설정 아이콘을 눌러 API 키를 등록해 주세요.');
+    if (elements.modalGeminiSettings) elements.modalGeminiSettings.style.display = 'flex';
+    return;
+  }
+
+  const container = elements.dietDailyAiContainer || document.getElementById('diet-daily-ai-container');
+  if (container) {
+    container.innerHTML = `
+      <div class="diet-daily-ai-box" style="text-align: center; padding: 2.5rem 1rem;">
+        <div class="spinner" style="margin: 0 auto 1rem; width: 36px; height: 36px; border: 3px solid rgba(16, 185, 129, 0.2); border-top-color: #10b981; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+        <h4 style="color: #10b981; margin-bottom: 6px;">Gemini AI가 하루 전체 식단 및 건강 데이터를 종합 분석 중입니다...</h4>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">오늘의 식단 영양소, 저번 주 동일 요일 비교, 체중/활동 소비 칼로리를 대조 분석하고 있습니다.</p>
+      </div>
+    `;
+  }
+
+  try {
+    const dbItems = appState.healthData.db || [];
+    const todayMeals = dbItems.filter(item => (item.category || '').toLowerCase() === 'diet' && item.date === date);
+
+    if (todayMeals.length === 0) {
+      alert('해당 날짜에 기록된 식단이 없습니다. 먼저 식단을 추가해 주세요.');
+      renderDailyAiDietAnalysis(date);
+      return;
+    }
+
+    // 1. Today's meals context
+    let totCal = 0, totCarb = 0, totProt = 0, totFat = 0;
+    const mealsListStr = todayMeals.map(m => {
+      const c = Number(m.calories) || 0;
+      totCal += c;
+      totCarb += Number(m.carbs) || 0;
+      totProt += Number(m.protein) || 0;
+      totFat += Number(m.fat) || 0;
+      return `- [${m.subType || '식사'} ${m.time || ''}] 메뉴: ${m.title || '식단'}${m.location ? ' (장소: ' + m.location + ')' : ''} | ${c} kcal (탄 ${m.carbs || 0}g, 단 ${m.protein || 0}g, 지 ${m.fat || 0}g)${m.memo ? ' / 메모: ' + m.memo : ''}${m.content ? ' / AI메모: ' + m.content : ''}`;
+    }).join('\n');
+
+    const targetCal = getDailyTargetCalories(date);
+    const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+    const currD = new Date(date + 'T00:00:00');
+    const weekdayName = dayNames[currD.getDay()];
+
+    // 2. Last week same day of the week (7 days prior)
+    const prev7D = new Date(currD.getTime() - 7 * 86400000);
+    const prev7Str = prev7D.toISOString().split('T')[0];
+    const pastMeals = dbItems.filter(item => (item.category || '').toLowerCase() === 'diet' && item.date === prev7Str);
+
+    let pastSummaryStr = `저번 주 동일 요일(${prev7Str}, ${weekdayName}): 기록 없음 (신규 주간 또는 미기록)`;
+    if (pastMeals.length > 0) {
+      let pCal = 0, pCarb = 0, pProt = 0, pFat = 0;
+      const pList = pastMeals.map(m => {
+        pCal += Number(m.calories) || 0;
+        pCarb += Number(m.carbs) || 0;
+        pProt += Number(m.protein) || 0;
+        pFat += Number(m.fat) || 0;
+        return `${m.subType}(${m.title}, ${m.calories}kcal)`;
+      }).join(', ');
+      pastSummaryStr = `저번 주 동일 요일(${prev7Str}, ${weekdayName}): 총 ${pastMeals.length}끼 기록\n- 메뉴: ${pList}\n- 총 칼로리: ${pCal} kcal (탄 ${pCarb}g, 단 ${pProt}g, 지 ${pFat}g)`;
+    }
+
+    // 3. Body & Activity context
+    const bodyRecords = [...(appState.healthData.body || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const latestBody = bodyRecords[0] || null;
+    const bodyStr = latestBody ? 
+      `체중: ${latestBody.weight || '--'}kg, 골격근량: ${latestBody.muscleMass || '--'}kg, 체지방률: ${latestBody.bodyFatPercent || '--'}%, BMI: ${latestBody.bmi || '--'}, 기초대사량: ${latestBody.bmr || '--'}kcal` : 
+      '체성분 기록 없음';
+
+    const activities = appState.healthData.activity || [];
+    const todayAct = activities.find(a => a.date && a.date.startsWith(date));
+    const actStr = todayAct ? 
+      `삼성헬스 걸음수: ${(Number(todayAct.steps) || 0).toLocaleString()}보, 활동 소모 칼로리: ${todayAct.activeCalories || 0}kcal, 총 소모: ${todayAct.totalCalories || 0}kcal, 활동시간: ${todayAct.activeMinutes || 0}분` : 
+      '삼성헬스 활동 기록 없음';
+
+    const workoutLogs = dbItems.filter(item => (item.category || '').toLowerCase() === 'workout' && item.date === date);
+    const workoutStr = workoutLogs.length > 0 ? 
+      workoutLogs.map(w => `${w.subType || '운동'}(${w.title || ''}, ${w.duration || 0}분, ${w.calories || 0}kcal 소모)`).join(', ') : 
+      '작성된 추가 운동 일지 없음';
+
+    const systemPrompt = `당신은 최고 수준의 스포츠 임상 영양사이자 헬스케어 데이터 분석 전문가입니다.
+사용자의 하루 전체 식단 섭취 데이터, 저번 주 동일 요일(${weekdayName}) 식단 데이터, 그리고 현재 체성분(인바디) 및 운동/활동 소모 칼로리 데이터를 종합하여 전문적이고 심층적인 일일 영양 리포트를 작성해 주세요.
+
+리포트는 반드시 다음 3가지 핵심 영역을 명확한 마크다운 소제목(### 1., ### 2., ### 3.)으로 구분하여 상세히 분석해 주어야 합니다:
+
+### 1. 🍽️ 오늘 전체 식단 & 칼로리/영양성분 종합 피드백
+- 오늘 하루 총 칼로리 섭취량(${totCal} kcal)과 일일 권장 소비 칼로리(${targetCal} kcal) 비교 및 적정성 평가
+- 3대 영양소(탄수화물 ${Math.round(totCarb)}g, 단백질 ${Math.round(totProt)}g, 지방 ${Math.round(totFat)}g)의 비율과 질적 구성 평가 (단백질 충족도, 당류/지방 과다 여부 등)
+- 끼니별(아침/점심/저녁/간식) 배분 상태 및 식사 시간 간격에 대한 영양학적 코멘트
+
+### 2. 📅 저번 주 동일 요일(${prev7Str}, ${weekdayName}) 대비 비교 분석
+- 저번 주 같은 요일의 식단 및 영양소와의 직접적인 비교 수치와 변화 추이
+- 저번 주 대비 개선된 점과 아쉬운 점(또는 반복되는 식습관 패턴) 객관적 대조
+(저번 주 동일 요일 기록이 없는 경우, 신규 기록임을 명시하고 일반적인 권장 식단 가이드와 비교하여 조언)
+
+### 3. 🏃 현재 신체 지표 & 활동량/소비칼로리 연계 맞춤형 건강 피드백
+- 현재 체성분(체중, 골격근, 체지방)을 감안한 섭취 칼로리의 잉여/적자 상태 분석
+- 오늘의 활동량(걸음 수, 활동 소모 칼로리) 및 운동 일지(수행 종목, 운동 소모 칼로리)와 영양 섭취의 유기적 매칭 평가
+- 건강 목표(체중 감량/근성장/유지) 달성을 위한 내일 식단 및 라이프스타일 권장사항 2~3가지 제언
+
+어조: 친절하면서도 전문적이고 동기부여가 되는 헬스케어 코칭 어조로 작성해 주세요.`;
+
+    const userContentText = `[분석 대상 일자]: ${date} (${weekdayName})
+[일일 권장 소비 칼로리]: ${targetCal} kcal
+
+[오늘의 식단 기록 (${todayMeals.length}끼)]:
+${mealsListStr}
+- 당일 섭취 합계: ${totCal} kcal | 탄수화물 ${Math.round(totCarb)}g | 단백질 ${Math.round(totProt)}g | 지방 ${Math.round(totFat)}g
+
+[저번 주 동일 요일 비교 데이터]:
+${pastSummaryStr}
+
+[신체 지표 & 활동/운동 데이터]:
+- 체성분(인바디): ${bodyStr}
+- 일일 활동량: ${actStr}
+- 운동 일지: ${workoutStr}
+
+위 데이터를 바탕으로 지정된 3가지 핵심 영역(1. 오늘 전체 식단 피드백, 2. 저번 주 동일 요일 대비 비교, 3. 신체지표 및 운동/소비칼로리 연계 피드백)을 체계적으로 작성해 주세요.`;
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${appState.geminiModel || 'gemini-1.5-flash'}:generateContent?key=${appState.geminiApiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          role: 'user',
+          parts: [{ text: `${systemPrompt}\n\n${userContentText}` }]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData?.error?.message || `API 호출 오류 (${response.status})`);
+    }
+
+    const result = await response.json();
+    const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!candidateText) throw new Error('AI 응답이 비어있습니다.');
+
+    // Save summary item to appState.healthData.db
+    const summaryItem = {
+      id: `diet-summary-${date}`,
+      category: 'DietSummary',
+      date: date,
+      content: candidateText,
+      created_at: new Date().toISOString()
+    };
+
+    const exIdx = dbItems.findIndex(it => it.id === summaryItem.id || ((it.category || '').toLowerCase() === 'dietsummary' && it.date === date));
+    if (exIdx !== -1) {
+      dbItems[exIdx] = summaryItem;
+    } else {
+      dbItems.unshift(summaryItem);
+    }
+    appState.healthData.db = dbItems;
+    localStorage.setItem('health_data', JSON.stringify(appState.healthData));
+
+    // Persist to GAS backend if admin
+    if (appState.isAdmin && appState.adminPassword) {
+      sendToHealthGasApi('saveDBItem', { item: summaryItem }).catch(err => console.warn('GAS save summary error:', err));
+    }
+
+    // Re-render AI analysis box (button will be automatically hidden!)
+    renderDailyAiDietAnalysis(date);
+  } catch (err) {
+    console.error('runDailyDietAiAnalysis error:', err);
+    alert(`AI 일일 식단 분석 중 오류가 발생했습니다: ${err.message}`);
+    renderDailyAiDietAnalysis(date);
   }
 }
 
@@ -6233,16 +6814,6 @@ function setupHealthEventListeners() {
     saveDietItem();
   });
 
-  // Diet Subtype Filter Bar
-  elements.dietFilterBar?.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      elements.dietFilterBar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      appState.dietFilter = btn.getAttribute('data-diet-filter') || 'all';
-      renderHealthDiet();
-    });
-  });
-
   // Diet Detail View Controls (Back to list & Add meal on active date)
   elements.btnBackToDietList?.addEventListener('click', () => {
     backToDietList();
@@ -6286,6 +6857,29 @@ function setupHealthEventListeners() {
   elements.formHealthBody?.addEventListener('submit', (e) => {
     e.preventDefault();
     saveBodyItem();
+  });
+
+  // Dashboard Top 4 Summary Cards Interactive Popup (상세 팝업 모달 열기)
+  document.querySelectorAll('.health-summary-card[data-metric-type]').forEach(card => {
+    card.addEventListener('click', () => {
+      const type = card.getAttribute('data-metric-type');
+      if (type) openHealthMetricModal(type);
+    });
+  });
+
+  // Health Metric Detail Modal Close Listeners
+  elements.btnCloseMetricModal?.addEventListener('click', () => {
+    if (elements.modalHealthMetricDetail) elements.modalHealthMetricDetail.style.display = 'none';
+  });
+
+  elements.btnCloseMetricModalFooter?.addEventListener('click', () => {
+    if (elements.modalHealthMetricDetail) elements.modalHealthMetricDetail.style.display = 'none';
+  });
+
+  elements.modalHealthMetricDetail?.addEventListener('click', (e) => {
+    if (e.target === elements.modalHealthMetricDetail) {
+      elements.modalHealthMetricDetail.style.display = 'none';
+    }
   });
 
   // Dashboard "전체보기" buttons to navigate to diet/workout tabs

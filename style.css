@@ -3304,12 +3304,31 @@ body.light-theme .corner-mode-btn.active-health {
   align-items: center;
   gap: 1.25rem;
   padding: 1.25rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
 }
 
 .health-summary-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  transform: translateY(-3px);
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.health-card-zoom-icon {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  opacity: 0.4;
+  transition: all 0.2s ease;
+}
+
+.health-summary-card:hover .health-card-zoom-icon {
+  opacity: 1;
+  color: #10b981;
+  transform: scale(1.15);
 }
 
 .health-card-icon {
@@ -3714,6 +3733,219 @@ body.light-theme .corner-mode-btn.active-health {
 .date-row-bottom .meal-divider {
   color: rgba(255, 255, 255, 0.15);
   font-size: 0.8rem;
+}
+
+/* ==========================================================================
+   Daily AI Whole-Day Diet Analysis & Comparison Styles
+   ========================================================================== */
+.diet-daily-ai-container {
+  margin-bottom: 1.25rem;
+}
+
+.diet-daily-ai-box {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(56, 189, 248, 0.06) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  position: relative;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.diet-daily-ai-box.empty {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1.5px dashed rgba(16, 185, 129, 0.35);
+  box-shadow: none;
+}
+
+.diet-daily-ai-box .ai-box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.diet-daily-ai-box .ai-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.diet-daily-ai-box .ai-status-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.diet-daily-ai-box .ai-status-tag.pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.diet-daily-ai-box .ai-status-tag.completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.diet-daily-ai-box .ai-box-empty-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem 0;
+  gap: 1rem;
+}
+
+.diet-daily-ai-box .ai-empty-desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  max-width: 600px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.btn-ai-analyze-day {
+  background: linear-gradient(135deg, #10b981 0%, #0284c7 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  transition: all 0.25s ease;
+}
+
+.btn-ai-analyze-day:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
+
+.btn-ai-analyze-day:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.ai-daily-content {
+  color: var(--text-main);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.ai-daily-content h3, .ai-daily-content h4 {
+  color: var(--text-highlight);
+  margin-top: 0.85rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.98rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-daily-content ul {
+  padding-left: 1.25rem;
+  margin: 0.4rem 0;
+}
+
+.ai-daily-content li {
+  margin-bottom: 0.3rem;
+}
+
+.ai-daily-content blockquote {
+  border-left: 3px solid #10b981;
+  padding-left: 12px;
+  margin: 0.6rem 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.btn-ai-reanalyze {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-ai-reanalyze:hover {
+  color: var(--text-highlight);
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+/* Metric Detail Modal Styles */
+.metric-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.metric-stat-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-stat-box .lbl {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.metric-stat-box .val {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-highlight);
+  font-family: var(--font-header);
+}
+
+.metric-stat-box .sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.metric-history-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-top: 10px;
+}
+
+.metric-history-mini-table th,
+.metric-history-mini-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: left;
+}
+
+.metric-history-mini-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.metric-history-mini-table td {
+  color: var(--text-main);
 }
 
 /* 2. Detail Daily Summary Banner */
