@@ -1415,14 +1415,21 @@ print("Hello Security")
 
   <!-- 1. ADD/EDIT DIET MODAL (WITH GEMINI AI) -->
   <div class="modal" id="modal-health-diet">
-    <div class="modal-content modal-lg">
-      <div class="modal-header">
+    <div class="modal-content modal-diet-card" style="max-width: 680px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; padding: 1.5rem;">
+      <div class="modal-header" style="margin-bottom: 1rem; padding-bottom: 0.5rem;">
         <h3 id="diet-modal-title"><i class="fa-solid fa-utensils" style="color: #10b981;"></i> 식단 기록 추가 (AI 분석)</h3>
         <button class="close-btn" id="btn-close-diet-modal">&times;</button>
       </div>
-      <form id="form-health-diet">
+      <form id="form-health-diet" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;">
         <input type="hidden" id="diet-edit-id">
-        <div class="modal-body">
+        <!-- Hidden Inputs for AI-Calculated Nutrition Data -->
+        <input type="hidden" id="diet-input-calories" value="0">
+        <input type="hidden" id="diet-input-carbs" value="0">
+        <input type="hidden" id="diet-input-protein" value="0">
+        <input type="hidden" id="diet-input-fat" value="0">
+        <input type="hidden" id="diet-input-content" value="">
+
+        <div class="modal-body" style="overflow-y: auto; flex: 1; min-height: 0; padding-right: 6px;">
           <div class="form-row">
             <div class="form-group">
               <label for="diet-input-date">날짜</label>
@@ -1444,8 +1451,8 @@ print("Hello Security")
           </div>
 
           <!-- AI Multimodal Nutrition Analysis Section -->
-          <div class="ai-analysis-card card" style="background: rgba(16, 185, 129, 0.05); border: 1px dashed rgba(16, 185, 129, 0.3); padding: 1.25rem; border-radius: 10px; margin-bottom: 1.25rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <div class="ai-analysis-card card" style="background: rgba(16, 185, 129, 0.05); border: 1px dashed rgba(16, 185, 129, 0.3); padding: 1.1rem; border-radius: 10px; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
               <h4 style="font-size: 0.95rem; font-weight: 600; color: #10b981; display: flex; align-items: center; gap: 6px;">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> Gemini 멀티모달 식단 자동 분석
               </h4>
@@ -1453,69 +1460,60 @@ print("Hello Security")
             </div>
 
             <!-- Image Upload & Preview -->
-            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap;">
+            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 0.65rem; flex-wrap: wrap;">
               <label class="btn-secondary btn-sm" style="cursor: pointer;">
                 <i class="fa-solid fa-camera"></i> 음식 사진 업로드
                 <input type="file" id="diet-image-input" accept="image/*" style="display: none;">
               </label>
               <span id="diet-image-filename" style="font-size: 0.8rem; color: var(--text-muted);">선택된 사진 없음</span>
               <div id="diet-image-preview-box" style="display: none; align-items: center; gap: 8px;">
-                <img id="diet-image-preview" src="" alt="음식 미리보기" style="width: 48px; height: 48px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border-color);">
+                <img id="diet-image-preview" src="" alt="음식 미리보기" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border-color);">
                 <button type="button" class="btn-sm btn-danger" id="btn-remove-diet-image" style="padding: 2px 6px;"><i class="fa-solid fa-xmark"></i></button>
               </div>
             </div>
 
             <!-- Text Prompt Input & Action Button -->
             <div style="display: flex; gap: 8px;">
-              <input type="text" id="diet-text-prompt" placeholder="먹은 음식 설명 (예: 닭가슴살 150g, 백미밥 200g, 계란프라이 1개)" style="flex: 1; background: rgba(0,0,0,0.2);">
+              <input type="text" id="diet-text-prompt" placeholder="먹은 음식 설명 (예: 브랜드명, 메뉴명, 섭취량 등)" style="flex: 1; background: rgba(0,0,0,0.2);">
               <button type="button" class="btn-primary btn-sm" id="btn-run-diet-ai" style="white-space: nowrap; background: linear-gradient(135deg, #10b981, #059669);">
                 <i class="fa-solid fa-sparkles"></i> AI 분석 실행
               </button>
             </div>
-          </div>
 
-          <!-- Nutritional & Detail Form Fields -->
-          <div class="form-row">
-            <div class="form-group" style="flex: 1.2;">
-              <label for="diet-input-title">메뉴명 (식단 이름)</label>
-              <input type="text" id="diet-input-title" placeholder="예: 닭가슴살 볶음밥과 샐러드" required>
-            </div>
-            <div class="form-group" style="flex: 1;">
-              <label for="diet-input-location"><i class="fa-solid fa-location-dot" style="color: #ef4444;"></i> 식사 위치 / 식당명 (선택)</label>
-              <input type="text" id="diet-input-location" placeholder="예: 회사 구내식당, 맘스터치 판교역점, 집">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="diet-input-calories">총 칼로리 (kcal)</label>
-              <input type="number" id="diet-input-calories" placeholder="550" min="0" required>
-            </div>
-            <div class="form-group">
-              <label for="diet-input-carbs">탄수화물 (g)</label>
-              <input type="number" id="diet-input-carbs" placeholder="65" min="0">
-            </div>
-            <div class="form-group">
-              <label for="diet-input-protein">단백질 (g)</label>
-              <input type="number" id="diet-input-protein" placeholder="42" min="0">
-            </div>
-            <div class="form-group">
-              <label for="diet-input-fat">지방 (g)</label>
-              <input type="number" id="diet-input-fat" placeholder="12" min="0">
+            <!-- AI-Calculated Nutrition Result Preview Banner -->
+            <div id="diet-ai-nutrition-preview" style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 10px 12px; margin-top: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <strong style="font-size: 0.88rem; color: #10b981; display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-sparkles"></i> AI 자동 산출 영양 분석
+                </strong>
+                <span id="diet-ai-preview-cal" style="font-size: 1rem; font-weight: 700; color: #10b981;">0 kcal</span>
+              </div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px;">
+                <span class="badge" style="background: rgba(2, 132, 199, 0.15); color: #38bdf8; border: 1px solid rgba(2, 132, 199, 0.3); font-size: 0.78rem; padding: 2px 7px;">탄수화물: <strong id="diet-ai-preview-carbs">0g</strong></span>
+                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.78rem; padding: 2px 7px;">단백질: <strong id="diet-ai-preview-protein">0g</strong></span>
+                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.78rem; padding: 2px 7px;">지방: <strong id="diet-ai-preview-fat">0g</strong></span>
+              </div>
+              <div id="diet-ai-preview-comment" style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.45; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 6px;"></div>
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="diet-input-memo"><i class="fa-solid fa-store" style="color: #f59e0b;"></i> 맛집 정보 / 상세 메모 (선택)</label>
+          <!-- User Input Fields -->
+          <div class="form-group" style="margin-bottom: 0.9rem;">
+            <label for="diet-input-title">메뉴명 <small style="color: var(--text-muted); font-weight: normal;">(미입력 시 AI가 자동 기입)</small></label>
+            <input type="text" id="diet-input-title" placeholder="미입력 시 AI가 분석하여 자동 기입합니다 (직접 입력도 가능)">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.9rem;">
+            <label for="diet-input-location"><i class="fa-solid fa-location-dot" style="color: #ef4444;"></i> 식사 위치 / 식당명 <small style="color: var(--text-muted); font-weight: normal;">(선택)</small></label>
+            <input type="text" id="diet-input-location" placeholder="예: 회사 구내식당, 맘스터치 판교역점, 집">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label for="diet-input-memo"><i class="fa-solid fa-store" style="color: #f59e0b;"></i> 맛집 정보 / 상세 메모 <small style="color: var(--text-muted); font-weight: normal;">(선택)</small></label>
             <textarea id="diet-input-memo" rows="2" placeholder="예: 시그니처 메뉴, 평점, 웨이팅, 주차 정보, 개인적인 맛 평가 등"></textarea>
           </div>
-
-          <div class="form-group">
-            <label for="diet-input-content"><i class="fa-solid fa-wand-magic-sparkles" style="color: #10b981;"></i> AI 영양 분석 & 피드백 코멘트</label>
-            <textarea id="diet-input-content" rows="3" placeholder="Gemini AI가 분석한 식단 피드백 내용 또는 영양 코멘트"></textarea>
-          </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px;">
           <button type="button" class="btn-secondary" id="btn-cancel-diet">취소</button>
           <button type="submit" class="btn-primary" id="btn-submit-diet"><i class="fa-solid fa-cloud-arrow-up"></i> 식단 저장</button>
         </div>
@@ -1651,8 +1649,8 @@ print("Hello Security")
         <div class="form-group">
           <label for="gemini-model-select">사용 모델</label>
           <select id="gemini-model-select">
-            <option value="gemini-2.5-flash" selected>gemini-2.5-flash (기본 권장: 2.5 초고속 추론 & 멀티모달 가성비)</option>
-            <option value="gemini-2.5-pro">gemini-2.5-pro (2.5 최고 성능 심층 분석)</option>
+            <option value="gemini-3.6-flash" selected>gemini-3.6-flash (기본 권장: 3.6 최신 초고속 추론 & 멀티모달)</option>
+            <option value="gemini-3.6-pro">gemini-3.6-pro (3.6 최고 성능 심층 분석)</option>
             <option value="gemini-2.0-flash">gemini-2.0-flash (2.0 차세대 플래시)</option>
             <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (2.0 초경량/초고속)</option>
             <option value="gemini-1.5-flash">gemini-1.5-flash (1.5 안정적 고속 플래시)</option>

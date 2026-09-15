@@ -958,6 +958,11 @@ body.light-theme .corner-mode-btn.active-health {
   to { opacity: 1; }
 }
 
+.modal-body {
+  overflow-y: auto;
+  max-height: calc(88vh - 120px);
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;

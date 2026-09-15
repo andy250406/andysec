@@ -63,7 +63,14 @@ let appState = {
   currentHealthTab: 'health-dashboard',
   healthData: { db: [], body: [], activity: [], sleep: [], vitals: [] },
   geminiApiKey: localStorage.getItem('gemini_api_key') || '',
-  geminiModel: localStorage.getItem('gemini_model') || 'gemini-2.5-flash',
+  geminiModel: (() => {
+    const saved = localStorage.getItem('gemini_model');
+    if (!saved || saved.includes('2.5')) {
+      localStorage.setItem('gemini_model', 'gemini-3.6-flash');
+      return 'gemini-3.6-flash';
+    }
+    return saved;
+  })(),
   dietFilter: 'all',
   activeDietDate: null,
   workoutFilter: 'all',
@@ -361,6 +368,12 @@ const elements = {
   dietTextPrompt: document.getElementById('diet-text-prompt'),
   btnRunDietAi: document.getElementById('btn-run-diet-ai'),
   dietAiStatus: document.getElementById('diet-ai-status'),
+  dietAiNutritionPreview: document.getElementById('diet-ai-nutrition-preview'),
+  dietAiPreviewCal: document.getElementById('diet-ai-preview-cal'),
+  dietAiPreviewCarbs: document.getElementById('diet-ai-preview-carbs'),
+  dietAiPreviewProtein: document.getElementById('diet-ai-preview-protein'),
+  dietAiPreviewFat: document.getElementById('diet-ai-preview-fat'),
+  dietAiPreviewComment: document.getElementById('diet-ai-preview-comment'),
   dietFilterBar: document.getElementById('diet-filter-bar'),
   healthDietGrid: document.getElementById('health-diet-grid'),
   dietDateListView: document.getElementById('diet-date-list-view'),
@@ -6147,7 +6160,7 @@ ${pastSummaryStr}
 
 위 데이터를 바탕으로 지정된 3가지 핵심 영역(1. 오늘 전체 식단 피드백, 2. 저번 주 동일 요일 대비 비교, 3. 신체지표 및 운동/소비칼로리 연계 피드백)을 체계적으로 작성해 주세요.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${appState.geminiModel || 'gemini-2.5-flash'}:generateContent?key=${appState.geminiApiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${appState.geminiModel || 'gemini-3.6-flash'}:generateContent?key=${appState.geminiApiKey}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -6234,6 +6247,13 @@ function openAddDietModal(presetDate = null) {
   currentDietImageMime = 'image/jpeg';
   if (elements.dietInputLocation) elements.dietInputLocation.value = '';
   if (elements.dietInputMemo) elements.dietInputMemo.value = '';
+  if (elements.dietInputCalories) elements.dietInputCalories.value = '0';
+  if (elements.dietInputCarbs) elements.dietInputCarbs.value = '0';
+  if (elements.dietInputProtein) elements.dietInputProtein.value = '0';
+  if (elements.dietInputFat) elements.dietInputFat.value = '0';
+  if (elements.dietInputContent) elements.dietInputContent.value = '';
+  if (elements.dietAiNutritionPreview) elements.dietAiNutritionPreview.style.display = 'none';
+
   if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'none';
   if (elements.dietImageFilename) elements.dietImageFilename.textContent = '선택된 사진 없음';
   if (elements.dietAiStatus) elements.dietAiStatus.textContent = '사진이나 텍스트를 입력해 보세요';
@@ -6262,6 +6282,19 @@ function openEditDietModal(id) {
   if (elements.dietInputMemo) elements.dietInputMemo.value = target.memo || '';
   if (elements.dietInputContent) elements.dietInputContent.value = target.content || '';
 
+  if (elements.dietAiNutritionPreview) {
+    if (target.calories || target.content) {
+      elements.dietAiNutritionPreview.style.display = 'block';
+      if (elements.dietAiPreviewCal) elements.dietAiPreviewCal.textContent = `${(Number(target.calories) || 0).toLocaleString()} kcal`;
+      if (elements.dietAiPreviewCarbs) elements.dietAiPreviewCarbs.textContent = `${target.carbs || 0}g`;
+      if (elements.dietAiPreviewProtein) elements.dietAiPreviewProtein.textContent = `${target.protein || 0}g`;
+      if (elements.dietAiPreviewFat) elements.dietAiPreviewFat.textContent = `${target.fat || 0}g`;
+      if (elements.dietAiPreviewComment) elements.dietAiPreviewComment.textContent = target.content || '';
+    } else {
+      elements.dietAiNutritionPreview.style.display = 'none';
+    }
+  }
+
   if (target.imageUrl) {
     currentDietImageBase64 = target.imageUrl;
     if (elements.dietImagePreview) elements.dietImagePreview.src = target.imageUrl;
@@ -6278,11 +6311,14 @@ function openEditDietModal(id) {
 }
 
 async function saveDietItem() {
-  const title = elements.dietInputTitle ? elements.dietInputTitle.value.trim() : '';
+  let title = elements.dietInputTitle ? elements.dietInputTitle.value.trim() : '';
   const date = elements.dietInputDate ? elements.dietInputDate.value.trim() : '';
-  if (!title || !date) {
-    alert('날짜와 메뉴명은 필수 입력 항목입니다.');
+  if (!date) {
+    alert('날짜를 입력해 주세요.');
     return;
+  }
+  if (!title) {
+    title = '식단 기록';
   }
 
   const editId = elements.dietEditId ? elements.dietEditId.value : '';
@@ -6415,7 +6451,7 @@ async function analyzeDietWithGemini() {
       text: `${systemInstruction}\n\n사용자 식단 설명: ${promptText || '사진 속 음식의 영양 성분과 칼로리를 정확히 분석해줘.'}`
     });
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${appState.geminiModel || 'gemini-2.5-flash'}:generateContent?key=${appState.geminiApiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${appState.geminiModel || 'gemini-3.6-flash'}:generateContent?key=${appState.geminiApiKey}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -6436,8 +6472,10 @@ async function analyzeDietWithGemini() {
     const cleanJson = candidateText.replace(/```json/gi, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleanJson);
 
-    // Auto-fill form fields
-    if (elements.dietInputTitle && parsed.title) elements.dietInputTitle.value = parsed.title;
+    // Auto-fill form fields (메뉴명 미입력 시 또는 분석 메뉴명으로 자동 채움)
+    if (elements.dietInputTitle && (!elements.dietInputTitle.value.trim() || parsed.title)) {
+      elements.dietInputTitle.value = parsed.title;
+    }
     if (elements.dietInputSubtype && parsed.subType) {
       const validSubTypes = ['아침', '점심', '저녁', '간식'];
       if (validSubTypes.includes(parsed.subType)) {
@@ -6450,8 +6488,18 @@ async function analyzeDietWithGemini() {
     if (elements.dietInputFat && parsed.fat !== undefined) elements.dietInputFat.value = parsed.fat;
     if (elements.dietInputContent && parsed.content) elements.dietInputContent.value = parsed.content;
 
+    // Show AI Nutrition Preview Banner
+    if (elements.dietAiNutritionPreview) {
+      elements.dietAiNutritionPreview.style.display = 'block';
+      if (elements.dietAiPreviewCal) elements.dietAiPreviewCal.textContent = `${(Number(parsed.calories) || 0).toLocaleString()} kcal`;
+      if (elements.dietAiPreviewCarbs) elements.dietAiPreviewCarbs.textContent = `${parsed.carbs || 0}g`;
+      if (elements.dietAiPreviewProtein) elements.dietAiPreviewProtein.textContent = `${parsed.protein || 0}g`;
+      if (elements.dietAiPreviewFat) elements.dietAiPreviewFat.textContent = `${parsed.fat || 0}g`;
+      if (elements.dietAiPreviewComment) elements.dietAiPreviewComment.textContent = parsed.content || '';
+    }
+
     if (elements.dietAiStatus) {
-      elements.dietAiStatus.innerHTML = '<i class="fa-solid fa-circle-check" style="color: #10b981;"></i> AI 분석 완료! 아래 영양 정보를 확인해 보세요.';
+      elements.dietAiStatus.innerHTML = '<i class="fa-solid fa-circle-check" style="color: #10b981;"></i> AI 분석 완료! 영양 분석 결과가 자동 기입되었습니다.';
     }
   } catch (err) {
     console.error('Gemini Analysis error:', err);
@@ -7382,7 +7430,7 @@ function setupHealthEventListeners() {
   // Gemini Settings Button (Gear / Magic Sparkles)
   elements.geminiSettingsBtn?.addEventListener('click', () => {
     if (elements.geminiApiKeyInput) elements.geminiApiKeyInput.value = appState.geminiApiKey || '';
-    if (elements.geminiModelSelect) elements.geminiModelSelect.value = appState.geminiModel || 'gemini-2.5-flash';
+    if (elements.geminiModelSelect) elements.geminiModelSelect.value = appState.geminiModel || 'gemini-3.6-flash';
     if (elements.geminiKeyStatus) {
       elements.geminiKeyStatus.textContent = appState.geminiApiKey ? 'API 키 등록됨' : '미설정';
       elements.geminiKeyStatus.style.color = appState.geminiApiKey ? '#10b981' : 'var(--text-muted)';
@@ -7400,7 +7448,7 @@ function setupHealthEventListeners() {
 
   elements.btnSaveGeminiSettings?.addEventListener('click', () => {
     const key = elements.geminiApiKeyInput ? elements.geminiApiKeyInput.value.trim() : '';
-    const model = elements.geminiModelSelect ? elements.geminiModelSelect.value : 'gemini-2.5-flash';
+    const model = elements.geminiModelSelect ? elements.geminiModelSelect.value : 'gemini-3.6-flash';
     
     appState.geminiApiKey = key;
     appState.geminiModel = model;
