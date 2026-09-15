@@ -4532,6 +4532,35 @@ body.light-theme .diet-card-footer {
   margin-top: 4px;
 }
 
+/* 5. Auto Detected Walk Card */
+.workout-detail-card.auto-walk-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(56, 189, 248, 0.03) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.walk-metrics-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 4px;
+}
+
+.walk-metric-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.walk-metric-chip strong {
+  color: var(--text-highlight);
+}
+
 /* Light Theme Overrides for Workout */
 body.light-theme .workout-date-row.has-workout {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.09) 0%, rgba(56, 189, 248, 0.05) 100%);

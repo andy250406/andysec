@@ -4709,11 +4709,12 @@ function renderHealthDashboard() {
       elements.healthCardSteps.innerHTML = `${(Number(todayAct.steps) || 0).toLocaleString()} <span class="unit">보</span>`;
     }
     if (elements.healthCardActiveCal) {
-      elements.healthCardActiveCal.textContent = `활동 소모: ${(Number(todayAct.activeCalories) || 0).toLocaleString()} kcal`;
+      const cal = Number(todayAct.totalCalories) || Number(todayAct.activeCalories) || 0;
+      elements.healthCardActiveCal.textContent = `총 소비: ${cal.toLocaleString()} kcal`;
     }
   } else {
     if (elements.healthCardSteps) elements.healthCardSteps.innerHTML = `0 <span class="unit">보</span>`;
-    if (elements.healthCardActiveCal) elements.healthCardActiveCal.textContent = `활동 소모: 0 kcal`;
+    if (elements.healthCardActiveCal) elements.healthCardActiveCal.textContent = `총 소비: -- kcal`;
   }
 
   // 1-2. Diet Intake
@@ -5032,19 +5033,19 @@ function openHealthMetricModal(type) {
           <span class="sub">목표(10,000보) 대비 ${stepGoalPct}%</span>
         </div>
         <div class="metric-stat-box">
-          <span class="lbl">활동 소모 칼로리</span>
-          <span class="val" style="color: #f59e0b;">${activeCal.toLocaleString()} <small style="font-size: 0.75rem; font-weight: normal;">kcal</small></span>
-          <span class="sub">순수 유산소/활동 소모량</span>
-        </div>
-        <div class="metric-stat-box">
           <span class="lbl">총 소비 칼로리</span>
           <span class="val" style="color: #38bdf8;">${totalCal.toLocaleString()} <small style="font-size: 0.75rem; font-weight: normal;">kcal</small></span>
           <span class="sub">기초대사 + 활동 합계</span>
         </div>
         <div class="metric-stat-box">
-          <span class="lbl">이동 거리 & 활동 시간</span>
-          <span class="val">${distanceKm.toFixed(1)} <small style="font-size: 0.75rem; font-weight: normal;">km</small></span>
-          <span class="sub">활동 시간 ${activeMins}분</span>
+          <span class="lbl">이동 거리</span>
+          <span class="val" style="color: #f59e0b;">${distanceKm.toFixed(1)} <small style="font-size: 0.75rem; font-weight: normal;">km</small></span>
+          <span class="sub">일일 누적 이동</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">활동 시간</span>
+          <span class="val" style="color: #a855f7;">${activeMins} <small style="font-size: 0.75rem; font-weight: normal;">분</small></span>
+          <span class="sub">유효 활동/보행 시간</span>
         </div>
       </div>
 
@@ -6288,7 +6289,8 @@ function renderHealthWorkout() {
   if (latestAct) {
     if (elements.samsungSteps) elements.samsungSteps.textContent = `${(Number(latestAct.steps) || 0).toLocaleString()} 보`;
     if (elements.samsungDistance) elements.samsungDistance.textContent = `${(Number(latestAct.distanceKm) || 0).toFixed(1)} km`;
-    if (elements.samsungActiveCal) elements.samsungActiveCal.textContent = `${(Number(latestAct.activeCalories) || 0).toLocaleString()} kcal`;
+    const cal = Number(latestAct.totalCalories) || Number(latestAct.activeCalories) || 0;
+    if (elements.samsungActiveCal) elements.samsungActiveCal.textContent = `${cal.toLocaleString()} kcal`;
     if (elements.samsungActiveTime) elements.samsungActiveTime.textContent = `${(Number(latestAct.activeMinutes) || 0)} 분`;
     if (elements.samsungStatsDate) elements.samsungStatsDate.textContent = latestAct.date ? `${latestAct.date} 기준` : '최신 연동';
   }
@@ -6342,10 +6344,17 @@ function renderHealthWorkout() {
     const totalCal = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.totalCalories) || 0)) : 0;
     const actMins = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.activeMinutes) || 0)) : 0;
 
+    // 10분 이상 연속 걷기 세션 (삼성헬스 자동 감지)
+    const dayWalks = dayActs.filter(a => {
+      const exName = (a.exerciseName || '').toLowerCase();
+      const mins = Number(a.activeMinutes) || 0;
+      return (exName.includes('walking') || exName.includes('걷기') || a.exerciseName) && mins >= 10;
+    });
+
     const dayWorkouts = workoutItems.filter(w => w.date && w.date.startsWith(d));
     const customDuration = dayWorkouts.reduce((sum, w) => sum + (Number(w.duration) || 0), 0);
     const customCalories = dayWorkouts.reduce((sum, w) => sum + (Number(w.calories) || 0), 0);
-    const hasCustomWorkout = dayWorkouts.length > 0;
+    const hasWorkout = dayWorkouts.length > 0 || dayWalks.length > 0;
 
     const totalBurned = (totalCal > 0 ? totalCal : actCal) + customCalories;
     const totalTime = actMins + customDuration;
@@ -6357,10 +6366,11 @@ function renderHealthWorkout() {
       actCal,
       totalCal,
       actMins,
+      dayWalks,
       dayWorkouts,
       customDuration,
       customCalories,
-      hasCustomWorkout,
+      hasWorkout,
       totalBurned,
       totalTime
     };
@@ -6369,14 +6379,14 @@ function renderHealthWorkout() {
   // 3-4. Filter by appState.workoutFilter ('all' | 'has-workout' | 'no-workout')
   let filteredRows = dateRowsData;
   if (appState.workoutFilter === 'has-workout') {
-    filteredRows = dateRowsData.filter(r => r.hasCustomWorkout);
+    filteredRows = dateRowsData.filter(r => r.hasWorkout);
   } else if (appState.workoutFilter === 'no-workout') {
-    filteredRows = dateRowsData.filter(r => !r.hasCustomWorkout);
+    filteredRows = dateRowsData.filter(r => !r.hasWorkout);
   }
 
   if (filteredRows.length === 0) {
     const filterLabels = {
-      'has-workout': '추가 운동을 완료한 날(운동+)',
+      'has-workout': '운동을 완료한 날(운동+)',
       'no-workout': '일상 활동만 기록된 날(일상+)'
     };
     const label = filterLabels[appState.workoutFilter] || '선택된 필터';
@@ -6391,14 +6401,31 @@ function renderHealthWorkout() {
   // 3-5. Render Rows (가변 1줄/2줄 & 색상 차별화)
   container.innerHTML = filteredRows.map(r => {
     const formattedDate = formatDietDate(r.date);
+    const walkPills = r.dayWalks.map(w => {
+      const distText = w.exerciseDistanceM > 0 ? (w.exerciseDistanceM / 1000).toFixed(1) + 'km' : (w.distanceKm > 0 ? Number(w.distanceKm).toFixed(1) + 'km' : '');
+      return `
+        <span class="workout-item-pill">
+          <strong class="w-name"><i class="fa-solid fa-person-walking" style="color: #10b981;"></i> 걷기(${w.activeMinutes}분)</strong>${distText ? `: <span class="w-cal">${distText}</span>` : ''}
+        </span>
+      `;
+    });
+    const workoutPills = r.dayWorkouts.map(w => `
+      <span class="workout-item-pill">
+        <strong class="w-name">${escapeHtml(w.title || w.subType || '운동')}</strong>:
+        <span class="w-cal">${(Number(w.calories) || 0).toLocaleString()} kcal</span>
+        ${w.duration ? `<span class="w-dur">(${w.duration}분)</span>` : ''}
+      </span>
+    `);
+    const allPills = [...walkPills, ...workoutPills];
+
     return `
-      <div class="workout-date-row ${r.hasCustomWorkout ? 'has-workout' : 'normal'}" data-date="${escapeHtml(r.date)}">
+      <div class="workout-date-row ${r.hasWorkout ? 'has-workout' : 'normal'}" data-date="${escapeHtml(r.date)}">
         <!-- 첫째 줄 (기본 1줄): 날짜, 배지, 걸음수, 이동거리, 활동시간, 총 소비 칼로리 -->
         <div class="date-row-top">
           <div class="date-row-title-wrap">
             <i class="fa-regular fa-calendar-check date-icon"></i>
             <span class="date-text">${escapeHtml(formattedDate)}</span>
-            ${r.hasCustomWorkout ? `
+            ${r.hasWorkout ? `
               <span class="workout-badge completed"><i class="fa-solid fa-dumbbell"></i> 운동+</span>
             ` : `
               <span class="workout-badge normal">일상+</span>
@@ -6414,23 +6441,16 @@ function renderHealthWorkout() {
           </div>
 
           <div class="date-row-calories-wrap">
-            <span class="cal-val" style="color: ${r.hasCustomWorkout ? '#10b981' : '#f59e0b'};">${r.totalBurned > 0 ? r.totalBurned.toLocaleString() : (r.actCal + r.customCalories).toLocaleString()}</span>
+            <span class="cal-val" style="color: ${r.hasWorkout ? '#10b981' : '#f59e0b'};">${r.totalBurned > 0 ? r.totalBurned.toLocaleString() : (r.actCal + r.customCalories).toLocaleString()}</span>
             <span class="cal-target">kcal</span>
             <i class="fa-solid fa-chevron-right arrow-icon"></i>
           </div>
         </div>
 
-        <!-- 둘째 줄 (가변형 - 추가 운동이 있는 날만 표기: 달리기: ~kcal | 랫풀다운: ~kcal) -->
-        ${r.hasCustomWorkout ? `
+        <!-- 둘째 줄 (가변형 - 10분 이상 걷기 또는 추가 운동이 있는 날만 표기) -->
+        ${r.hasWorkout && allPills.length > 0 ? `
           <div class="workout-custom-row">
-            ${r.dayWorkouts.map((w, idx) => `
-              <span class="workout-item-pill">
-                <strong class="w-name">${escapeHtml(w.title || w.subType || '운동')}</strong>:
-                <span class="w-cal">${(Number(w.calories) || 0).toLocaleString()} kcal</span>
-                ${w.duration ? `<span class="w-dur">(${w.duration}분)</span>` : ''}
-              </span>
-              ${idx < r.dayWorkouts.length - 1 ? `<span class="meal-divider">|</span>` : ''}
-            `).join('')}
+            ${allPills.join('<span class="meal-divider">|</span>')}
           </div>
         ` : ''}
       </div>
@@ -6472,6 +6492,13 @@ function showWorkoutDateDetail(date) {
   const actMins = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.activeMinutes) || 0)) : 0;
   const stepGoalPct = Math.min(150, Math.round((steps / 10000) * 100));
 
+  // 10분 이상 연속 걷기 세션 (삼성헬스 자동 감지)
+  const dayWalks = dayActs.filter(a => {
+    const exName = (a.exerciseName || '').toLowerCase();
+    const mins = Number(a.activeMinutes) || 0;
+    return (exName.includes('walking') || exName.includes('걷기') || a.exerciseName) && mins >= 10;
+  });
+
   // 2. Custom workouts for the date
   const dbItems = appState.healthData.db || [];
   const dayWorkouts = dbItems.filter(item => (item.category || '').toLowerCase() === 'workout' && item.date && item.date.startsWith(date));
@@ -6480,7 +6507,8 @@ function showWorkoutDateDetail(date) {
 
   const customCalories = dayWorkouts.reduce((sum, w) => sum + (Number(w.calories) || 0), 0);
   const customDuration = dayWorkouts.reduce((sum, w) => sum + (Number(w.duration) || 0), 0);
-  const totalBurned = (totalCal > 0 ? totalCal : actCal) + customCalories;
+  const baseMetabolicCal = totalCal > 0 ? totalCal : actCal;
+  const totalBurned = baseMetabolicCal + customCalories;
   const totalActivityTime = actMins + customDuration;
 
   // 3. Render Daily Activity & Combined Burn Summary Banner
@@ -6489,10 +6517,10 @@ function showWorkoutDateDetail(date) {
       <div class="summary-banner-top">
         <div class="summary-cal-headline">
           <span class="cal-big">${totalBurned.toLocaleString()}</span>
-          <span class="cal-sub">kcal 총 소비 (삼성헬스 ${totalCal > 0 ? totalCal.toLocaleString() : actCal.toLocaleString()} kcal + 추가 운동 ${customCalories.toLocaleString()} kcal)</span>
+          <span class="cal-sub">kcal 총 소비 ${customCalories > 0 ? `(기본 일상 대사 ${baseMetabolicCal.toLocaleString()} kcal + 추가 운동 ${customCalories.toLocaleString()} kcal)` : ''}</span>
         </div>
         <div style="font-size: 0.85rem; color: var(--text-muted);">
-          총 활동·운동 시간: <strong>${totalActivityTime}분</strong> | 추가 운동 <strong>${dayWorkouts.length}건</strong>
+          총 활동·운동 시간: <strong>${totalActivityTime}분</strong> | 운동 기록 <strong>${dayWorkouts.length + dayWalks.length}건</strong>
         </div>
       </div>
 
@@ -6518,8 +6546,8 @@ function showWorkoutDateDetail(date) {
           <span class="sm-val" style="color: #38bdf8;">${distKm > 0 ? distKm.toFixed(1) : '--'} <small style="font-size: 0.75rem; font-weight: normal;">km</small></span>
         </div>
         <div class="summary-macro-card">
-          <span class="sm-label">활동 소모 / 총소비</span>
-          <span class="sm-val" style="color: #f59e0b;">${actCal > 0 ? actCal.toLocaleString() : (totalCal > 0 ? totalCal.toLocaleString() : '--')} <small style="font-size: 0.75rem; font-weight: normal;">kcal</small></span>
+          <span class="sm-label">총 소비 칼로리</span>
+          <span class="sm-val" style="color: #f59e0b;">${totalBurned > 0 ? totalBurned.toLocaleString() : (baseMetabolicCal > 0 ? baseMetabolicCal.toLocaleString() : '--')} <small style="font-size: 0.75rem; font-weight: normal;">kcal</small></span>
         </div>
         <div class="summary-macro-card">
           <span class="sm-label">활동 시간</span>
@@ -6529,89 +6557,156 @@ function showWorkoutDateDetail(date) {
     `;
   }
 
-  // 4. Render Additional Workouts Stack
+  // 4. Render Additional Workouts & Auto-detected Walking Sessions Stack
   if (elements.workoutDetailStack) {
-    if (dayWorkouts.length === 0) {
-      elements.workoutDetailStack.innerHTML = `
+    let stackHtml = '';
+
+    // 4-A. 10분 이상 연속 걷기 운동 세션 카드 (자동 감지)
+    if (dayWalks.length > 0) {
+      stackHtml += `
+        <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-highlight); margin: 0.5rem 0 0.75rem; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-person-walking" style="color: #10b981;"></i> 걷기 운동 기록 (10분 이상 자동 감지 · ${dayWalks.length}건)
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem;">
+          ${dayWalks.map(w => {
+            const speedKmh = w.speedAvg > 0 ? (w.speedAvg * 3.6).toFixed(1) : (w.distanceKm && w.activeMinutes ? ((w.distanceKm / (w.activeMinutes / 60))).toFixed(1) : '--');
+            const distKm = w.exerciseDistanceM > 0 ? (w.exerciseDistanceM / 1000).toFixed(2) : (w.distanceKm > 0 ? Number(w.distanceKm).toFixed(2) : '--');
+            const distM = w.exerciseDistanceM > 0 ? Math.round(w.exerciseDistanceM) : (w.distanceKm > 0 ? Math.round(w.distanceKm * 1000) : '--');
+            return `
+              <div class="workout-detail-card auto-walk-card">
+                <div class="workout-card-header">
+                  <div class="workout-card-title-row">
+                    <span class="badge badge-green"><i class="fa-solid fa-person-walking"></i> 걷기 운동</span>
+                    <h4 class="workout-card-title">연속 걷기 ${w.activeMinutes}분</h4>
+                  </div>
+                  <div class="workout-card-stats">
+                    ${w.startTime ? `<span><i class="fa-regular fa-clock" style="color: var(--text-muted);"></i> ${escapeHtml(w.startTime)} 시작</span>` : ''}
+                    <span style="color: #10b981; font-weight: 700;">${distKm} km</span>
+                  </div>
+                </div>
+
+                <div class="walk-metrics-grid">
+                  <span class="walk-metric-chip">
+                    <i class="fa-solid fa-stopwatch" style="color: #38bdf8;"></i>
+                    <span>시간: <strong>${w.activeMinutes}분</strong></span>
+                  </span>
+                  <span class="walk-metric-chip">
+                    <i class="fa-solid fa-route" style="color: #10b981;"></i>
+                    <span>거리: <strong>${distKm} km (${typeof distM === 'number' ? distM.toLocaleString() + 'm' : distM})</strong></span>
+                  </span>
+                  <span class="walk-metric-chip">
+                    <i class="fa-solid fa-gauge-high" style="color: #f59e0b;"></i>
+                    <span>평균 속도: <strong>${speedKmh} km/h</strong></span>
+                  </span>
+                  ${w.vo2Max > 0 ? `
+                    <span class="walk-metric-chip">
+                      <i class="fa-solid fa-lungs" style="color: #a855f7;"></i>
+                      <span>심폐지구력(VO2 max): <strong>${Number(w.vo2Max).toFixed(1)} ml/min/kg</strong></span>
+                    </span>
+                  ` : ''}
+                  ${w.exerciseCalories > 0 ? `
+                    <span class="walk-metric-chip">
+                      <i class="fa-solid fa-fire" style="color: #ef4444;"></i>
+                      <span>소모 칼로리: <strong>${w.exerciseCalories} kcal</strong></span>
+                    </span>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // 4-B. 직접 등록한 추가 운동 일지 카드
+    if (dayWorkouts.length > 0) {
+      stackHtml += `
+        <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-highlight); margin: 0.5rem 0 0.75rem; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-list-check" style="color: #10b981;"></i> 추가 운동 일지 (${dayWorkouts.length}건)
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          ${dayWorkouts.map(w => {
+            const subTypeIcons = {
+              '웨이트': 'fa-dumbbell',
+              '유산소': 'fa-person-running',
+              '크로스핏': 'fa-bolt',
+              '스트레칭': 'fa-spa',
+              '기타': 'fa-futbol'
+            };
+            const icon = subTypeIcons[w.subType] || 'fa-dumbbell';
+
+            return `
+              <div class="workout-detail-card" data-id="${escapeHtml(w.id)}">
+                <div class="workout-card-header">
+                  <div class="workout-card-title-row">
+                    <span class="badge badge-green"><i class="fa-solid ${icon}"></i> ${escapeHtml(w.subType || '운동')}</span>
+                    <h4 class="workout-card-title">${escapeHtml(w.title || '운동 일지')}</h4>
+                  </div>
+                  <div class="workout-card-stats">
+                    ${w.time ? `<span><i class="fa-regular fa-clock"></i> ${escapeHtml(w.time)}</span>` : ''}
+                    <span><i class="fa-regular fa-hourglass-half"></i> ${w.duration || 0}분</span>
+                    <span style="color: #10b981; font-weight: 700;"><i class="fa-solid fa-fire"></i> ${(Number(w.calories) || 0).toLocaleString()} kcal</span>
+                  </div>
+                </div>
+
+                ${w.content ? `
+                  <div class="workout-sets-content">${escapeHtml(w.content)}</div>
+                ` : ''}
+
+                ${appState.isAdmin ? `
+                  <div class="workout-card-actions">
+                    <button type="button" class="btn-secondary btn-sm btn-edit-workout" data-id="${escapeHtml(w.id)}">
+                      <i class="fa-regular fa-pen-to-square"></i> 수정
+                    </button>
+                    <button type="button" class="btn-danger btn-sm btn-delete-workout" data-id="${escapeHtml(w.id)}">
+                      <i class="fa-regular fa-trash-can"></i> 삭제
+                    </button>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // 4-C. 둘 다 없을 때 빈 카드 표시
+    if (dayWalks.length === 0 && dayWorkouts.length === 0) {
+      stackHtml = `
         <div class="empty-state-card" style="padding: 2.5rem 1.5rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1.5px dashed var(--border-color);">
           <i class="fa-solid fa-dumbbell" style="font-size: 2.5rem; color: #10b981; margin-bottom: 12px; opacity: 0.7;"></i>
           <h3 style="color: var(--text-color); margin-bottom: 6px;">이 날짜에 등록된 추가 운동이 없습니다</h3>
           <p style="color: var(--text-muted); font-size: 0.88rem; max-width: 500px; margin: 0 auto 1.25rem; line-height: 1.6;">
-            삼성헬스 일일 활동량 외에 헬스장 웨이트 트레이닝, 러닝머신, 크로스핏 루틴을 수행하셨다면 상세 세트와 소모 칼로리를 기록해 보세요.
+            기본 일상 활동 외에 헬스장 웨이트 트레이닝, 러닝머신, 크로스핏 루틴을 수행하셨다면 상세 세트와 소모 칼로리를 기록해 보세요.
           </p>
           <button class="btn-primary" id="btn-empty-add-workout-detail">
             <i class="fa-solid fa-plus"></i> 이 날짜에 추가 운동 일지 작성
           </button>
         </div>
       `;
-      document.getElementById('btn-empty-add-workout-detail')?.addEventListener('click', () => {
-        openAddWorkoutModal(date);
-      });
-    } else {
-      elements.workoutDetailStack.innerHTML = `
-        <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-highlight); margin: 0.5rem 0; display: flex; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-list-check" style="color: #10b981;"></i> 추가 운동 일지 (${dayWorkouts.length}건)
-        </h3>
-        ${dayWorkouts.map(w => {
-          const subTypeIcons = {
-            '웨이트': 'fa-dumbbell',
-            '유산소': 'fa-person-running',
-            '크로스핏': 'fa-bolt',
-            '스트레칭': 'fa-spa',
-            '기타': 'fa-futbol'
-          };
-          const icon = subTypeIcons[w.subType] || 'fa-dumbbell';
-
-          return `
-            <div class="workout-detail-card">
-              <div class="workout-card-header">
-                <div class="workout-card-title-row">
-                  <span class="badge badge-green"><i class="fa-solid ${icon}"></i> ${escapeHtml(w.subType || '운동')}</span>
-                  <h4 class="workout-card-title">${escapeHtml(w.title || '운동 일지')}</h4>
-                </div>
-                <div class="workout-card-stats">
-                  ${w.time ? `<span><i class="fa-regular fa-clock"></i> ${escapeHtml(w.time)}</span>` : ''}
-                  <span><i class="fa-regular fa-hourglass-half"></i> ${w.duration || 0}분</span>
-                  <span style="color: #10b981; font-weight: 700;"><i class="fa-solid fa-fire"></i> ${(Number(w.calories) || 0).toLocaleString()} kcal</span>
-                </div>
-              </div>
-
-              ${w.content ? `
-                <div class="workout-sets-content">${escapeHtml(w.content)}</div>
-              ` : ''}
-
-              ${appState.isAdmin ? `
-                <div class="workout-card-actions">
-                  <button type="button" class="btn-secondary btn-sm btn-edit-workout" data-id="${escapeHtml(w.id)}">
-                    <i class="fa-regular fa-pen-to-square"></i> 수정
-                  </button>
-                  <button type="button" class="btn-danger btn-sm btn-delete-workout" data-id="${escapeHtml(w.id)}">
-                    <i class="fa-regular fa-trash-can"></i> 삭제
-                  </button>
-                </div>
-              ` : ''}
-            </div>
-          `;
-        }).join('')}
-      `;
-
-      // Attach edit & delete listeners
-      elements.workoutDetailStack.querySelectorAll('.btn-edit-workout').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const id = btn.getAttribute('data-id');
-          openEditWorkoutModal(id);
-        });
-      });
-
-      elements.workoutDetailStack.querySelectorAll('.btn-delete-workout').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const id = btn.getAttribute('data-id');
-          deleteWorkoutItem(id);
-        });
-      });
     }
+
+    elements.workoutDetailStack.innerHTML = stackHtml;
+
+    document.getElementById('btn-empty-add-workout-detail')?.addEventListener('click', () => {
+      openAddWorkoutModal(date);
+    });
+
+    elements.workoutDetailStack.querySelectorAll('.btn-edit-workout').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        openEditWorkoutModal(id);
+      });
+    });
+
+    elements.workoutDetailStack.querySelectorAll('.btn-delete-workout').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        deleteWorkoutItem(id);
+      });
+    });
   }
 }
 
