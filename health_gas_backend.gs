@@ -75,9 +75,18 @@ function initHealthSheetsIfNeeded(ss = null) {
   let dbSheet = getSheetCaseInsensitive(spreadsheet, 'DB');
   if (!dbSheet) {
     dbSheet = spreadsheet.insertSheet('DB');
-    dbSheet.appendRow(['id', 'category', 'date', 'time', 'title', 'subType', 'calories', 'carbs', 'protein', 'fat', 'imageUrl', 'content', 'created_at']);
+    dbSheet.appendRow(['id', 'category', 'date', 'time', 'title', 'subType', 'calories', 'carbs', 'protein', 'fat', 'imageUrl', 'content', 'location', 'memo', 'created_at']);
   } else if (dbSheet.getLastRow() === 0) {
-    dbSheet.appendRow(['id', 'category', 'date', 'time', 'title', 'subType', 'calories', 'carbs', 'protein', 'fat', 'imageUrl', 'content', 'created_at']);
+    dbSheet.appendRow(['id', 'category', 'date', 'time', 'title', 'subType', 'calories', 'carbs', 'protein', 'fat', 'imageUrl', 'content', 'location', 'memo', 'created_at']);
+  } else {
+    const headers = dbSheet.getRange(1, 1, 1, dbSheet.getLastColumn()).getValues()[0];
+    const hMap = buildHeaderMap(headers);
+    if (hMap['location'] === undefined) {
+      dbSheet.getRange(1, dbSheet.getLastColumn() + 1).setValue('location');
+    }
+    if (hMap['memo'] === undefined) {
+      dbSheet.getRange(1, dbSheet.getLastColumn() + 1).setValue('memo');
+    }
   }
 
   // 2. Body (신체 데이터 - 인바디)
@@ -190,6 +199,8 @@ function getAllHealthData(ss = null) {
         protein: Number(row[hMap['protein']]) || 0,
         fat: Number(row[hMap['fat']]) || 0,
         imageUrl: String(row[hMap['imageurl']] || ''),
+        location: String(row[hMap['location']] || ''),
+        memo: String(row[hMap['memo']] || ''),
         content: String(row[hMap['content']] || ''),
         created_at: String(row[hMap['created_at']] || '')
       });
@@ -468,6 +479,8 @@ function doPost(e) {
       const protein = Number(data.protein) || 0;
       const fat = Number(data.fat) || 0;
       const imageUrl = data.imageUrl || '';
+      const location = data.location || '';
+      const memo = data.memo || '';
       const content = typeof data.content === 'object' ? JSON.stringify(data.content) : (data.content || '');
       const createdAt = data.created_at || new Date().toISOString();
 
@@ -482,7 +495,37 @@ function doPost(e) {
         }
       }
 
-      const rowValues = [id, category, date, time, title, subType, calories, carbs, protein, fat, imageUrl, content, createdAt];
+      // Check headers
+      let headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      let hMap = buildHeaderMap(headers);
+      if (hMap['location'] === undefined || hMap['memo'] === undefined) {
+        if (hMap['location'] === undefined) {
+          sheet.getRange(1, sheet.getLastColumn() + 1).setValue('location');
+        }
+        if (hMap['memo'] === undefined) {
+          sheet.getRange(1, sheet.getLastColumn() + 1).setValue('memo');
+        }
+        headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        hMap = buildHeaderMap(headers);
+      }
+
+      const rowValues = new Array(headers.length).fill('');
+      rowValues[hMap['id'] !== undefined ? hMap['id'] : 0] = id;
+      if (hMap['category'] !== undefined) rowValues[hMap['category']] = category;
+      if (hMap['date'] !== undefined) rowValues[hMap['date']] = date;
+      if (hMap['time'] !== undefined) rowValues[hMap['time']] = time;
+      if (hMap['title'] !== undefined) rowValues[hMap['title']] = title;
+      if (hMap['subtype'] !== undefined) rowValues[hMap['subtype']] = subType;
+      if (hMap['calories'] !== undefined) rowValues[hMap['calories']] = calories;
+      if (hMap['carbs'] !== undefined) rowValues[hMap['carbs']] = carbs;
+      if (hMap['protein'] !== undefined) rowValues[hMap['protein']] = protein;
+      if (hMap['fat'] !== undefined) rowValues[hMap['fat']] = fat;
+      if (hMap['imageurl'] !== undefined) rowValues[hMap['imageurl']] = imageUrl;
+      if (hMap['location'] !== undefined) rowValues[hMap['location']] = location;
+      if (hMap['memo'] !== undefined) rowValues[hMap['memo']] = memo;
+      if (hMap['content'] !== undefined) rowValues[hMap['content']] = content;
+      if (hMap['created_at'] !== undefined) rowValues[hMap['created_at']] = createdAt;
+
       if (targetRow !== -1) {
         sheet.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
       } else {

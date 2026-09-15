@@ -20,6 +20,7 @@
   --text-main: #e2e8f0;
   --text-muted: #94a3b8;
   --text-highlight: #ffffff;
+  --text-color: var(--text-main);
   
   --primary-gradient: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
   --accent-color: #00f2fe;
@@ -50,6 +51,7 @@ body.light-theme {
   --text-main: #334155;
   --text-muted: #64748b;
   --text-highlight: #0f172a;
+  --text-color: var(--text-main);
   
   --primary-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   --accent-color: #4facfe;
@@ -150,6 +152,14 @@ a:hover {
 .status-badge.online {
   background-color: #4ade80;
   box-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
+}
+
+.profile-name-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
 }
 
 .profile-name {
@@ -412,6 +422,68 @@ a:hover {
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
   border: 1px solid var(--border-color);
+}
+
+/* Corner Mode Toggle Button */
+.corner-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  border-radius: 20px;
+  color: #10b981;
+  font-family: var(--font-header);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+  white-space: nowrap;
+}
+
+.corner-mode-btn:hover {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: rgba(16, 185, 129, 0.7);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+
+.corner-mode-btn.active-health {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+
+.corner-mode-btn.active-health:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+}
+
+.corner-mode-btn .mode-icon i {
+  font-size: 0.95rem;
+  transition: transform 0.2s ease;
+}
+
+.corner-mode-btn:hover .mode-icon i {
+  transform: scale(1.15);
+}
+
+body.light-theme .corner-mode-btn {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.6);
+  color: #059669;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+body.light-theme .corner-mode-btn.active-health {
+  background: rgba(2, 132, 199, 0.12);
+  border-color: rgba(2, 132, 199, 0.5);
+  color: #0284c7;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.15);
 }
 
 /* Content Container & Tabs */
@@ -1743,6 +1815,9 @@ a:hover {
     min-width: 180px;
     max-width: 340px;
   }
+  .profile-name-wrapper {
+    justify-content: flex-start;
+  }
   .profile-name {
     margin-bottom: 0.2rem;
     font-size: 1.45rem;
@@ -1857,6 +1932,9 @@ a:hover {
   .profile-info {
     text-align: center;
     width: 100%;
+  }
+  .profile-name-wrapper {
+    justify-content: center;
   }
   .profile-name {
     font-size: 1.3rem;
@@ -3325,7 +3403,7 @@ a:hover {
 .samsung-stat-item .val {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-highlight);
   font-family: 'Outfit', sans-serif;
 }
 
@@ -3395,7 +3473,7 @@ a:hover {
 .health-item-title {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-highlight);
   margin-bottom: 0.75rem;
   line-height: 1.4;
 }
@@ -3419,7 +3497,7 @@ a:hover {
 }
 
 .health-macro-pill .k { font-size: 0.7rem; color: var(--text-muted); }
-.health-macro-pill .v { font-weight: 600; color: #fff; }
+.health-macro-pill .v { font-weight: 600; color: var(--text-highlight); }
 
 .health-item-content {
   font-size: 0.85rem;
@@ -3452,7 +3530,7 @@ a:hover {
 }
 
 .body-stat-row .k { color: var(--text-muted); }
-.body-stat-row .v { font-weight: 600; color: #fff; }
+.body-stat-row .v { font-weight: 600; color: var(--text-highlight); }
 
 /* ==========================================================================
    Health Diet Master-Detail Layout Styles (날짜별 2줄 목록 & 명함형 상세 게시글)
@@ -3508,7 +3586,7 @@ a:hover {
 .date-row-title-wrap .date-text {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-highlight);
   font-family: var(--font-header);
 }
 
@@ -3534,7 +3612,7 @@ a:hover {
 }
 
 .date-row-macros-wrap strong {
-  color: #fff;
+  color: var(--text-highlight);
   font-weight: 600;
 }
 
@@ -3622,7 +3700,7 @@ a:hover {
 .date-row-bottom .meal-tag.snack   { background: rgba(236, 72, 153, 0.18); color: #ec4899; }
 
 .date-row-bottom .meal-title-text {
-  color: #cbd5e1;
+  color: var(--text-main);
   max-width: 280px;
   white-space: nowrap;
   overflow: hidden;
@@ -3700,7 +3778,7 @@ a:hover {
 .summary-macro-card .sm-val {
   font-size: 1rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-highlight);
 }
 
 /* 3. Single Column Meals Stack & Horizontal Card (명함형 카드) */
@@ -3801,7 +3879,21 @@ a:hover {
 .diet-card-meta-left {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.diet-card-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
 .diet-card-time {
@@ -3815,7 +3907,7 @@ a:hover {
 .diet-card-title {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-highlight);
   line-height: 1.35;
   word-break: keep-all;
   margin: 0;
@@ -3870,10 +3962,38 @@ a:hover {
 }
 
 .macro-labels span strong {
-  color: #fff;
+  color: var(--text-highlight);
   font-weight: 600;
 }
 
+/* Restaurant Info & Detailed Memo Box */
+.diet-card-memo-box {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+}
+
+.memo-box-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #f59e0b;
+  font-weight: 600;
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+}
+
+.memo-box-content {
+  color: var(--text-main);
+  line-height: 1.5;
+  white-space: pre-line;
+  word-break: break-word;
+  margin: 0;
+}
+
+/* AI Nutrition Analysis Box */
 .diet-card-ai-box {
   background: rgba(16, 185, 129, 0.06);
   border: 1px dashed rgba(16, 185, 129, 0.3);
@@ -3893,7 +4013,7 @@ a:hover {
 }
 
 .ai-box-content {
-  color: #cbd5e1;
+  color: var(--text-main);
   line-height: 1.5;
   white-space: pre-line;
   word-break: break-word;
@@ -3907,6 +4027,70 @@ a:hover {
   gap: 8px;
   padding-top: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Light Theme overrides for Health Mode */
+body.light-theme .samsung-stat-item {
+  background: rgba(241, 245, 249, 0.85);
+  border-color: rgba(203, 213, 225, 0.7);
+}
+body.light-theme .summary-macro-card {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(203, 213, 225, 0.7);
+}
+body.light-theme .date-row-macros-wrap {
+  background: rgba(241, 245, 249, 0.95);
+  border-color: rgba(203, 213, 225, 0.8);
+}
+body.light-theme .diet-date-row {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+body.light-theme .diet-date-row:hover {
+  background: #f8fafc;
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+body.light-theme .date-row-bottom {
+  border-top-color: #e2e8f0;
+}
+body.light-theme .date-row-bottom .meal-divider {
+  color: #cbd5e1;
+}
+body.light-theme .diet-daily-summary-banner {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(56, 189, 248, 0.08) 100%);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+body.light-theme .diet-card-horizontal {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+body.light-theme .diet-card-horizontal:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09);
+}
+body.light-theme .diet-card-left {
+  background: #f1f5f9;
+}
+body.light-theme .macro-bar {
+  background: #e2e8f0;
+}
+body.light-theme .diet-card-ai-box {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+body.light-theme .diet-card-memo-box {
+  background: rgba(245, 158, 11, 0.09);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+body.light-theme .diet-card-placeholder {
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  color: #64748b;
+}
+body.light-theme .diet-card-footer {
+  border-top-color: #e2e8f0;
 }
 
 /* Responsive Overrides */

@@ -342,10 +342,12 @@ const elements = {
   dietInputTime: document.getElementById('diet-input-time'),
   dietInputSubtype: document.getElementById('diet-input-subtype'),
   dietInputTitle: document.getElementById('diet-input-title'),
+  dietInputLocation: document.getElementById('diet-input-location'),
   dietInputCalories: document.getElementById('diet-input-calories'),
   dietInputCarbs: document.getElementById('diet-input-carbs'),
   dietInputProtein: document.getElementById('diet-input-protein'),
   dietInputFat: document.getElementById('diet-input-fat'),
+  dietInputMemo: document.getElementById('diet-input-memo'),
   dietInputContent: document.getElementById('diet-input-content'),
   dietImageInput: document.getElementById('diet-image-input'),
   dietImageFilename: document.getElementById('diet-image-filename'),
@@ -524,6 +526,15 @@ function toggleTheme() {
     document.body.classList.add('dark-theme');
     localStorage.setItem('theme', 'dark');
     elements.themeToggle.innerHTML = '<i class="fa-solid fa-moon"></i>';
+  }
+
+  // Re-render health charts if currently in health mode so Chart.js text & grid adapt immediately
+  if (appState.mode === 'health') {
+    if (appState.currentTab === 'health-dashboard') {
+      renderHealthDashboard();
+    } else if (appState.currentTab === 'health-body') {
+      renderHealthBody();
+    }
   }
 }
 
@@ -1032,7 +1043,10 @@ function switchTab(tabId) {
     if (elements.navSec) elements.navSec.style.display = 'none';
     if (elements.navHealth) elements.navHealth.style.display = 'flex';
     if (elements.modeHealthToggleBtn) {
-      elements.modeHealthToggleBtn.innerHTML = '<i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i>';
+      elements.modeHealthToggleBtn.innerHTML = `
+        <span class="mode-icon"><i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i></span>
+        <span class="mode-text">보안 모드</span>
+      `;
       elements.modeHealthToggleBtn.title = '보안 블로그 모드로 복귀';
       elements.modeHealthToggleBtn.classList.add('active-health');
     }
@@ -1045,7 +1059,10 @@ function switchTab(tabId) {
       if (elements.navSec) elements.navSec.style.display = 'flex';
       if (elements.navHealth) elements.navHealth.style.display = 'none';
       if (elements.modeHealthToggleBtn) {
-        elements.modeHealthToggleBtn.innerHTML = '<i class="fa-solid fa-heart" style="color: #10b981;"></i>';
+        elements.modeHealthToggleBtn.innerHTML = `
+          <span class="mode-icon"><i class="fa-solid fa-heart" style="color: #10b981;"></i></span>
+          <span class="mode-text">Health 모드</span>
+        `;
         elements.modeHealthToggleBtn.title = 'Health & Fitness 모드로 전환';
         elements.modeHealthToggleBtn.classList.remove('active-health');
       }
@@ -4515,7 +4532,10 @@ function toggleAppMode(targetMode) {
     if (elements.navSec) elements.navSec.style.display = 'none';
     if (elements.navHealth) elements.navHealth.style.display = 'flex';
     if (elements.modeHealthToggleBtn) {
-      elements.modeHealthToggleBtn.innerHTML = '<i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i>';
+      elements.modeHealthToggleBtn.innerHTML = `
+        <span class="mode-icon"><i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i></span>
+        <span class="mode-text">보안 모드</span>
+      `;
       elements.modeHealthToggleBtn.title = '보안 블로그 모드로 복귀';
       elements.modeHealthToggleBtn.classList.add('active-health');
     }
@@ -4531,7 +4551,10 @@ function toggleAppMode(targetMode) {
     if (elements.navSec) elements.navSec.style.display = 'flex';
     if (elements.navHealth) elements.navHealth.style.display = 'none';
     if (elements.modeHealthToggleBtn) {
-      elements.modeHealthToggleBtn.innerHTML = '<i class="fa-solid fa-heart" style="color: #10b981;"></i>';
+      elements.modeHealthToggleBtn.innerHTML = `
+        <span class="mode-icon"><i class="fa-solid fa-heart" style="color: #10b981;"></i></span>
+        <span class="mode-text">Health 모드</span>
+      `;
       elements.modeHealthToggleBtn.title = 'Health & Fitness 모드로 전환';
       elements.modeHealthToggleBtn.classList.remove('active-health');
     }
@@ -5062,10 +5085,11 @@ function renderHealthDiet() {
       totalFat += Number(it.fat) || 0;
 
       const sub = it.subType || '기타';
+      const menuLabel = it.location ? `${it.title || '메뉴'} (${it.location})` : (it.title || '메뉴');
       if (mealMap[sub]) {
-        mealMap[sub].push(it.title || '메뉴');
+        mealMap[sub].push(menuLabel);
       } else {
-        mealMap[sub] = [it.title || '메뉴'];
+        mealMap[sub] = [menuLabel];
       }
     });
 
@@ -5276,6 +5300,11 @@ function showDietDateDetail(date) {
                   <span class="diet-card-time">
                     <i class="fa-regular fa-clock"></i> ${escapeHtml(meal.time || '--:--')}
                   </span>
+                  ${meal.location ? `
+                    <span class="diet-card-location" title="식사 장소 / 식당명">
+                      <i class="fa-solid fa-location-dot"></i> ${escapeHtml(meal.location)}
+                    </span>
+                  ` : ''}
                 </div>
                 <div class="diet-card-calories">
                   <span class="val">${(Number(meal.calories) || 0).toLocaleString()}</span>
@@ -5299,6 +5328,17 @@ function showDietDateDetail(date) {
                 <span>지방 <strong>${f}g</strong> <small>(${fPct}%)</small></span>
               </div>
             </div>
+
+            <!-- 맛집 정보 및 상세 메모 (사용자 직접 기록) -->
+            ${meal.memo ? `
+              <div class="diet-card-memo-box">
+                <div class="memo-box-title">
+                  <i class="fa-solid fa-store"></i>
+                  <span>맛집 정보 & 식사 상세 메모</span>
+                </div>
+                <p class="memo-box-content">${escapeHtml(meal.memo)}</p>
+              </div>
+            ` : ''}
 
             <!-- 상세설명 및 AI 분석 피드백 -->
             ${meal.content ? `
@@ -5378,6 +5418,8 @@ function openAddDietModal(presetDate = null) {
 
   currentDietImageBase64 = '';
   currentDietImageMime = 'image/jpeg';
+  if (elements.dietInputLocation) elements.dietInputLocation.value = '';
+  if (elements.dietInputMemo) elements.dietInputMemo.value = '';
   if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'none';
   if (elements.dietImageFilename) elements.dietImageFilename.textContent = '선택된 사진 없음';
   if (elements.dietAiStatus) elements.dietAiStatus.textContent = '사진이나 텍스트를 입력해 보세요';
@@ -5398,10 +5440,12 @@ function openEditDietModal(id) {
   if (elements.dietInputTime) elements.dietInputTime.value = target.time || '';
   if (elements.dietInputSubtype) elements.dietInputSubtype.value = target.subType || '점심';
   if (elements.dietInputTitle) elements.dietInputTitle.value = target.title || '';
+  if (elements.dietInputLocation) elements.dietInputLocation.value = target.location || '';
   if (elements.dietInputCalories) elements.dietInputCalories.value = target.calories || 0;
   if (elements.dietInputCarbs) elements.dietInputCarbs.value = target.carbs || 0;
   if (elements.dietInputProtein) elements.dietInputProtein.value = target.protein || 0;
   if (elements.dietInputFat) elements.dietInputFat.value = target.fat || 0;
+  if (elements.dietInputMemo) elements.dietInputMemo.value = target.memo || '';
   if (elements.dietInputContent) elements.dietInputContent.value = target.content || '';
 
   if (target.imageUrl) {
@@ -5435,11 +5479,13 @@ async function saveDietItem() {
     time: elements.dietInputTime ? elements.dietInputTime.value.trim() : '',
     subType: elements.dietInputSubtype ? elements.dietInputSubtype.value : '점심',
     title: title,
+    location: elements.dietInputLocation ? elements.dietInputLocation.value.trim() : '',
     calories: elements.dietInputCalories ? Number(elements.dietInputCalories.value) || 0 : 0,
     carbs: elements.dietInputCarbs ? Number(elements.dietInputCarbs.value) || 0 : 0,
     protein: elements.dietInputProtein ? Number(elements.dietInputProtein.value) || 0 : 0,
     fat: elements.dietInputFat ? Number(elements.dietInputFat.value) || 0 : 0,
     imageUrl: currentDietImageBase64 || '',
+    memo: elements.dietInputMemo ? elements.dietInputMemo.value.trim() : '',
     content: elements.dietInputContent ? elements.dietInputContent.value.trim() : '',
     created_at: new Date().toISOString()
   };
