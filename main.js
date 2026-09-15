@@ -1070,8 +1070,8 @@ function switchTab(tabId) {
     if (elements.navHealth) elements.navHealth.style.display = 'flex';
     if (elements.modeHealthToggleBtn) {
       elements.modeHealthToggleBtn.innerHTML = `
-        <span class="mode-icon"><i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i></span>
-        <span class="mode-text">보안 모드</span>
+        <span class="mode-icon"><i class="fa-solid fa-heart" style="color: #10b981;"></i></span>
+        <span class="mode-text">Health 모드</span>
       `;
       elements.modeHealthToggleBtn.title = '보안 블로그 모드로 복귀';
       elements.modeHealthToggleBtn.classList.add('active-health');
@@ -1086,8 +1086,8 @@ function switchTab(tabId) {
       if (elements.navHealth) elements.navHealth.style.display = 'none';
       if (elements.modeHealthToggleBtn) {
         elements.modeHealthToggleBtn.innerHTML = `
-          <span class="mode-icon"><i class="fa-solid fa-heart" style="color: #10b981;"></i></span>
-          <span class="mode-text">Health 모드</span>
+          <span class="mode-icon"><i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i></span>
+          <span class="mode-text">보안 모드</span>
         `;
         elements.modeHealthToggleBtn.title = 'Health & Fitness 모드로 전환';
         elements.modeHealthToggleBtn.classList.remove('active-health');
@@ -4606,8 +4606,8 @@ function toggleAppMode(targetMode) {
     if (elements.navHealth) elements.navHealth.style.display = 'flex';
     if (elements.modeHealthToggleBtn) {
       elements.modeHealthToggleBtn.innerHTML = `
-        <span class="mode-icon"><i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i></span>
-        <span class="mode-text">보안 모드</span>
+        <span class="mode-icon"><i class="fa-solid fa-heart" style="color: #10b981;"></i></span>
+        <span class="mode-text">Health 모드</span>
       `;
       elements.modeHealthToggleBtn.title = '보안 블로그 모드로 복귀';
       elements.modeHealthToggleBtn.classList.add('active-health');
@@ -4625,8 +4625,8 @@ function toggleAppMode(targetMode) {
     if (elements.navHealth) elements.navHealth.style.display = 'none';
     if (elements.modeHealthToggleBtn) {
       elements.modeHealthToggleBtn.innerHTML = `
-        <span class="mode-icon"><i class="fa-solid fa-heart" style="color: #10b981;"></i></span>
-        <span class="mode-text">Health 모드</span>
+        <span class="mode-icon"><i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i></span>
+        <span class="mode-text">보안 모드</span>
       `;
       elements.modeHealthToggleBtn.title = 'Health & Fitness 모드로 전환';
       elements.modeHealthToggleBtn.classList.remove('active-health');
@@ -6399,6 +6399,7 @@ async function analyzeDietWithGemini() {
 
     const systemInstruction = `당신은 최고 수준의 임상 영양사 및 식단 분석 전문가입니다.
 제공된 음식 사진과 사용자 설명을 바탕으로 음식 종류, 예상 칼로리(kcal), 3대 영양소(탄수화물g, 단백질g, 지방g)를 전문적으로 분석해 주세요.
+사용자가 입력한 음식이 어떠한 브랜드의 식품 메뉴라면, 해당 제품을 검색하여 예상 칼로리(kcal), 3대 영양소(탄수화물g, 단백질g, 지방g)를 찾거나 유추해주시면 됩니다.
 반드시 아래의 유효한 JSON 형식으로만 응답해야 하며, 어떠한 마크다운 코드블록(\`\`\`json 등)이나 서문/결문 없이 오직 순수한 JSON 문자열 하나만 출력해야 합니다:
 {
   "title": "대표 메뉴명 (예: 소고기 구이와 된장찌개)",
@@ -6407,7 +6408,7 @@ async function analyzeDietWithGemini() {
   "carbs": 45,
   "protein": 52,
   "fat": 28,
-  "content": "영양 평가 및 식단 균형에 대한 전문적 피드백 한 줄"
+  "content": "해당 식단 메뉴, 칼로리, 영양성분을 종합하여 2줄 내외의 평가 코멘트를 작성해주세요."
 }`;
 
     parts.push({
@@ -6920,7 +6921,7 @@ function showWorkoutDateDetail(date) {
     }
 
     // 4-C. 둘 다 없을 때 빈 카드 표시
-    if (dayWalks.length === 0 && dayWorkouts.length === 0) {
+    if (daySamsungWorkouts.length === 0 && dayWorkouts.length === 0) {
       stackHtml = `
         <div class="empty-state-card" style="padding: 2.5rem 1.5rem; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1.5px dashed var(--border-color);">
           <i class="fa-solid fa-dumbbell" style="font-size: 2.5rem; color: #10b981; margin-bottom: 12px; opacity: 0.7;"></i>
