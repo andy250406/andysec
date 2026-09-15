@@ -663,67 +663,92 @@
         <div class="tab-pane" id="tab-health-dashboard">
           <div class="dashboard-grid">
             
-            <!-- Health Top 4 Summary Cards -->
+            <!-- Health Top 5 Summary Cards -->
             <div class="health-metrics-row">
-              <!-- 1. Activity (Samsung Health) -->
-              <div class="card health-summary-card" data-metric-type="activity" title="클릭하여 삼성헬스 활동 상세 데이터 확인">
+              <!-- 1. 오늘의 활동 (Samsung Health) -->
+              <div class="card health-summary-card" data-metric-type="activity" title="클릭하여 일일 활동량 및 걸음 수 상세 확인">
                 <div class="health-card-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
                   <i class="fa-solid fa-person-walking"></i>
                 </div>
                 <div class="health-card-info">
-                  <span class="health-card-label">오늘의 활동 (삼성헬스)</span>
+                  <span class="health-card-label">오늘의 활동</span>
                   <div class="health-card-value" id="health-card-steps">0 <span class="unit">보</span></div>
                   <div class="health-card-sub" id="health-card-active-cal">총 소비: -- kcal</div>
                 </div>
                 <span class="health-card-zoom-icon" title="상세 팝업 열기"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
               </div>
 
-              <!-- 2. Diet Nutrition Intake -->
+              <!-- 2. 오늘의 식단 -->
               <div class="card health-summary-card" data-metric-type="diet" title="클릭하여 오늘의 식단 섭취 영양 상세 확인">
                 <div class="health-card-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
-                  <i class="fa-solid fa-fire"></i>
+                  <i class="fa-solid fa-utensils"></i>
                 </div>
                 <div class="health-card-info">
-                  <span class="health-card-label">오늘의 식단 섭취</span>
+                  <span class="health-card-label">오늘의 식단</span>
                   <div class="health-card-value" id="health-card-calories">0 <span class="unit">kcal</span></div>
                   <div class="health-card-sub" id="health-card-macros">탄 0g | 단 0g | 지 0g</div>
                 </div>
                 <span class="health-card-zoom-icon" title="상세 팝업 열기"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
               </div>
 
-              <!-- 3. Body Composition -->
+              <!-- 3. 오늘의 심박 -->
+              <div class="card health-summary-card" data-metric-type="vitals" title="클릭하여 일일 심박수 및 생체 신호 상세 확인">
+                <div class="health-card-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                  <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <div class="health-card-info">
+                  <span class="health-card-label">오늘의 심박</span>
+                  <div class="health-card-value" id="health-card-hr-val">-- <span class="unit">bpm</span></div>
+                  <div class="health-card-sub" id="health-card-hr-sub">최저 -- ~ 최고 -- bpm</div>
+                </div>
+                <span class="health-card-zoom-icon" title="상세 팝업 열기"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+              </div>
+
+              <!-- 4. 오늘의 수면 -->
+              <div class="card health-summary-card" data-metric-type="sleep" title="클릭하여 수면 단계 및 수면 분석 상세 확인">
+                <div class="health-card-icon" style="background: rgba(168, 85, 247, 0.15); color: #a855f7;">
+                  <i class="fa-solid fa-moon"></i>
+                </div>
+                <div class="health-card-info">
+                  <span class="health-card-label">오늘의 수면</span>
+                  <div class="health-card-value" id="health-card-sleep-val">-- <span class="unit">시간</span></div>
+                  <div class="health-card-sub" id="health-card-sleep-sub">수면 점수: --점</div>
+                </div>
+                <span class="health-card-zoom-icon" title="상세 팝업 열기"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+              </div>
+
+              <!-- 5. 신체 지표 -->
               <div class="card health-summary-card" data-metric-type="body" title="클릭하여 최근 신체 인바디 상세 지표 확인">
                 <div class="health-card-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
                   <i class="fa-solid fa-weight-scale"></i>
                 </div>
                 <div class="health-card-info">
-                  <span class="health-card-label">최근 신체 지표</span>
+                  <span class="health-card-label">신체 지표</span>
                   <div class="health-card-value" id="health-card-weight">-- <span class="unit">kg</span></div>
                   <div class="health-card-sub" id="health-card-body-detail">골격근 -- kg | 체지방 -- %</div>
                 </div>
                 <span class="health-card-zoom-icon" title="상세 팝업 열기"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
               </div>
-
-              <!-- 4. Sleep & Vitals (Samsung Health) -->
-              <div class="card health-summary-card" data-metric-type="sleep-vitals" title="클릭하여 수면 및 심박/생체 상세 데이터 확인">
-                <div class="health-card-icon" style="background: rgba(168, 85, 247, 0.15); color: #a855f7;">
-                  <i class="fa-solid fa-moon"></i>
-                </div>
-                <div class="health-card-info">
-                  <span class="health-card-label">수면 & 심박수 (삼성헬스)</span>
-                  <div class="health-card-value" id="health-card-sleep">-- <span class="unit">시간</span></div>
-                  <div class="health-card-sub" id="health-card-hr">평균 심박수: -- bpm</div>
-                </div>
-                <span class="health-card-zoom-icon" title="상세 팝업 열기"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
-              </div>
             </div>
 
-            <!-- Health Charts Row -->
+            <!-- Health Charts Row 1: 걸음 수 추이 & 주간 칼로리 밸런스 -->
             <div class="dashboard-row">
-              <!-- Calorie Balance: Burned vs Intake -->
-              <div class="card flex-2 dashboard-main-card">
+              <!-- Daily Steps Trend (7 Days) -->
+              <div class="card flex-1 dashboard-main-card">
                 <div class="card-header">
-                  <h3><i class="fa-solid fa-chart-column" style="color: #10b981;"></i> 주간 총 소비 vs 섭취 칼로리</h3>
+                  <h3><i class="fa-solid fa-person-walking" style="color: #10b981;"></i> 최근 7일 걸음 수 추이</h3>
+                </div>
+                <div class="card-body">
+                  <div style="height: 260px; position: relative;">
+                    <canvas id="chart-daily-steps"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Calorie Balance: Burned vs Intake -->
+              <div class="card flex-1 dashboard-main-card">
+                <div class="card-header">
+                  <h3><i class="fa-solid fa-chart-column" style="color: #f59e0b;"></i> 주간 총 소비 vs 섭취 칼로리</h3>
                 </div>
                 <div class="card-body">
                   <div style="height: 260px; position: relative;">
@@ -731,44 +756,44 @@
                   </div>
                 </div>
               </div>
+            </div>
 
-              <!-- Body Composition Trend -->
+            <!-- Health Charts Row 2: 수면 단계 구성 & 심박수/산소포화도 -->
+            <div class="dashboard-row">
+              <!-- Sleep Stages Breakdown -->
               <div class="card flex-1 dashboard-main-card">
                 <div class="card-header">
-                  <h3><i class="fa-solid fa-chart-line" style="color: #38bdf8;"></i> 체중 & 골격근량 추이</h3>
+                  <h3><i class="fa-solid fa-moon" style="color: #a855f7;"></i> 날짜별 수면 단계 구성 (삼성헬스)</h3>
                 </div>
                 <div class="card-body">
                   <div style="height: 260px; position: relative;">
-                    <canvas id="chart-body-composition"></canvas>
+                    <canvas id="chart-daily-sleep"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Vitals & Oxygen Saturation -->
+              <div class="card flex-1 dashboard-main-card">
+                <div class="card-header">
+                  <h3><i class="fa-solid fa-heart-pulse" style="color: #ef4444;"></i> 날짜별 심박수 & 산소포화도 추이</h3>
+                </div>
+                <div class="card-body">
+                  <div style="height: 260px; position: relative;">
+                    <canvas id="chart-daily-vitals"></canvas>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Health Recent Feeds Row -->
+            <!-- Health Charts Row 3: 체중 & 골격근량 추이 -->
             <div class="dashboard-row">
-              <!-- Today's Diet Feed -->
               <div class="card flex-1 dashboard-main-card">
                 <div class="card-header">
-                  <h3><i class="fa-solid fa-utensils" style="color: #f59e0b;"></i> 오늘의 식단</h3>
-                  <button class="btn-more" data-target-tab="health-diet">전체보기</button>
+                  <h3><i class="fa-solid fa-chart-line" style="color: #38bdf8;"></i> 체중 & 골격근량 추이 (인바디)</h3>
                 </div>
-                <div class="card-body stretched-card-body">
-                  <div class="recent-list stretched-list" id="health-today-diet-list">
-                    <!-- Dynamic diet items -->
-                  </div>
-                </div>
-              </div>
-
-              <!-- Today's Workout Feed -->
-              <div class="card flex-1 dashboard-main-card">
-                <div class="card-header">
-                  <h3><i class="fa-solid fa-dumbbell" style="color: #10b981;"></i> 오늘의 운동 기록</h3>
-                  <button class="btn-more" data-target-tab="health-workout">전체보기</button>
-                </div>
-                <div class="card-body stretched-card-body">
-                  <div class="recent-list stretched-list" id="health-today-workout-list">
-                    <!-- Dynamic workout items -->
+                <div class="card-body">
+                  <div style="height: 260px; position: relative;">
+                    <canvas id="chart-body-composition"></canvas>
                   </div>
                 </div>
               </div>
@@ -851,27 +876,27 @@
               </button>
             </div>
 
-            <!-- Samsung Health Live Stats Bar (당일 실시간 빠른 통계) -->
+            <!-- Weekly Activity Stats Bar (월~일 주간 활동 통계) -->
             <div class="card samsung-health-banner" id="health-workout-samsung-stats" style="margin-bottom: 1.25rem;">
               <div class="samsung-banner-header">
-                <span><i class="fa-solid fa-heart-pulse" style="color: #10b981;"></i> 삼성헬스 당일 활동 통계</span>
-                <span id="samsung-stats-date" style="font-size: 0.8rem; color: var(--text-muted);">실시간 연동</span>
+                <span><i class="fa-solid fa-heart-pulse" style="color: #10b981;"></i> 일주일 활동 통계</span>
+                <span id="samsung-stats-date" style="font-size: 0.8rem; color: var(--text-muted);">이번 주 누적 연동</span>
               </div>
               <div class="samsung-stats-grid">
                 <div class="samsung-stat-item">
-                  <span class="label">걸음 수</span>
+                  <span class="label">총 걸음 수</span>
                   <span class="val" id="samsung-steps">0 보</span>
                 </div>
                 <div class="samsung-stat-item">
-                  <span class="label">이동 거리</span>
+                  <span class="label">총 운동 거리</span>
                   <span class="val" id="samsung-distance">0.0 km</span>
                 </div>
                 <div class="samsung-stat-item">
-                  <span class="label">총 소비 칼로리</span>
+                  <span class="label">평균 소비 칼로리</span>
                   <span class="val" id="samsung-active-cal">0 kcal</span>
                 </div>
                 <div class="samsung-stat-item">
-                  <span class="label">활동 시간</span>
+                  <span class="label">총 운동 시간</span>
                   <span class="val" id="samsung-active-time">0 분</span>
                 </div>
               </div>
@@ -1626,8 +1651,12 @@ print("Hello Security")
         <div class="form-group">
           <label for="gemini-model-select">사용 모델</label>
           <select id="gemini-model-select">
-            <option value="gemini-1.5-flash" selected>gemini-1.5-flash (권장: 초고속 무료 플랜)</option>
-            <option value="gemini-2.0-flash">gemini-2.0-flash (최신 차세대 모델)</option>
+            <option value="gemini-2.5-flash" selected>gemini-2.5-flash (기본 권장: 2.5 초고속 추론 & 멀티모달 가성비)</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro (2.5 최고 성능 심층 분석)</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash (2.0 차세대 플래시)</option>
+            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (2.0 초경량/초고속)</option>
+            <option value="gemini-1.5-flash">gemini-1.5-flash (1.5 안정적 고속 플래시)</option>
+            <option value="gemini-1.5-pro">gemini-1.5-pro (1.5 대용량 분석 프로)</option>
           </select>
         </div>
       </div>

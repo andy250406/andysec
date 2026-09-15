@@ -3291,12 +3291,18 @@ body.light-theme .corner-mode-btn.active-health {
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.3) !important;
 }
 
-/* 4 Health Top Summary Cards */
+/* 5 Health Top Summary Cards */
 .health-metrics-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.1rem;
   margin-bottom: 1.5rem;
+}
+
+@media (min-width: 1200px) {
+  .health-metrics-row {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 
 .health-summary-card {

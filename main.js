@@ -63,7 +63,7 @@ let appState = {
   currentHealthTab: 'health-dashboard',
   healthData: { db: [], body: [], activity: [], sleep: [], vitals: [] },
   geminiApiKey: localStorage.getItem('gemini_api_key') || '',
-  geminiModel: localStorage.getItem('gemini_model') || 'gemini-1.5-flash',
+  geminiModel: localStorage.getItem('gemini_model') || 'gemini-2.5-flash',
   dietFilter: 'all',
   activeDietDate: null,
   workoutFilter: 'all',
@@ -327,10 +327,12 @@ const elements = {
   healthCardActiveCal: document.getElementById('health-card-active-cal'),
   healthCardCalories: document.getElementById('health-card-calories'),
   healthCardMacros: document.getElementById('health-card-macros'),
+  healthCardHrVal: document.getElementById('health-card-hr-val'),
+  healthCardHrSub: document.getElementById('health-card-hr-sub'),
+  healthCardSleepVal: document.getElementById('health-card-sleep-val'),
+  healthCardSleepSub: document.getElementById('health-card-sleep-sub'),
   healthCardWeight: document.getElementById('health-card-weight'),
   healthCardBodyDetail: document.getElementById('health-card-body-detail'),
-  healthCardSleep: document.getElementById('health-card-sleep'),
-  healthCardHr: document.getElementById('health-card-hr'),
   healthTodayDietList: document.getElementById('health-today-diet-list'),
   healthTodayWorkoutList: document.getElementById('health-today-workout-list'),
 
@@ -4544,8 +4546,50 @@ function setupEventListeners() {
 let healthCharts = {
   calorieBalance: null,
   bodyComposition: null,
+  dailySteps: null,
+  dailySleep: null,
+  dailyVitals: null,
   bodyDetailTrend: null
 };
+
+// Parse Samsung Health exercise name code and map to friendly Korean name, icon and color
+function parseSamsungExercise(rawName) {
+  if (!rawName) return { name: '운동', icon: 'fa-dumbbell', color: '#10b981' };
+  
+  // Strip leading code (e.g., "57 - Treadmill Running" -> "treadmill running")
+  const clean = rawName.replace(/^\d+\s*-\s*/, '').trim().toLowerCase();
+  
+  if (clean.includes('treadmill') || clean.includes('러닝머신')) {
+    return { name: '러닝머신 (달리기)', icon: 'fa-person-running', color: '#10b981' };
+  }
+  if (clean.includes('walking') || clean.includes('걷기') || clean.includes('walk')) {
+    return { name: '걷기', icon: 'fa-person-walking', color: '#10b981' };
+  }
+  if (clean.includes('running') || clean.includes('달리기') || clean.includes('run')) {
+    return { name: '달리기', icon: 'fa-person-running', color: '#ef4444' };
+  }
+  if (clean.includes('cycling') || clean.includes('bicycle') || clean.includes('자전거') || clean.includes('bike')) {
+    return { name: '자전거 (사이클)', icon: 'fa-bicycle', color: '#38bdf8' };
+  }
+  if (clean.includes('swimming') || clean.includes('수영') || clean.includes('swim')) {
+    return { name: '수영', icon: 'fa-person-swimming', color: '#06b6d4' };
+  }
+  if (clean.includes('hiking') || clean.includes('등산') || clean.includes('hike')) {
+    return { name: '등산', icon: 'fa-mountain', color: '#16a34a' };
+  }
+  if (clean.includes('elliptical') || clean.includes('일립티컬')) {
+    return { name: '일립티컬', icon: 'fa-person-running', color: '#8b5cf6' };
+  }
+  if (clean.includes('weight') || clean.includes('웨이트') || clean.includes('헬스')) {
+    return { name: '웨이트 트레이닝', icon: 'fa-dumbbell', color: '#f59e0b' };
+  }
+  if (clean.includes('other') || clean.includes('기타')) {
+    return { name: '기타 운동', icon: 'fa-dumbbell', color: '#a855f7' };
+  }
+
+  const displayName = rawName.replace(/^\d+\s*-\s*/, '').trim();
+  return { name: displayName || '운동', icon: 'fa-dumbbell', color: '#10b981' };
+}
 
 let currentDietImageBase64 = '';
 let currentDietImageMime = 'image/jpeg';
@@ -4734,7 +4778,43 @@ function renderHealthDashboard() {
     elements.healthCardMacros.textContent = `탄 ${totalCarbs}g | 단 ${totalProtein}g | 지 ${totalFat}g`;
   }
 
-  // 1-3. Body Composition
+  // 1-3. Vitals (오늘의 심박)
+  const vitalsList = appState.healthData.vitals || [];
+  const todayVitals = vitalsList.find(v => v.date && v.date.startsWith(today)) || (vitalsList.length > 0 ? vitalsList[vitalsList.length - 1] : null);
+  if (todayVitals) {
+    const hrVal = todayVitals.heartRate || todayVitals.avgHeartRate || '--';
+    const minHr = todayVitals.minHeartRate || '--';
+    const maxHr = todayVitals.maxHeartRate || '--';
+    if (elements.healthCardHrVal) {
+      elements.healthCardHrVal.innerHTML = `${hrVal} <span class="unit">bpm</span>`;
+    }
+    if (elements.healthCardHrSub) {
+      elements.healthCardHrSub.textContent = `최저 ${minHr} ~ 최고 ${maxHr} bpm`;
+    }
+  } else {
+    if (elements.healthCardHrVal) elements.healthCardHrVal.innerHTML = `-- <span class="unit">bpm</span>`;
+    if (elements.healthCardHrSub) elements.healthCardHrSub.textContent = `최저 -- ~ 최고 -- bpm`;
+  }
+
+  // 1-4. Sleep (오늘의 수면)
+  const sleepList = appState.healthData.sleep || [];
+  const todaySleep = sleepList.find(s => s.date && s.date.startsWith(today)) || (sleepList.length > 0 ? sleepList[sleepList.length - 1] : null);
+  if (todaySleep && todaySleep.durationMinutes) {
+    const mins = Number(todaySleep.durationMinutes) || 0;
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    if (elements.healthCardSleepVal) {
+      elements.healthCardSleepVal.innerHTML = `${hrs}시간 ${remMins}분`;
+    }
+    if (elements.healthCardSleepSub) {
+      elements.healthCardSleepSub.textContent = todaySleep.sleepScore ? `수면 점수: ${todaySleep.sleepScore}점` : '삼성헬스 연동됨';
+    }
+  } else {
+    if (elements.healthCardSleepVal) elements.healthCardSleepVal.innerHTML = `-- <span class="unit">시간</span>`;
+    if (elements.healthCardSleepSub) elements.healthCardSleepSub.textContent = `수면 점수: --점`;
+  }
+
+  // 1-5. Body Composition
   const bodyRecords = [...(appState.healthData.body || [])];
   bodyRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
   const latestBody = bodyRecords[0] || null;
@@ -4751,114 +4831,92 @@ function renderHealthDashboard() {
     if (elements.healthCardBodyDetail) elements.healthCardBodyDetail.textContent = `골격근 -- kg | 체지방 -- %`;
   }
 
-  // 1-4. Sleep & Vitals
-  const sleepList = appState.healthData.sleep || [];
-  const latestSleep = sleepList.length > 0 ? sleepList[sleepList.length - 1] : null;
-  if (latestSleep && latestSleep.durationMinutes) {
-    const mins = Number(latestSleep.durationMinutes) || 0;
-    const hrs = Math.floor(mins / 60);
-    const remMins = mins % 60;
-    if (elements.healthCardSleep) {
-      elements.healthCardSleep.innerHTML = `${hrs}시간 ${remMins}분 <span class="unit">(${latestSleep.sleepScore ? latestSleep.sleepScore + '점' : '기록됨'})</span>`;
-    }
-  } else {
-    if (elements.healthCardSleep) elements.healthCardSleep.innerHTML = `-- <span class="unit">시간</span>`;
-  }
-
-  const vitalsList = appState.healthData.vitals || [];
-  const latestVitals = vitalsList.length > 0 ? vitalsList[vitalsList.length - 1] : null;
-  if (latestVitals) {
-    if (elements.healthCardHr) {
-      elements.healthCardHr.textContent = `평균 심박수: ${latestVitals.heartRate || '--'} bpm`;
-    }
-  } else {
-    if (elements.healthCardHr) elements.healthCardHr.textContent = `평균 심박수: -- bpm`;
-  }
-
-  // 1-5. Today's Diet List Feed
-  if (elements.healthTodayDietList) {
-    if (todayDiets.length === 0) {
-      elements.healthTodayDietList.innerHTML = `<div class="empty-state" style="padding: 2rem 1rem; color: var(--text-muted); font-size: 0.85rem; text-align: center;"><i class="fa-solid fa-utensils" style="font-size: 1.5rem; margin-bottom: 6px; opacity: 0.5;"></i><p>오늘 기록된 식단이 없습니다.<br>상단 '식단 관리'에서 끼니를 추가해보세요.</p></div>`;
-    } else {
-      elements.healthTodayDietList.innerHTML = todayDiets.map(item => {
-        const subTypeColors = {
-          '아침': 'badge-orange',
-          '점심': 'badge-blue',
-          '저녁': 'badge-purple',
-          '간식': 'badge-green'
-        };
-        const badgeCls = subTypeColors[item.subType] || 'badge-blue';
-        return `
-          <div class="recent-item diet-recent-item" data-date="${escapeHtml(item.date || '')}" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s ease;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span class="badge ${badgeCls}" style="font-size: 0.75rem;">${escapeHtml(item.subType || '식사')}</span>
-              <div>
-                <strong style="color: var(--text-color); font-size: 0.9rem;">${escapeHtml(item.title || '')}</strong>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(item.time || '')} | 탄 ${item.carbs || 0}g 단 ${item.protein || 0}g 지 ${item.fat || 0}g</div>
-              </div>
-            </div>
-            <div style="font-weight: 700; color: #f59e0b; font-size: 0.9rem;">
-              ${(Number(item.calories) || 0).toLocaleString()} kcal
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      elements.healthTodayDietList.querySelectorAll('.diet-recent-item').forEach(el => {
-        el.addEventListener('click', () => {
-          const d = el.getAttribute('data-date');
-          if (d) window.location.hash = `#/health-diet/${d}`;
-        });
-      });
-    }
-  }
-
-  // 1-6. Today's Workout List Feed
-  const workoutItems = dbItems.filter(item => (item.category || '').toLowerCase() === 'workout');
-  const todayWorkouts = workoutItems.filter(item => item.date && item.date.startsWith(today));
-  if (elements.healthTodayWorkoutList) {
-    if (todayWorkouts.length === 0) {
-      elements.healthTodayWorkoutList.innerHTML = `<div class="empty-state" style="padding: 2rem 1rem; color: var(--text-muted); font-size: 0.85rem; text-align: center;"><i class="fa-solid fa-dumbbell" style="font-size: 1.5rem; margin-bottom: 6px; opacity: 0.5;"></i><p>오늘 기록된 운동 일지가 없습니다.<br>'운동 기록'에서 루틴을 추가해보세요.</p></div>`;
-    } else {
-      elements.healthTodayWorkoutList.innerHTML = todayWorkouts.map(item => {
-        return `
-          <div class="recent-item workout-recent-item" data-date="${escapeHtml(item.date || '')}" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s ease;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span class="badge badge-green" style="font-size: 0.75rem;">${escapeHtml(item.subType || '운동')}</span>
-              <div>
-                <strong style="color: var(--text-color); font-size: 0.9rem;">${escapeHtml(item.title || '')}</strong>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(item.time || '')} | ${item.duration || 0}분</div>
-              </div>
-            </div>
-            <div style="font-weight: 700; color: #10b981; font-size: 0.9rem;">
-              ${(Number(item.calories) || 0).toLocaleString()} kcal
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      elements.healthTodayWorkoutList.querySelectorAll('.workout-recent-item').forEach(el => {
-        el.addEventListener('click', () => {
-          const d = el.getAttribute('data-date');
-          if (d) window.location.hash = `#/health-workout/${d}`;
-        });
-      });
-    }
-  }
-
-  // 1-7. Chart.js: Calorie Balance & Body Composition
-  renderDashboardCharts(activities, dietItems, bodyRecords);
+  // 1-6. Chart.js: Steps, Calorie Balance, Sleep Stages, Vitals & Body Composition
+  renderDashboardCharts(activities, dietItems, bodyRecords, sleepList, vitalsList);
 }
 
 // Render Dashboard Chart.js Charts
-function renderDashboardCharts(activities, dietItems, bodyRecords) {
+function renderDashboardCharts(activities, dietItems, bodyRecords, sleepList, vitalsList) {
   if (typeof window.Chart === 'undefined') return;
 
   const isLight = document.body.classList.contains('light-theme');
   const textColor = isLight ? '#475569' : '#94a3b8';
   const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)';
 
-  // Chart 1: Calorie Balance (Last 7 Days)
+  // Generate last 7 days date strings
+  const days = [];
+  const dateLabels = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const iso = d.toISOString().split('T')[0];
+    days.push(iso);
+    dateLabels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+  }
+
+  // 1. Chart: Daily Steps Trend (Last 7 Days with 10k Goal Line)
+  const canvasSteps = document.getElementById('chart-daily-steps');
+  if (canvasSteps) {
+    if (healthCharts.dailySteps) {
+      healthCharts.dailySteps.destroy();
+      healthCharts.dailySteps = null;
+    }
+
+    const stepsData = days.map(day => {
+      const dayActs = (activities || []).filter(it => it.date && it.date.startsWith(day));
+      return dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.steps) || 0)) : 0;
+    });
+
+    healthCharts.dailySteps = new window.Chart(canvasSteps, {
+      type: 'line',
+      data: {
+        labels: dateLabels,
+        datasets: [
+          {
+            label: '걸음 수 (보)',
+            data: stepsData,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          },
+          {
+            label: '목표 (10,000보)',
+            data: days.map(() => 10000),
+            borderColor: 'rgba(56, 189, 248, 0.55)',
+            borderDash: [5, 5],
+            pointRadius: 0,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: textColor, font: { size: 11 } }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 } }
+          },
+          y: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 } },
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Chart: Calorie Balance (Last 7 Days)
   const canvasCalorie = document.getElementById('chart-calorie-balance');
   if (canvasCalorie) {
     if (healthCharts.calorieBalance) {
@@ -4866,24 +4924,13 @@ function renderDashboardCharts(activities, dietItems, bodyRecords) {
       healthCharts.calorieBalance = null;
     }
 
-    // Generate last 7 days date strings
-    const days = [];
-    const dateLabels = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const iso = d.toISOString().split('T')[0];
-      days.push(iso);
-      dateLabels.push(`${d.getMonth() + 1}/${d.getDate()}`);
-    }
-
     const intakeData = days.map(day => {
-      const dayDiets = dietItems.filter(it => it.date && it.date.startsWith(day));
+      const dayDiets = (dietItems || []).filter(it => it.date && it.date.startsWith(day));
       return dayDiets.reduce((sum, it) => sum + (Number(it.calories) || 0), 0);
     });
 
     const burnData = days.map(day => {
-      const dayAct = activities.find(it => it.date && it.date.startsWith(day));
+      const dayAct = (activities || []).find(it => it.date && it.date.startsWith(day));
       return dayAct ? (Number(dayAct.totalCalories) || Number(dayAct.activeCalories) || 0) : 0;
     });
 
@@ -4934,7 +4981,217 @@ function renderDashboardCharts(activities, dietItems, bodyRecords) {
     });
   }
 
-  // Chart 2: Body Composition Trend (Recent records)
+  // 3. Chart: Sleep Stages Breakdown (Stacked Bar)
+  const canvasSleep = document.getElementById('chart-daily-sleep');
+  if (canvasSleep) {
+    if (healthCharts.dailySleep) {
+      healthCharts.dailySleep.destroy();
+      healthCharts.dailySleep = null;
+    }
+
+    const sleepArr = sleepList || appState.healthData.sleep || [];
+    const lightData = [];
+    const deepData = [];
+    const remData = [];
+    const awakeData = [];
+
+    days.forEach(day => {
+      const s = sleepArr.find(item => item.date && item.date.startsWith(day));
+      if (s) {
+        lightData.push(Number(s.lightSleepMinutes) || 0);
+        deepData.push(Number(s.deepSleepMinutes) || 0);
+        remData.push(Number(s.remSleepMinutes) || 0);
+        awakeData.push(Number(s.awakeMinutes) || 0);
+      } else {
+        lightData.push(0);
+        deepData.push(0);
+        remData.push(0);
+        awakeData.push(0);
+      }
+    });
+
+    healthCharts.dailySleep = new window.Chart(canvasSleep, {
+      type: 'bar',
+      data: {
+        labels: dateLabels,
+        datasets: [
+          {
+            label: '깊은 수면 (분)',
+            data: deepData,
+            backgroundColor: 'rgba(99, 102, 241, 0.85)',
+            borderColor: '#6366f1',
+            borderWidth: 1,
+            borderRadius: 2
+          },
+          {
+            label: '얕은 수면 (분)',
+            data: lightData,
+            backgroundColor: 'rgba(56, 189, 248, 0.85)',
+            borderColor: '#38bdf8',
+            borderWidth: 1,
+            borderRadius: 2
+          },
+          {
+            label: 'REM 수면 (분)',
+            data: remData,
+            backgroundColor: 'rgba(236, 72, 153, 0.85)',
+            borderColor: '#ec4899',
+            borderWidth: 1,
+            borderRadius: 2
+          },
+          {
+            label: '깨어있는 시간 (분)',
+            data: awakeData,
+            backgroundColor: 'rgba(245, 158, 11, 0.75)',
+            borderColor: '#f59e0b',
+            borderWidth: 1,
+            borderRadius: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: textColor, font: { size: 10 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                const mins = ctx.parsed.y;
+                const hrs = Math.floor(mins / 60);
+                const rMins = mins % 60;
+                const timeStr = hrs > 0 ? `${hrs}시간 ${rMins}분` : `${rMins}분`;
+                return `${ctx.dataset.label}: ${timeStr} (${mins}분)`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 } }
+          },
+          y: {
+            stacked: true,
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 } },
+            title: { display: true, text: '수면 시간 (분)', color: textColor, font: { size: 11 } },
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+
+  // 4. Chart: Heart Rate & Oxygen Saturation (Multi-axis Line)
+  const canvasVitals = document.getElementById('chart-daily-vitals');
+  if (canvasVitals) {
+    if (healthCharts.dailyVitals) {
+      healthCharts.dailyVitals.destroy();
+      healthCharts.dailyVitals = null;
+    }
+
+    const vitalsArr = vitalsList || appState.healthData.vitals || [];
+    const maxHrData = [];
+    const minHrData = [];
+    const avgHrData = [];
+    const oxData = [];
+
+    days.forEach(day => {
+      const v = vitalsArr.find(item => item.date && item.date.startsWith(day));
+      if (v) {
+        maxHrData.push(v.maxHeartRate ? Number(v.maxHeartRate) : null);
+        minHrData.push(v.minHeartRate ? Number(v.minHeartRate) : null);
+        avgHrData.push((v.heartRate || v.avgHeartRate) ? Number(v.heartRate || v.avgHeartRate) : null);
+        oxData.push(v.oxygenSaturation ? Number(v.oxygenSaturation) : null);
+      } else {
+        maxHrData.push(null);
+        minHrData.push(null);
+        avgHrData.push(null);
+        oxData.push(null);
+      }
+    });
+
+    healthCharts.dailyVitals = new window.Chart(canvasVitals, {
+      type: 'line',
+      data: {
+        labels: dateLabels,
+        datasets: [
+          {
+            label: '최고 심박 (bpm)',
+            data: maxHrData,
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            yAxisID: 'y-hr',
+            tension: 0.3,
+            pointRadius: 4,
+            spanGaps: true
+          },
+          {
+            label: '최저 심박 (bpm)',
+            data: minHrData,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            yAxisID: 'y-hr',
+            tension: 0.3,
+            pointRadius: 4,
+            spanGaps: true
+          },
+          {
+            label: '산소포화도 (%)',
+            data: oxData,
+            borderColor: '#38bdf8',
+            borderDash: [4, 4],
+            backgroundColor: 'transparent',
+            yAxisID: 'y-ox',
+            tension: 0.3,
+            pointRadius: 4,
+            spanGaps: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: textColor, font: { size: 10 } }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 } }
+          },
+          'y-hr': {
+            type: 'linear',
+            position: 'left',
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 } },
+            title: { display: true, text: '심박수 (bpm)', color: textColor, font: { size: 11 } },
+            min: 40,
+            suggestedMax: 140
+          },
+          'y-ox': {
+            type: 'linear',
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: { color: '#38bdf8', font: { size: 11 } },
+            title: { display: true, text: '산소포화도 (%)', color: '#38bdf8', font: { size: 11 } },
+            min: 88,
+            max: 100
+          }
+        }
+      }
+    });
+  }
+
+  // 5. Chart: Body Composition Trend (Recent records)
   const canvasBody = document.getElementById('chart-body-composition');
   if (canvasBody) {
     if (healthCharts.bodyComposition) {
@@ -4942,7 +5199,7 @@ function renderDashboardCharts(activities, dietItems, bodyRecords) {
       healthCharts.bodyComposition = null;
     }
 
-    const sortedBody = [...bodyRecords].reverse().slice(-7); // Last 7 records chronological
+    const sortedBody = [...(bodyRecords || [])].reverse().slice(-7); // Last 7 records chronological
     const labels = sortedBody.map(b => {
       if (!b.date) return '';
       const parts = b.date.split('-');
@@ -5000,7 +5257,7 @@ function renderDashboardCharts(activities, dietItems, bodyRecords) {
   }
 }
 
-// Health Metric Detail Popup Modal (대시보드 상단 4대 카드 상세 분석 팝업)
+// Health Metric Detail Popup Modal (대시보드 상단 5대 카드 상세 분석 팝업)
 function openHealthMetricModal(type) {
   if (!elements.modalHealthMetricDetail) return;
   const today = new Date().toISOString().split('T')[0];
@@ -5010,20 +5267,17 @@ function openHealthMetricModal(type) {
   let tabButtonText = '관련 탭으로 이동';
 
   if (type === 'activity') {
-    titleHtml = '<i class="fa-solid fa-person-walking" style="color: #10b981;"></i> 일일 활동량 & 걸음 수 상세 분석';
+    titleHtml = '<i class="fa-solid fa-person-walking" style="color: #10b981;"></i> 일일 활동량 & 걸음 수 요약';
     tabTarget = 'health-workout';
     tabButtonText = '운동 관리 탭으로 이동';
 
     const activities = appState.healthData.activity || [];
     const todayAct = activities.find(a => a.date && a.date.startsWith(today)) || (activities.length > 0 ? activities[activities.length - 1] : null);
     const steps = Number(todayAct?.steps) || 0;
-    const activeCal = Number(todayAct?.activeCalories) || 0;
-    const totalCal = Number(todayAct?.totalCalories) || 0;
+    const totalCal = Number(todayAct?.totalCalories) || Number(todayAct?.activeCalories) || 0;
     const distanceKm = Number(todayAct?.distanceKm) || 0;
     const activeMins = Number(todayAct?.activeMinutes) || 0;
     const stepGoalPct = Math.min(100, Math.round((steps / 10000) * 100));
-
-    const recentActivities = [...activities].slice(-7).reverse();
 
     bodyHtml = `
       <div class="metric-detail-grid">
@@ -5040,49 +5294,17 @@ function openHealthMetricModal(type) {
         <div class="metric-stat-box">
           <span class="lbl">이동 거리</span>
           <span class="val" style="color: #f59e0b;">${distanceKm.toFixed(1)} <small style="font-size: 0.75rem; font-weight: normal;">km</small></span>
-          <span class="sub">일일 누적 이동</span>
+          <span class="sub">일일 누적 이동 거리</span>
         </div>
         <div class="metric-stat-box">
           <span class="lbl">활동 시간</span>
           <span class="val" style="color: #a855f7;">${activeMins} <small style="font-size: 0.75rem; font-weight: normal;">분</small></span>
-          <span class="sub">유효 활동/보행 시간</span>
+          <span class="sub">유효 활동 및 보행 시간</span>
         </div>
       </div>
-
-      <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.92rem; color: var(--text-color); display: flex; align-items: center; gap: 6px;">
-        <i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i> 최근 7일 활동 이력 (삼성헬스 연동)
-      </h4>
-      ${recentActivities.length === 0 ? `
-        <p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">활동 기록이 없습니다.</p>
-      ` : `
-        <div style="overflow-x: auto;">
-          <table class="metric-history-mini-table">
-            <thead>
-              <tr>
-                <th>날짜</th>
-                <th>걸음 수</th>
-                <th>총 소비 칼로리</th>
-                <th>이동 거리</th>
-                <th>활동 시간</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${recentActivities.map(a => `
-                <tr>
-                  <td><strong>${escapeHtml(a.date || '')}</strong></td>
-                  <td>${(Number(a.steps) || 0).toLocaleString()}보</td>
-                  <td style="color: #38bdf8;">${(Number(a.totalCalories) || Number(a.activeCalories) || 0).toLocaleString()} kcal</td>
-                  <td>${(Number(a.distanceKm) || 0).toFixed(1)} km</td>
-                  <td>${a.activeMinutes || 0}분</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `}
     `;
   } else if (type === 'diet') {
-    titleHtml = '<i class="fa-solid fa-utensils" style="color: #10b981;"></i> 일일 식단 & 영양 상세 분석';
+    titleHtml = '<i class="fa-solid fa-utensils" style="color: #f59e0b;"></i> 일일 식단 & 영양 섭취 요약';
     tabTarget = 'health-diet';
     tabButtonText = '식단 관리 탭으로 이동';
 
@@ -5130,7 +5352,7 @@ function openHealthMetricModal(type) {
         </div>
       </div>
 
-      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin-bottom: 1rem;">
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin-top: 0.5rem;">
         <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-color); margin-bottom: 8px;">
           3대 영양소 섭취 비율 (탄:단:지)
         </div>
@@ -5145,41 +5367,81 @@ function openHealthMetricModal(type) {
           <span>지방 <strong style="color: #ec4899;">${Math.round(totalFat)}g</strong> (${fPct}%)</span>
         </div>
       </div>
+    `;
+  } else if (type === 'vitals') {
+    titleHtml = '<i class="fa-solid fa-heart-pulse" style="color: #ef4444;"></i> 일일 심박수 & 생체 지표 요약';
+    tabTarget = 'health-dashboard';
+    tabButtonText = '건강 대시보드로 이동';
 
-      <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.92rem; color: var(--text-color); display: flex; align-items: center; gap: 6px;">
-        <i class="fa-solid fa-list-check" style="color: #10b981;"></i> 오늘 끼니별 기록 목록
-      </h4>
-      ${todayDiets.length === 0 ? `
-        <p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">오늘 기록된 식단이 없습니다.</p>
-      ` : `
-        <div style="overflow-x: auto;">
-          <table class="metric-history-mini-table">
-            <thead>
-              <tr>
-                <th>끼니 구분</th>
-                <th>시간</th>
-                <th>메뉴명</th>
-                <th>칼로리</th>
-                <th>영양소 (탄/단/지)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${todayDiets.map(m => `
-                <tr>
-                  <td><span class="badge badge-green" style="font-size: 0.72rem;">${escapeHtml(m.subType || '식사')}</span></td>
-                  <td>${escapeHtml(m.time || '--:--')}</td>
-                  <td><strong>${escapeHtml(m.title || '메뉴')}</strong>${m.location ? ` <span style="font-size: 0.75rem; color: var(--text-muted);">(${escapeHtml(m.location)})</span>` : ''}</td>
-                  <td style="color: #f59e0b; font-weight: 600;">${(Number(m.calories) || 0).toLocaleString()} kcal</td>
-                  <td style="font-size: 0.78rem; color: var(--text-muted);">${m.carbs || 0}g / ${m.protein || 0}g / ${m.fat || 0}g</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+    const vitalsList = appState.healthData.vitals || [];
+    const latestVitals = vitalsList.length > 0 ? vitalsList[vitalsList.length - 1] : null;
+
+    bodyHtml = `
+      <div class="metric-detail-grid">
+        <div class="metric-stat-box">
+          <span class="lbl">평균 심박수</span>
+          <span class="val" style="color: #ef4444;">${latestVitals?.heartRate || latestVitals?.avgHeartRate || '--'} <small style="font-size: 0.75rem; font-weight: normal;">bpm</small></span>
+          <span class="sub">안정시: ${latestVitals?.restingHeartRate || '--'} bpm</span>
         </div>
-      `}
+        <div class="metric-stat-box">
+          <span class="lbl">심박 변동 범위</span>
+          <span class="val" style="font-size: 1.1rem; color: #10b981;">${latestVitals?.minHeartRate || '--'} ~ ${latestVitals?.maxHeartRate || '--'} <small style="font-size: 0.75rem; font-weight: normal;">bpm</small></span>
+          <span class="sub">일일 최저 ~ 최고 심박</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">산소포화도 (SpO2)</span>
+          <span class="val" style="color: #38bdf8;">${latestVitals?.oxygenSaturation ? latestVitals.oxygenSaturation + '%' : '--'}</span>
+          <span class="sub">정상 기준 (95%~100%)</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">혈압</span>
+          <span class="val" style="color: #a855f7;">${latestVitals?.bloodPressure || '--'}</span>
+          <span class="sub">수축기 / 이완기</span>
+        </div>
+      </div>
+    `;
+  } else if (type === 'sleep') {
+    titleHtml = '<i class="fa-solid fa-moon" style="color: #a855f7;"></i> 일일 수면 분석 요약';
+    tabTarget = 'health-dashboard';
+    tabButtonText = '건강 대시보드로 이동';
+
+    const sleepList = appState.healthData.sleep || [];
+    const latestSleep = sleepList.length > 0 ? sleepList[sleepList.length - 1] : null;
+
+    const sleepMins = Number(latestSleep?.durationMinutes) || 0;
+    const sleepHrs = Math.floor(sleepMins / 60);
+    const sleepRemMins = sleepMins % 60;
+    const lightMins = Number(latestSleep?.lightSleepMinutes) || 0;
+    const deepMins = Number(latestSleep?.deepSleepMinutes) || 0;
+    const remMins = Number(latestSleep?.remSleepMinutes) || 0;
+    const awakeMins = Number(latestSleep?.awakeMinutes) || 0;
+
+    bodyHtml = `
+      <div class="metric-detail-grid">
+        <div class="metric-stat-box">
+          <span class="lbl">총 수면 시간</span>
+          <span class="val" style="color: #a855f7;">${sleepHrs}<small style="font-size: 0.75rem; font-weight: normal;">시간</small> ${sleepRemMins}<small style="font-size: 0.75rem; font-weight: normal;">분</small></span>
+          <span class="sub">수면 점수: ${latestSleep?.sleepScore ? latestSleep.sleepScore + '점' : '기록됨'}</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">깊은 수면</span>
+          <span class="val" style="color: #6366f1;">${deepMins} <small style="font-size: 0.75rem; font-weight: normal;">분</small></span>
+          <span class="sub">${sleepMins > 0 ? Math.round((deepMins / sleepMins) * 100) : 0}% (숙면 & 신체 회복)</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">얕은 수면</span>
+          <span class="val" style="color: #38bdf8;">${lightMins} <small style="font-size: 0.75rem; font-weight: normal;">분</small></span>
+          <span class="sub">${sleepMins > 0 ? Math.round((lightMins / sleepMins) * 100) : 0}% (기본 수면 상태)</span>
+        </div>
+        <div class="metric-stat-box">
+          <span class="lbl">REM 수면 / 깸</span>
+          <span class="val" style="color: #ec4899; font-size: 1.1rem;">REM ${remMins}분</span>
+          <span class="sub">깨어있는 시간: ${awakeMins}분</span>
+        </div>
+      </div>
     `;
   } else if (type === 'body') {
-    titleHtml = '<i class="fa-solid fa-weight-scale" style="color: #10b981;"></i> 체성분 & 인바디 상세 분석';
+    titleHtml = '<i class="fa-solid fa-weight-scale" style="color: #38bdf8;"></i> 신체 지표 & 인바디 요약';
     tabTarget = 'health-body';
     tabButtonText = '체성분 관리 탭으로 이동';
 
@@ -5221,40 +5483,6 @@ function openHealthMetricModal(type) {
           <span class="sub">BMI: ${latest?.bmi || '--'}</span>
         </div>
       </div>
-
-      <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.92rem; color: var(--text-color); display: flex; align-items: center; gap: 6px;">
-        <i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i> 최근 인바디 측정 추이
-      </h4>
-      ${bodyRecords.length === 0 ? `
-        <p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">등록된 체성분 기록이 없습니다.</p>
-      ` : `
-        <div style="overflow-x: auto;">
-          <table class="metric-history-mini-table">
-            <thead>
-              <tr>
-                <th>측정일</th>
-                <th>체중 (kg)</th>
-                <th>골격근량 (kg)</th>
-                <th>체지방률 (%)</th>
-                <th>BMI</th>
-                <th>기초대사량</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${bodyRecords.slice(0, 6).map(b => `
-                <tr>
-                  <td><strong>${escapeHtml(b.date || '')}</strong></td>
-                  <td style="color: #38bdf8; font-weight: 600;">${b.weight || '--'}</td>
-                  <td style="color: #10b981;">${b.muscleMass || '--'}</td>
-                  <td style="color: #ec4899;">${b.bodyFatPercent || '--'}%</td>
-                  <td>${b.bmi || '--'}</td>
-                  <td>${b.bmr ? Number(b.bmr).toLocaleString() + ' kcal' : '--'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `}
     `;
   } else if (type === 'sleep-vitals') {
     titleHtml = '<i class="fa-solid fa-heart-pulse" style="color: #10b981;"></i> 수면 & 활력 징후(Vitals) 상세 분석';
@@ -5293,42 +5521,6 @@ function openHealthMetricModal(type) {
           <span class="sub">${latestVitals?.bloodPressure ? '혈압 ' + latestVitals.bloodPressure : 'SpO2 산소포화도'}</span>
         </div>
       </div>
-
-      <h4 style="margin: 1.25rem 0 0.5rem; font-size: 0.92rem; color: var(--text-color); display: flex; align-items: center; gap: 6px;">
-        <i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i> 최근 수면 및 생체 신호 기록
-      </h4>
-      ${sleepList.length === 0 && vitalsList.length === 0 ? `
-        <p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">수면 및 생체 기록이 없습니다.</p>
-      ` : `
-        <div style="overflow-x: auto;">
-          <table class="metric-history-mini-table">
-            <thead>
-              <tr>
-                <th>날짜</th>
-                <th>수면 시간</th>
-                <th>수면 점수</th>
-                <th>평균 심박수</th>
-                <th>안정시 심박</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${[...sleepList].slice(-5).reverse().map(s => {
-                const matchedVitals = vitalsList.find(v => v.date === s.date);
-                const m = Number(s.durationMinutes) || 0;
-                return `
-                  <tr>
-                    <td><strong>${escapeHtml(s.date || '')}</strong></td>
-                    <td>${Math.floor(m / 60)}시간 ${m % 60}분</td>
-                    <td style="color: #a855f7;">${s.sleepScore ? s.sleepScore + '점' : '--'}</td>
-                    <td style="color: #ef4444;">${matchedVitals?.heartRate ? matchedVitals.heartRate + ' bpm' : '--'}</td>
-                    <td>${matchedVitals?.restingHeartRate ? matchedVitals.restingHeartRate + ' bpm' : '--'}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      `}
     `;
   }
 
@@ -5955,7 +6147,7 @@ ${pastSummaryStr}
 
 위 데이터를 바탕으로 지정된 3가지 핵심 영역(1. 오늘 전체 식단 피드백, 2. 저번 주 동일 요일 대비 비교, 3. 신체지표 및 운동/소비칼로리 연계 피드백)을 체계적으로 작성해 주세요.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${appState.geminiModel || 'gemini-1.5-flash'}:generateContent?key=${appState.geminiApiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${appState.geminiModel || 'gemini-2.5-flash'}:generateContent?key=${appState.geminiApiKey}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -6222,7 +6414,7 @@ async function analyzeDietWithGemini() {
       text: `${systemInstruction}\n\n사용자 식단 설명: ${promptText || '사진 속 음식의 영양 성분과 칼로리를 정확히 분석해줘.'}`
     });
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${appState.geminiModel}:generateContent?key=${appState.geminiApiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${appState.geminiModel || 'gemini-2.5-flash'}:generateContent?key=${appState.geminiApiKey}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -6281,19 +6473,63 @@ function renderHealthWorkout() {
   if (elements.workoutDateDetailView) elements.workoutDateDetailView.style.display = 'none';
   if (elements.workoutDateListView) elements.workoutDateListView.style.display = 'block';
 
-  // 3-1. Realtime Samsung Health Live Stats Bar (당일 빠른 통계)
+  // 3-1. Realtime Weekly Activity Stats Bar (월~일 주간 활동 통계)
   const activities = appState.healthData.activity || [];
-  const today = new Date().toISOString().split('T')[0];
-  const latestAct = activities.find(a => a.date && a.date.startsWith(today)) || (activities.length > 0 ? activities[activities.length - 1] : null);
+  const dbItems = appState.healthData.db || [];
+  const workoutItems = dbItems.filter(item => (item.category || '').toLowerCase() === 'workout');
 
-  if (latestAct) {
-    if (elements.samsungSteps) elements.samsungSteps.textContent = `${(Number(latestAct.steps) || 0).toLocaleString()} 보`;
-    if (elements.samsungDistance) elements.samsungDistance.textContent = `${(Number(latestAct.distanceKm) || 0).toFixed(1)} km`;
-    const cal = Number(latestAct.totalCalories) || Number(latestAct.activeCalories) || 0;
-    if (elements.samsungActiveCal) elements.samsungActiveCal.textContent = `${cal.toLocaleString()} kcal`;
-    if (elements.samsungActiveTime) elements.samsungActiveTime.textContent = `${(Number(latestAct.activeMinutes) || 0)} 분`;
-    if (elements.samsungStatsDate) elements.samsungStatsDate.textContent = latestAct.date ? `${latestAct.date} 기준` : '최신 연동';
+  // Compute Monday ~ Sunday of current week
+  const now = new Date();
+  const dayOfWeek = (now.getDay() + 6) % 7; // Mon = 0, Sun = 6
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - dayOfWeek);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+
+  const rangeText = `${mon.getMonth() + 1}.${mon.getDate()}(월) ~ ${sun.getMonth() + 1}.${sun.getDate()}(일) 누적`;
+
+  let weekTotalSteps = 0;
+  let weekTotalDist = 0;
+  let weekTotalBurned = 0;
+  let weekTotalTime = 0;
+  let activeDaysCount = 0;
+
+  for (let d = new Date(mon); d <= sun; d.setDate(d.getDate() + 1)) {
+    const dStr = d.toISOString().split('T')[0];
+    const dayActs = activities.filter(a => a.date && a.date.startsWith(dStr));
+    const dayWorkouts = workoutItems.filter(w => w.date && w.date.startsWith(dStr));
+
+    const steps = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.steps) || 0)) : 0;
+    const dist = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.distanceKm) || 0)) : 0;
+    const cal = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.totalCalories) || Number(a.activeCalories) || 0)) : 0;
+    const mins = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.activeMinutes) || 0)) : 0;
+
+    const customCal = dayWorkouts.reduce((s, w) => s + (Number(w.calories) || 0), 0);
+    const customMins = dayWorkouts.reduce((s, w) => s + (Number(w.duration) || 0), 0);
+
+    const dayTotalBurned = cal + customCal;
+    const dayTotalTime = mins + customMins;
+
+    if (steps > 0 || dayTotalBurned > 0 || dayWorkouts.length > 0) {
+      weekTotalSteps += steps;
+      weekTotalDist += dist;
+      weekTotalBurned += dayTotalBurned;
+      weekTotalTime += dayTotalTime;
+      activeDaysCount++;
+    }
   }
+
+  const avgBurned = activeDaysCount > 0 ? Math.round(weekTotalBurned / activeDaysCount) : 0;
+
+  if (elements.samsungSteps) elements.samsungSteps.textContent = `${weekTotalSteps.toLocaleString()} 보`;
+  if (elements.samsungDistance) elements.samsungDistance.textContent = `${weekTotalDist.toFixed(1)} km`;
+  if (elements.samsungActiveCal) elements.samsungActiveCal.textContent = `${avgBurned.toLocaleString()} kcal`;
+  if (elements.samsungActiveTime) {
+    const hrs = Math.floor(weekTotalTime / 60);
+    const remMins = weekTotalTime % 60;
+    elements.samsungActiveTime.textContent = hrs > 0 ? `${hrs}시간 ${remMins}분` : `${weekTotalTime} 분`;
+  }
+  if (elements.samsungStatsDate) elements.samsungStatsDate.textContent = rangeText;
 
   // Sync filter bar buttons active state
   if (elements.workoutFilterBar) {
@@ -6305,9 +6541,6 @@ function renderHealthWorkout() {
 
   const container = elements.workoutDateList || elements.healthWorkoutGrid;
   if (!container) return;
-
-  const dbItems = appState.healthData.db || [];
-  const workoutItems = dbItems.filter(item => (item.category || '').toLowerCase() === 'workout');
 
   // 3-2. Collect unique dates from both Samsung Health activities and custom workouts
   const dateSet = new Set();
@@ -6344,17 +6577,21 @@ function renderHealthWorkout() {
     const totalCal = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.totalCalories) || 0)) : 0;
     const actMins = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.activeMinutes) || 0)) : 0;
 
-    // 10분 이상 연속 걷기 세션 (삼성헬스 자동 감지)
-    const dayWalks = dayActs.filter(a => {
+    // Samsung Health 운동 세션 (걷기 10분 이상 또는 기타 등록된 모든 운동)
+    const daySamsungWorkouts = dayActs.filter(a => {
       const exName = (a.exerciseName || '').toLowerCase();
       const mins = Number(a.activeMinutes) || 0;
-      return (exName.includes('walking') || exName.includes('걷기') || a.exerciseName) && mins >= 10;
+      if (!a.exerciseName && mins < 10) return false;
+      if (exName.includes('walking') || exName.includes('걷기')) {
+        return mins >= 10;
+      }
+      return mins > 0;
     });
 
     const dayWorkouts = workoutItems.filter(w => w.date && w.date.startsWith(d));
     const customDuration = dayWorkouts.reduce((sum, w) => sum + (Number(w.duration) || 0), 0);
     const customCalories = dayWorkouts.reduce((sum, w) => sum + (Number(w.calories) || 0), 0);
-    const hasWorkout = dayWorkouts.length > 0 || dayWalks.length > 0;
+    const hasWorkout = dayWorkouts.length > 0 || daySamsungWorkouts.length > 0;
 
     const totalBurned = (totalCal > 0 ? totalCal : actCal) + customCalories;
     const totalTime = actMins + customDuration;
@@ -6366,7 +6603,7 @@ function renderHealthWorkout() {
       actCal,
       totalCal,
       actMins,
-      dayWalks,
+      daySamsungWorkouts,
       dayWorkouts,
       customDuration,
       customCalories,
@@ -6401,11 +6638,14 @@ function renderHealthWorkout() {
   // 3-5. Render Rows (가변 1줄/2줄 & 색상 차별화)
   container.innerHTML = filteredRows.map(r => {
     const formattedDate = formatDietDate(r.date);
-    const walkPills = r.dayWalks.map(w => {
-      const distText = w.exerciseDistanceM > 0 ? (w.exerciseDistanceM / 1000).toFixed(1) + 'km' : (w.distanceKm > 0 ? Number(w.distanceKm).toFixed(1) + 'km' : '');
+    const samsungPills = r.daySamsungWorkouts.map(w => {
+      const parsed = parseSamsungExercise(w.exerciseName);
+      const distText = w.exerciseDistanceM > 0 
+        ? (w.exerciseDistanceM / 1000).toFixed(1) + 'km' 
+        : (w.distanceKm > 0 ? Number(w.distanceKm).toFixed(1) + 'km' : '');
       return `
         <span class="workout-item-pill">
-          <strong class="w-name"><i class="fa-solid fa-person-walking" style="color: #10b981;"></i> 걷기(${w.activeMinutes}분)</strong>${distText ? `: <span class="w-cal">${distText}</span>` : ''}
+          <strong class="w-name"><i class="fa-solid ${parsed.icon}" style="color: ${parsed.color};"></i> ${escapeHtml(parsed.name)}(${w.activeMinutes || 0}분)</strong>${distText ? `: <span class="w-cal">${distText}</span>` : ''}
         </span>
       `;
     });
@@ -6416,7 +6656,7 @@ function renderHealthWorkout() {
         ${w.duration ? `<span class="w-dur">(${w.duration}분)</span>` : ''}
       </span>
     `);
-    const allPills = [...walkPills, ...workoutPills];
+    const allPills = [...samsungPills, ...workoutPills];
 
     return `
       <div class="workout-date-row ${r.hasWorkout ? 'has-workout' : 'normal'}" data-date="${escapeHtml(r.date)}">
@@ -6492,11 +6732,15 @@ function showWorkoutDateDetail(date) {
   const actMins = dayActs.length > 0 ? Math.max(...dayActs.map(a => Number(a.activeMinutes) || 0)) : 0;
   const stepGoalPct = Math.min(150, Math.round((steps / 10000) * 100));
 
-  // 10분 이상 연속 걷기 세션 (삼성헬스 자동 감지)
-  const dayWalks = dayActs.filter(a => {
+  // Samsung Health 운동 세션 (걷기 10분 이상 또는 기타 등록된 모든 운동)
+  const daySamsungWorkouts = dayActs.filter(a => {
     const exName = (a.exerciseName || '').toLowerCase();
     const mins = Number(a.activeMinutes) || 0;
-    return (exName.includes('walking') || exName.includes('걷기') || a.exerciseName) && mins >= 10;
+    if (!a.exerciseName && mins < 10) return false;
+    if (exName.includes('walking') || exName.includes('걷기')) {
+      return mins >= 10;
+    }
+    return mins > 0;
   });
 
   // 2. Custom workouts for the date
@@ -6520,7 +6764,7 @@ function showWorkoutDateDetail(date) {
           <span class="cal-sub">kcal 총 소비 ${customCalories > 0 ? `(기본 일상 대사 ${baseMetabolicCal.toLocaleString()} kcal + 추가 운동 ${customCalories.toLocaleString()} kcal)` : ''}</span>
         </div>
         <div style="font-size: 0.85rem; color: var(--text-muted);">
-          총 활동·운동 시간: <strong>${totalActivityTime}분</strong> | 운동 기록 <strong>${dayWorkouts.length + dayWalks.length}건</strong>
+          총 활동·운동 시간: <strong>${totalActivityTime}분</strong> | 운동 기록 <strong>${dayWorkouts.length + daySamsungWorkouts.length}건</strong>
         </div>
       </div>
 
@@ -6557,18 +6801,19 @@ function showWorkoutDateDetail(date) {
     `;
   }
 
-  // 4. Render Additional Workouts & Auto-detected Walking Sessions Stack
+  // 4. Render Additional Workouts & Samsung Health Workout Sessions Stack
   if (elements.workoutDetailStack) {
     let stackHtml = '';
 
-    // 4-A. 10분 이상 연속 걷기 운동 세션 카드 (자동 감지)
-    if (dayWalks.length > 0) {
+    // 4-A. Samsung Health 운동 세션 카드 (자동 감지 및 연동 운동)
+    if (daySamsungWorkouts.length > 0) {
       stackHtml += `
         <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-highlight); margin: 0.5rem 0 0.75rem; display: flex; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-person-walking" style="color: #10b981;"></i> 걷기 운동 기록 (10분 이상 자동 감지 · ${dayWalks.length}건)
+          <i class="fa-solid fa-heart-pulse" style="color: #10b981;"></i> 삼성헬스 운동 및 활동 기록 (${daySamsungWorkouts.length}건)
         </h3>
         <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem;">
-          ${dayWalks.map(w => {
+          ${daySamsungWorkouts.map(w => {
+            const parsed = parseSamsungExercise(w.exerciseName);
             const speedKmh = w.speedAvg > 0 ? (w.speedAvg * 3.6).toFixed(1) : (w.distanceKm && w.activeMinutes ? ((w.distanceKm / (w.activeMinutes / 60))).toFixed(1) : '--');
             const distKm = w.exerciseDistanceM > 0 ? (w.exerciseDistanceM / 1000).toFixed(2) : (w.distanceKm > 0 ? Number(w.distanceKm).toFixed(2) : '--');
             const distM = w.exerciseDistanceM > 0 ? Math.round(w.exerciseDistanceM) : (w.distanceKm > 0 ? Math.round(w.distanceKm * 1000) : '--');
@@ -6576,28 +6821,32 @@ function showWorkoutDateDetail(date) {
               <div class="workout-detail-card auto-walk-card">
                 <div class="workout-card-header">
                   <div class="workout-card-title-row">
-                    <span class="badge badge-green"><i class="fa-solid fa-person-walking"></i> 걷기 운동</span>
-                    <h4 class="workout-card-title">연속 걷기 ${w.activeMinutes}분</h4>
+                    <span class="badge badge-green"><i class="fa-solid ${parsed.icon}"></i> ${escapeHtml(parsed.name)}</span>
+                    <h4 class="workout-card-title">${escapeHtml(parsed.name)} ${w.activeMinutes || 0}분</h4>
                   </div>
                   <div class="workout-card-stats">
                     ${w.startTime ? `<span><i class="fa-regular fa-clock" style="color: var(--text-muted);"></i> ${escapeHtml(w.startTime)} 시작</span>` : ''}
-                    <span style="color: #10b981; font-weight: 700;">${distKm} km</span>
+                    ${distKm !== '--' ? `<span style="color: #10b981; font-weight: 700;">${distKm} km</span>` : ''}
                   </div>
                 </div>
 
                 <div class="walk-metrics-grid">
                   <span class="walk-metric-chip">
                     <i class="fa-solid fa-stopwatch" style="color: #38bdf8;"></i>
-                    <span>시간: <strong>${w.activeMinutes}분</strong></span>
+                    <span>시간: <strong>${w.activeMinutes || 0}분</strong></span>
                   </span>
-                  <span class="walk-metric-chip">
-                    <i class="fa-solid fa-route" style="color: #10b981;"></i>
-                    <span>거리: <strong>${distKm} km (${typeof distM === 'number' ? distM.toLocaleString() + 'm' : distM})</strong></span>
-                  </span>
-                  <span class="walk-metric-chip">
-                    <i class="fa-solid fa-gauge-high" style="color: #f59e0b;"></i>
-                    <span>평균 속도: <strong>${speedKmh} km/h</strong></span>
-                  </span>
+                  ${distKm !== '--' ? `
+                    <span class="walk-metric-chip">
+                      <i class="fa-solid fa-route" style="color: #10b981;"></i>
+                      <span>거리: <strong>${distKm} km (${typeof distM === 'number' ? distM.toLocaleString() + 'm' : distM})</strong></span>
+                    </span>
+                  ` : ''}
+                  ${speedKmh !== '--' && speedKmh !== '0.0' ? `
+                    <span class="walk-metric-chip">
+                      <i class="fa-solid fa-gauge-high" style="color: #f59e0b;"></i>
+                      <span>평균 속도: <strong>${speedKmh} km/h</strong></span>
+                    </span>
+                  ` : ''}
                   ${w.vo2Max > 0 ? `
                     <span class="walk-metric-chip">
                       <i class="fa-solid fa-lungs" style="color: #a855f7;"></i>
@@ -7132,7 +7381,7 @@ function setupHealthEventListeners() {
   // Gemini Settings Button (Gear / Magic Sparkles)
   elements.geminiSettingsBtn?.addEventListener('click', () => {
     if (elements.geminiApiKeyInput) elements.geminiApiKeyInput.value = appState.geminiApiKey || '';
-    if (elements.geminiModelSelect) elements.geminiModelSelect.value = appState.geminiModel || 'gemini-1.5-flash';
+    if (elements.geminiModelSelect) elements.geminiModelSelect.value = appState.geminiModel || 'gemini-2.5-flash';
     if (elements.geminiKeyStatus) {
       elements.geminiKeyStatus.textContent = appState.geminiApiKey ? 'API 키 등록됨' : '미설정';
       elements.geminiKeyStatus.style.color = appState.geminiApiKey ? '#10b981' : 'var(--text-muted)';
@@ -7150,7 +7399,7 @@ function setupHealthEventListeners() {
 
   elements.btnSaveGeminiSettings?.addEventListener('click', () => {
     const key = elements.geminiApiKeyInput ? elements.geminiApiKeyInput.value.trim() : '';
-    const model = elements.geminiModelSelect ? elements.geminiModelSelect.value : 'gemini-1.5-flash';
+    const model = elements.geminiModelSelect ? elements.geminiModelSelect.value : 'gemini-2.5-flash';
     
     appState.geminiApiKey = key;
     appState.geminiModel = model;
