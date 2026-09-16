@@ -6320,31 +6320,53 @@ function backToDietList() {
 }
 
 // ==========================================
-// IMAGE COMPRESSION HELPER (Canvas-based)
+// IMAGE COMPRESSION HELPER (Aspect-Ratio Preserving & Adaptive)
 // ==========================================
-function compressImageToDataUrl(fileOrDataUrl, maxWidth = 480, maxHeight = 480, quality = 0.6) {
+function compressImageToDataUrl(fileOrDataUrl, maxDim = 480, targetMaxChars = 42000) {
   return new Promise((resolve) => {
     if (!fileOrDataUrl) return resolve('');
     const img = new Image();
     img.onload = () => {
-      let w = img.width;
-      let h = img.height;
-      if (w > maxWidth || h > maxHeight) {
-        if (w > h) {
-          h = Math.round((h * maxWidth) / w);
-          w = maxWidth;
-        } else {
-          w = Math.round((w * maxHeight) / h);
-          h = maxHeight;
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+
+      // Strict aspect ratio preservation: scale the longer dimension to maxDim
+      if (w >= h) {
+        if (w > maxDim) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        }
+      } else {
+        if (h > maxDim) {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
         }
       }
+
       const canvas = document.createElement('canvas');
-      canvas.width = w || 400;
-      canvas.height = h || 400;
+      canvas.width = Math.max(1, w);
+      canvas.height = Math.max(1, h);
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-      resolve(compressedDataUrl);
+      if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      }
+
+      // Adaptive quality loop: start at 0.65 for crisp clarity, adjust if needed
+      const qualitySteps = [0.65, 0.60, 0.55, 0.50];
+      let finalDataUrl = canvas.toDataURL('image/jpeg', 0.65);
+
+      for (let i = 0; i < qualitySteps.length; i++) {
+        const q = qualitySteps[i];
+        const dataUrl = canvas.toDataURL('image/jpeg', q);
+        finalDataUrl = dataUrl;
+        if (dataUrl.length <= targetMaxChars) {
+          break;
+        }
+      }
+
+      resolve(finalDataUrl);
     };
     img.onerror = () => {
       resolve(typeof fileOrDataUrl === 'string' ? fileOrDataUrl : '');
@@ -6646,12 +6668,12 @@ async function saveDietItem() {
     created_at: new Date().toISOString()
   };
 
-  // Ensure image string never exceeds Google Sheets 50,000 char cell limit
-  if (item.imageUrl && item.imageUrl.length > 35000) {
+  // Ensure image string safely adheres to aspect ratio and stays under 42,000 chars
+  if (item.imageUrl && item.imageUrl.length > 42000) {
     try {
-      item.imageUrl = await compressImageToDataUrl(item.imageUrl, 400, 400, 0.5);
+      item.imageUrl = await compressImageToDataUrl(item.imageUrl, 480, 42000);
       if (item.imageUrl.length > 45000) {
-        item.imageUrl = '';
+        item.imageUrl = await compressImageToDataUrl(item.imageUrl, 400, 38000);
       }
     } catch (e) {
       console.warn('Image re-compression fallback:', e);
@@ -7947,7 +7969,7 @@ function setupHealthEventListeners() {
     if (elements.dietAiStatus) elements.dietAiStatus.textContent = '사진 최적화 압축 중...';
 
     try {
-      currentDietImageBase64 = await compressImageToDataUrl(file, 480, 480, 0.6);
+      currentDietImageBase64 = await compressImageToDataUrl(file, 480, 42000);
       currentDietImageMime = 'image/jpeg';
       if (elements.dietImagePreview) elements.dietImagePreview.src = currentDietImageBase64;
       if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'inline-flex';
@@ -7976,7 +7998,7 @@ function setupHealthEventListeners() {
         const file = item.getAsFile();
         if (elements.dietImageFilename) elements.dietImageFilename.textContent = '클립보드 이미지 (압축 중...)';
         try {
-          currentDietImageBase64 = await compressImageToDataUrl(file, 480, 480, 0.6);
+          currentDietImageBase64 = await compressImageToDataUrl(file, 480, 42000);
           currentDietImageMime = 'image/jpeg';
           if (elements.dietImagePreview) elements.dietImagePreview.src = currentDietImageBase64;
           if (elements.dietImagePreviewBox) elements.dietImagePreviewBox.style.display = 'inline-flex';
