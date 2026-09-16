@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SCRIPT_ID = '1NyF45ZVcADSs5PWNNOmLaJWC9kC-bwsF9EZ4Z__QTo74h7x5xdTkftEl';
-const DEPLOYMENT_ID = 'AKfycby_5htUVodm_M16r25fUOyNAkNG7cpx3L1X098TYGtvS6KYN4nv8h8N5-wnNsveytLz8Q';
+const DEPLOYMENT_ID = 'AKfycbz5axHM_61gZngyDkr9CXwhK0AXdi4JRRm23Won8IaHxzbV7YWTpT7Wd_qn7GuL0gTgYg';
 const CODE_FILE_PATH = path.join(__dirname, 'health_gas_backend.gs');
 
 function getClaspRcPath() {

@@ -365,28 +365,74 @@ function getAllHealthData(ss = null) {
       const rawDate = row[hMap['date'] !== undefined ? hMap['date'] : 0];
       if (!rawDate) continue;
 
-      let hr = 0;
+      // 1. Heart rate
+      let hrAvg = 0;
       if (hMap['heart rate avg (bpm)'] !== undefined && row[hMap['heart rate avg (bpm)']]) {
-        hr = Number(row[hMap['heart rate avg (bpm)']]) || 0;
+        hrAvg = Number(row[hMap['heart rate avg (bpm)']]) || 0;
       } else if (hMap['resting heart rate avg (bpm)'] !== undefined && row[hMap['resting heart rate avg (bpm)']]) {
-        hr = Number(row[hMap['resting heart rate avg (bpm)']]) || 0;
+        hrAvg = Number(row[hMap['resting heart rate avg (bpm)']]) || 0;
       } else if (hMap['heartrate'] !== undefined && row[hMap['heartrate']]) {
-        hr = Number(row[hMap['heartrate']]) || 0;
+        hrAvg = Number(row[hMap['heartrate']]) || 0;
       }
 
-      let oxygen = 0;
+      let hrMin = 0;
+      if (hMap['heart rate min (bpm)'] !== undefined && row[hMap['heart rate min (bpm)']]) {
+        hrMin = Number(row[hMap['heart rate min (bpm)']]) || 0;
+      } else if (hMap['minheartrate'] !== undefined && row[hMap['minheartrate']]) {
+        hrMin = Number(row[hMap['minheartrate']]) || 0;
+      }
+
+      let hrMax = 0;
+      if (hMap['heart rate max (bpm)'] !== undefined && row[hMap['heart rate max (bpm)']]) {
+        hrMax = Number(row[hMap['heart rate max (bpm)']]) || 0;
+      } else if (hMap['maxheartrate'] !== undefined && row[hMap['maxheartrate']]) {
+        hrMax = Number(row[hMap['maxheartrate']]) || 0;
+      }
+
+      // 2. Oxygen saturation
+      let oxAvg = 0;
       if (hMap['oxygen saturation avg (%)'] !== undefined && row[hMap['oxygen saturation avg (%)']]) {
-        oxygen = Number(row[hMap['oxygen saturation avg (%)']]) || 0;
+        oxAvg = Number(row[hMap['oxygen saturation avg (%)']]) || 0;
       } else if (hMap['oxygenpercent'] !== undefined && row[hMap['oxygenpercent']]) {
-        oxygen = Number(row[hMap['oxygenpercent']]) || 0;
+        oxAvg = Number(row[hMap['oxygenpercent']]) || 0;
+      } else if (hMap['oxygensaturation'] !== undefined && row[hMap['oxygensaturation']]) {
+        oxAvg = Number(row[hMap['oxygensaturation']]) || 0;
+      }
+
+      let oxMin = 0;
+      if (hMap['oxygen saturation min (%)'] !== undefined && row[hMap['oxygen saturation min (%)']]) {
+        oxMin = Number(row[hMap['oxygen saturation min (%)']]) || 0;
+      } else if (hMap['minoxygensaturation'] !== undefined && row[hMap['minoxygensaturation']]) {
+        oxMin = Number(row[hMap['minoxygensaturation']]) || 0;
+      }
+
+      let oxMax = 0;
+      if (hMap['oxygen saturation max (%)'] !== undefined && row[hMap['oxygen saturation max (%)']]) {
+        oxMax = Number(row[hMap['oxygen saturation max (%)']]) || 0;
+      } else if (hMap['maxoxygensaturation'] !== undefined && row[hMap['maxoxygensaturation']]) {
+        oxMax = Number(row[hMap['maxoxygensaturation']]) || 0;
+      }
+
+      let restingHr = 0;
+      if (hMap['resting heart rate avg (bpm)'] !== undefined && row[hMap['resting heart rate avg (bpm)']]) {
+        restingHr = Number(row[hMap['resting heart rate avg (bpm)']]) || 0;
       }
 
       vitalsList.push({
         date: formatIsoDate(rawDate),
-        heartRate: hr ? Number(hr.toFixed(1)) : '--',
-        heartRateMin: hMap['heart rate min (bpm)'] !== undefined ? Number(row[hMap['heart rate min (bpm)']]) || 0 : 0,
-        heartRateMax: hMap['heart rate max (bpm)'] !== undefined ? Number(row[hMap['heart rate max (bpm)']]) || 0 : 0,
-        oxygenPercent: oxygen ? Number(oxygen.toFixed(1)) : 0,
+        heartRate: hrAvg ? Number(hrAvg.toFixed(1)) : '--',
+        heartRateAvg: hrAvg ? Number(hrAvg.toFixed(1)) : 0,
+        heartRateMin: hrMin,
+        heartRateMax: hrMax,
+        minHeartRate: hrMin,
+        maxHeartRate: hrMax,
+        avgHeartRate: hrAvg ? Number(hrAvg.toFixed(1)) : 0,
+        restingHeartRate: restingHr,
+        oxygenPercent: oxAvg ? Number(oxAvg.toFixed(1)) : 0,
+        oxygenSaturation: oxAvg ? Number(oxAvg.toFixed(1)) : 0,
+        oxygenAvg: oxAvg ? Number(oxAvg.toFixed(1)) : 0,
+        oxygenMin: oxMin ? Number(oxMin.toFixed(1)) : 0,
+        oxygenMax: oxMax ? Number(oxMax.toFixed(1)) : 0,
         bloodPressure: hMap['blood pressure (mmhg)'] !== undefined ? String(row[hMap['blood pressure (mmhg)']] || '') : '',
         time: hMap['time'] !== undefined ? String(row[hMap['time']] || '') : ''
       });
@@ -520,7 +566,7 @@ function doPost(e) {
       if (hMap['carbs'] !== undefined) rowValues[hMap['carbs']] = carbs;
       if (hMap['protein'] !== undefined) rowValues[hMap['protein']] = protein;
       if (hMap['fat'] !== undefined) rowValues[hMap['fat']] = fat;
-      if (hMap['imageurl'] !== undefined) rowValues[hMap['imageurl']] = imageUrl;
+      if (hMap['imageurl'] !== undefined) rowValues[hMap['imageurl']] = (imageUrl && imageUrl.length > 48000) ? '' : imageUrl;
       if (hMap['location'] !== undefined) rowValues[hMap['location']] = location;
       if (hMap['memo'] !== undefined) rowValues[hMap['memo']] = memo;
       if (hMap['content'] !== undefined) rowValues[hMap['content']] = content;

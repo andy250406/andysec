@@ -1574,9 +1574,27 @@ print("Hello Security")
             </div>
           </div>
 
+          <!-- Workout Sets & Reps Builder -->
+          <div class="form-group" style="margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label style="margin: 0; font-weight: 600;"><i class="fa-solid fa-list-ol" style="color: #10b981;"></i> 세트별 상세 기록 (중량 kg / 횟수 회)</label>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn-secondary btn-sm" id="btn-add-workout-set" style="padding: 4px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 6px;">
+                  <i class="fa-solid fa-plus"></i> 세트 추가
+                </button>
+                <button type="button" class="btn-secondary btn-sm" id="btn-copy-workout-set" style="padding: 4px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 6px;">
+                  <i class="fa-regular fa-copy"></i> 이전 세트 복사
+                </button>
+              </div>
+            </div>
+            <div id="workout-sets-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+              <!-- Dynamic Set Rows rendered by JS -->
+            </div>
+          </div>
+
           <div class="form-group">
-            <label for="workout-input-content">세트별 상세 기록 및 운동 일지</label>
-            <textarea id="workout-input-content" rows="4" placeholder="예:&#10;1. 벤치프레스: 60kg 12회, 70kg 10회, 80kg 8회&#10;2. 인클라인 덤벨프레스: 22kg 10회 3세트&#10;3. 딥스: 맨몸 15회 3세트"></textarea>
+            <label for="workout-input-content">추가 메모 / 운동 피드백 (선택)</label>
+            <textarea id="workout-input-content" rows="3" placeholder="예: 오늘 컨디션 좋음, 마지막 세트 드롭세트 진행, 쉬는 시간 1분 유지 등"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -1638,17 +1656,11 @@ print("Hello Security")
         <button class="close-btn" id="btn-close-gemini-modal">&times;</button>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin-bottom: 1rem;">
-          Google AI Studio의 무료 Gemini API 키를 입력하시면, 음식 사진과 텍스트를 분석하여 칼로리와 영양성분을 자동으로 산출해 드립니다.
-        </p>
-        <div class="form-group">
-          <label for="gemini-api-key-input">Gemini API Key</label>
-          <input type="password" id="gemini-api-key-input" placeholder="AIzaSy..." autocomplete="off">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-            <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #38bdf8; font-size: 0.8rem; text-decoration: underline;">
-              무료 API Key 발급받기 <i class="fa-solid fa-arrow-up-right-from-square"></i>
-            </a>
-            <span id="gemini-key-status" style="font-size: 0.8rem; color: var(--text-muted);">미설정</span>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; margin-bottom: 1.25rem;">
+          <i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 1.3rem;"></i>
+          <div>
+            <strong style="color: #10b981; font-size: 0.92rem; display: block; margin-bottom: 2px;">Gemini API 상시 연동 완료</strong>
+            <span style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; display: block;">시스템 기본 키가 하드코딩되어 모든 기기(PC, 모바일)에서 즉시 AI 식단 분석 및 주간 리포트 기능이 작동합니다.</span>
           </div>
         </div>
 
