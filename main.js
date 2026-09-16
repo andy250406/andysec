@@ -4779,13 +4779,15 @@ function renderHealthDashboard() {
   
   // 1-1. Activity (Samsung Health)
   const activities = appState.healthData.activity || [];
-  const todayAct = activities.find(a => a.date && a.date.startsWith(today)) || (activities.length > 0 ? activities[activities.length - 1] : null);
+  const todayActs = activities.filter(a => a.date && a.date.startsWith(today));
+  const todayAct = todayActs[0] || (activities.length > 0 ? activities[activities.length - 1] : null);
   if (todayAct) {
+    const steps = todayActs.length > 0 ? Math.max(...todayActs.map(a => Number(a.steps) || 0)) : (Number(todayAct.steps) || 0);
+    const cal = todayActs.length > 0 ? Math.max(...todayActs.map(a => Number(a.totalCalories) || Number(a.activeCalories) || 0)) : (Number(todayAct.totalCalories) || Number(todayAct.activeCalories) || 0);
     if (elements.healthCardSteps) {
-      elements.healthCardSteps.innerHTML = `${(Number(todayAct.steps) || 0).toLocaleString()} <span class="unit">보</span>`;
+      elements.healthCardSteps.innerHTML = `${steps.toLocaleString()} <span class="unit">보</span>`;
     }
     if (elements.healthCardActiveCal) {
-      const cal = Number(todayAct.totalCalories) || Number(todayAct.activeCalories) || 0;
       elements.healthCardActiveCal.textContent = `총 소비: ${cal.toLocaleString()} kcal`;
     }
   } else {

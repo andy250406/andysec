@@ -169,9 +169,278 @@ function getLastModified(ss = null) {
   return new Date().toISOString();
 }
 
+/**
+ * 신체 프로필(Body Measurements) 기반 TDEE, 활동 칼로리, 세부 운동 칼로리 자동 계산 및 시트 기입
+ */
+function recalculateAndFillActivityCalories(spreadsheet, forceAll) {
+  if (!spreadsheet) spreadsheet = getSpreadsheet();
+  const actSheet = getSheetCaseInsensitive(spreadsheet, 'Activity');
+  if (!actSheet || actSheet.getLastRow() <= 1) return { updatedCount: 0 };
+
+  // 1. Get latest body profile from Body Measurements / Body
+  let latestWeight = 90.0;
+  let latestHeight = 1.85;
+
+  const bodySheet = getSheetCaseInsensitive(spreadsheet, 'Body Measurements') || getSheetCaseInsensitive(spreadsheet, 'Body');
+  if (bodySheet && bodySheet.getLastRow() > 1) {
+    const bHeaders = bodySheet.getRange(1, 1, 1, bodySheet.getLastColumn()).getValues()[0];
+    const bHMap = buildHeaderMap(bHeaders);
+    const bRows = bodySheet.getRange(2, 1, bodySheet.getLastRow() - 1, bodySheet.getLastColumn()).getValues();
+
+    for (let i = bRows.length - 1; i >= 0; i--) {
+      const bRow = bRows[i];
+      let w = 0;
+      if (bHMap['weight (kg)'] !== undefined && bRow[bHMap['weight (kg)']]) {
+        w = Number(bRow[bHMap['weight (kg)']]);
+      } else if (bHMap['weight'] !== undefined && bRow[bHMap['weight']]) {
+        w = Number(bRow[bHMap['weight']]);
+      }
+      if (w > 30 && w < 200) {
+        latestWeight = w;
+        break;
+      }
+    }
+
+    for (let i = bRows.length - 1; i >= 0; i--) {
+      const bRow = bRows[i];
+      if (bHMap['height (m)'] !== undefined && bRow[bHMap['height (m)']]) {
+        let hStr = String(bRow[bHMap['height (m)']]);
+        if (hStr.includes('=')) hStr = hStr.split('=').pop();
+        const m = hStr.match(/([0-9]+\.?[0-9]*)/);
+        if (m) {
+          const num = Number(m[1]);
+          if (num > 0.5 && num < 2.5) {
+            latestHeight = num;
+            break;
+          } else if (num >= 50 && num <= 250) {
+            latestHeight = num / 100;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Baseline Constants based on profile:
+  const BMR_REST = 1870; // kcal
+  const C_BASE = 1564; // kcal
+  const STRIDE = Number((latestHeight * 0.415).toFixed(2)) || 0.77; // m
+  const K_FACTOR = Number((0.0513 * (latestWeight / 90.0)).toFixed(4)) || 0.0513; // kcal/step
+
+  // 2. Read Activity sheet data
+  const lastRow = actSheet.getLastRow();
+  const lastCol = actSheet.getLastColumn();
+  const headers = actSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const hMap = buildHeaderMap(headers);
+
+  const colDate = hMap['date'] !== undefined ? hMap['date'] : 0;
+  const colSource = hMap['source(s)'] !== undefined ? hMap['source(s)'] : 1;
+  const colSteps = hMap['steps'];
+  const colDist = hMap['distance (m)'];
+  const colTotCal = hMap['total calories (kcal)'];
+  const colActCal = hMap['active calories (kcal)'];
+  const colExName = hMap['exercise name'];
+  const colDuration = hMap['duration (min)'];
+  const colExCal = hMap['exercise calories (kcal)'];
+  const colExDist = hMap['exercise distance (m)'];
+
+  if (colTotCal === undefined || colActCal === undefined || colExCal === undefined) {
+    return { error: 'Required calorie columns not found in Activity sheet' };
+  }
+
+  const rowsRange = actSheet.getRange(2, 1, lastRow - 1, lastCol);
+  const rows = rowsRange.getValues();
+
+  // Group by date
+  const dateGroups = {};
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    const rawDate = row[colDate];
+    if (!rawDate) continue;
+    const dateStr = formatIsoDate(rawDate);
+    if (!dateGroups[dateStr]) dateGroups[dateStr] = [];
+    dateGroups[dateStr].push({ rowIndex: r, row: row });
+  }
+
+  function getMET(exName, speedKmh) {
+    if (!exName) return 4.0;
+    const name = String(exName).toLowerCase();
+    if (name.includes('treadmill') || name.includes('running') || name.includes('러닝')) {
+      if (speedKmh > 8) return 9.0;
+      if (speedKmh > 6) return 8.0;
+      return 7.0;
+    }
+    if (name.includes('strength') || name.includes('weight') || name.includes('웨이트') || name.includes('근력')) {
+      return 4.0;
+    }
+    if (name.includes('walking') || name.includes('걷기')) {
+      return 3.5;
+    }
+    if (name.includes('cycling') || name.includes('자전거')) {
+      return 6.0;
+    }
+    return 4.5;
+  }
+
+  let modified = false;
+  let updatedCount = 0;
+
+  for (const dateStr in dateGroups) {
+    const group = dateGroups[dateStr];
+    const shealthItems = group.filter(item => String(item.row[colSource] || '').includes('com.sec.android.app.shealth'));
+    const hcItems = group.filter(item => String(item.row[colSource] || '').includes('com.android.healthconnect'));
+    const targetItems = shealthItems.length > 0 ? shealthItems : group;
+
+    // Check if this date already has active calories filled
+    const hasExistingAct = targetItems.some(item => {
+      const v = item.row[colActCal];
+      return v !== '' && v !== null && v !== undefined && Number(v) > 0;
+    });
+
+    // If not forcing all, and all target items already have Active Calories, skip this date
+    if (!forceAll && hasExistingAct) {
+      const hasEmptyAct = targetItems.some(item => {
+        const v = item.row[colActCal];
+        return v === '' || v === null || v === undefined;
+      });
+      if (!hasEmptyAct) {
+        continue;
+      }
+    }
+
+    // Daily max steps
+    let maxSteps = 0;
+    targetItems.forEach(item => {
+      const st = Number(item.row[colSteps]) || 0;
+      if (st > maxSteps) maxSteps = st;
+    });
+
+    // Robust raw total calories:
+    // 1. Prefer unchanged Health Connect row if available
+    let maxRawTotCal = 0;
+    if (hcItems.length > 0) {
+      hcItems.forEach(item => {
+        const tc = Number(item.row[colTotCal]) || 0;
+        if (tc > maxRawTotCal) maxRawTotCal = tc;
+      });
+    }
+    // 2. Fallback to shealth item raw value
+    if (maxRawTotCal === 0) {
+      targetItems.forEach(item => {
+        const tc = Number(item.row[colTotCal]) || 0;
+        if (tc > maxRawTotCal) maxRawTotCal = tc;
+      });
+    }
+
+    // If maxRawTotCal > 2100 due to prior recalculated TotalCal, recover from existing exercise/active cal
+    let E_ex = 0;
+    if (maxRawTotCal > 0 && maxRawTotCal <= 2100) {
+      E_ex = Math.max(0, maxRawTotCal - C_BASE);
+    } else {
+      let existingExSum = 0;
+      targetItems.forEach(item => {
+        const ec = Number(item.row[colExCal]) || 0;
+        existingExSum += ec;
+      });
+      if (existingExSum > 0) {
+        E_ex = existingExSum;
+      } else if (maxRawTotCal > C_BASE) {
+        E_ex = Math.max(0, maxRawTotCal - C_BASE);
+      }
+    }
+
+    // Exercise items
+    const exItems = targetItems.filter(item => {
+      const name = colExName !== undefined ? String(item.row[colExName] || '').trim() : '';
+      const dur = colDuration !== undefined ? (Number(item.row[colDuration]) || 0) : 0;
+      return name.length > 0 && dur > 0;
+    });
+
+    let maxExDist = 0;
+    exItems.forEach(item => {
+      const d1 = colExDist !== undefined ? (Number(item.row[colExDist]) || 0) : 0;
+      const d2 = colDist !== undefined ? (Number(item.row[colDist]) || 0) : 0;
+      const dist = Math.max(d1, d2);
+      if (dist > maxExDist) maxExDist = dist;
+    });
+
+    const S_ex = maxExDist > 0 ? Math.round(maxExDist / STRIDE) : 0;
+    const S_daily = Math.max(0, maxSteps - S_ex);
+    const E_daily = Number((S_daily * K_FACTOR).toFixed(1));
+
+    const finalTotalCal = Math.round(BMR_REST + E_ex + E_daily);
+    const finalActiveCal = Math.round(E_ex + E_daily);
+
+    // Exercise breakdown
+    let exCaloriesMap = {};
+    if (exItems.length > 0 && E_ex > 0) {
+      let totalScore = 0;
+      const scored = exItems.map(item => {
+        const dur = Number(item.row[colDuration]) || 1;
+        let dist = 0;
+        if (colExDist !== undefined && item.row[colExDist]) dist = Number(item.row[colExDist]);
+        else if (colDist !== undefined && item.row[colDist]) dist = Number(item.row[colDist]);
+        let speed = 0;
+        if (dur > 0 && dist > 0) speed = (dist / 1000) / (dur / 60);
+        const met = getMET(item.row[colExName], speed);
+        const score = met * dur;
+        totalScore += score;
+        return { item: item, score: score };
+      });
+
+      scored.forEach(s => {
+        const ratio = totalScore > 0 ? (s.score / totalScore) : (1 / scored.length);
+        exCaloriesMap[s.item.rowIndex] = Math.round(E_ex * ratio);
+      });
+    }
+
+    // Apply to group rows
+    group.forEach(item => {
+      const rIdx = item.rowIndex;
+      const row = rows[rIdx];
+      const isShealth = String(row[colSource] || '').includes('com.sec.android.app.shealth');
+
+      const currentAct = Number(row[colActCal]) || 0;
+      const currentEx = Number(row[colExCal]) || 0;
+      const currentTot = Number(row[colTotCal]) || 0;
+
+      const targetTot = isShealth ? finalTotalCal : currentTot;
+      const targetAct = isShealth ? finalActiveCal : currentAct;
+      const targetEx = exCaloriesMap[rIdx] !== undefined ? exCaloriesMap[rIdx] : (currentEx > 0 ? currentEx : '');
+
+      const needsUpdate = forceAll || currentAct === 0 || (exItems.length > 0 && currentEx === 0) || row[colActCal] === '' || (isShealth && row[colTotCal] !== targetTot);
+
+      if (needsUpdate) {
+        if (row[colTotCal] !== targetTot || row[colActCal] !== targetAct || row[colExCal] !== targetEx) {
+          row[colTotCal] = targetTot;
+          row[colActCal] = targetAct;
+          row[colExCal] = targetEx;
+          modified = true;
+          updatedCount++;
+        }
+      }
+    });
+  }
+
+  if (modified) {
+    rowsRange.setValues(rows);
+    SpreadsheetApp.flush();
+    updateLastModified(spreadsheet);
+  }
+
+  return { status: 'success', updatedCount: updatedCount, profile: { weight: latestWeight, height: latestHeight, stride: STRIDE, bmr: BMR_REST } };
+}
+
 function getAllHealthData(ss = null) {
   const spreadsheet = ss || getSpreadsheet();
   initHealthSheetsIfNeeded(spreadsheet);
+
+  // Auto-calculate & fill missing calories in Activity sheet based on latest Body Measurements
+  try {
+    recalculateAndFillActivityCalories(spreadsheet, false);
+  } catch (e) {
+    Logger.log('recalculateAndFillActivityCalories auto-run warning: ' + e);
+  }
 
   // 1. DB (식단 / 운동 게시판)
   const dbSheet = getSheetCaseInsensitive(spreadsheet, 'DB');
@@ -207,8 +476,8 @@ function getAllHealthData(ss = null) {
     }
   }
 
-  // 2. Body (신체 데이터 - 인바디)
-  const bodySheet = getSheetCaseInsensitive(spreadsheet, 'Body');
+  // 2. Body (신체 데이터 - 인바디 / Body Measurements 연동)
+  let bodySheet = getSheetCaseInsensitive(spreadsheet, 'Body Measurements') || getSheetCaseInsensitive(spreadsheet, 'Body');
   const bodyLastRow = bodySheet ? bodySheet.getLastRow() : 0;
   const bodyList = [];
   if (bodyLastRow > 1) {
@@ -218,19 +487,53 @@ function getAllHealthData(ss = null) {
 
     for (let r = 0; r < rows.length; r++) {
       const row = rows[r];
-      const id = row[hMap['id'] !== undefined ? hMap['id'] : 0];
-      if (!id) continue;
+      const rawDate = row[hMap['date'] !== undefined ? hMap['date'] : (hMap['date/time'] !== undefined ? hMap['date/time'] : 0)];
+      if (!rawDate) continue;
+
+      let weightVal = 0;
+      if (hMap['weight (kg)'] !== undefined && row[hMap['weight (kg)']]) {
+        weightVal = Number(row[hMap['weight (kg)']]) || 0;
+      } else if (hMap['weight'] !== undefined && row[hMap['weight']]) {
+        weightVal = Number(row[hMap['weight']]) || 0;
+      }
+
+      let fatVal = 0;
+      if (hMap['body fat (%)'] !== undefined && row[hMap['body fat (%)']]) {
+        fatVal = Number(row[hMap['body fat (%)']]) || 0;
+      } else if (hMap['bodyfatpercent'] !== undefined && row[hMap['bodyfatpercent']]) {
+        fatVal = Number(row[hMap['bodyfatpercent']]) || 0;
+      }
+
+      let heightVal = 1.85;
+      if (hMap['height (m)'] !== undefined && row[hMap['height (m)']]) {
+        let rawH = String(row[hMap['height (m)']]);
+        if (rawH.includes('=')) rawH = rawH.split('=').pop();
+        const matchH = rawH.match(/([0-9]+\.?[0-9]*)/);
+        if (matchH) {
+          const num = Number(matchH[1]);
+          if (num > 0.5 && num < 2.5) heightVal = num;
+          else if (num >= 50 && num <= 250) heightVal = num / 100;
+        }
+      }
+
+      let muscleVal = 0;
+      if (hMap['lean body mass (kg)'] !== undefined && row[hMap['lean body mass (kg)']]) {
+        muscleVal = Number(row[hMap['lean body mass (kg)']]) || 0;
+      } else if (hMap['musclemass'] !== undefined && row[hMap['musclemass']]) {
+        muscleVal = Number(row[hMap['musclemass']]) || 0;
+      }
 
       bodyList.push({
-        id: String(id),
-        date: formatIsoDate(row[hMap['date']]),
-        weight: Number(row[hMap['weight']]) || 0,
-        muscleMass: Number(row[hMap['musclemass']]) || 0,
-        bodyFatPercent: Number(row[hMap['bodyfatpercent']]) || 0,
-        bmi: Number(row[hMap['bmi']]) || 0,
-        bmr: Number(row[hMap['bmr']]) || 0,
-        notes: String(row[hMap['notes']] || ''),
-        created_at: String(row[hMap['created_at']] || '')
+        id: String(row[hMap['id'] !== undefined ? hMap['id'] : 0] || ('body-' + r)),
+        date: formatIsoDate(rawDate),
+        weight: weightVal ? Number(weightVal.toFixed(1)) : 88.0,
+        muscleMass: muscleVal ? Number(muscleVal.toFixed(1)) : 0,
+        bodyFatPercent: fatVal ? Number(fatVal.toFixed(1)) : 24.5,
+        height: heightVal,
+        bmi: (weightVal && heightVal) ? Number((weightVal / (heightVal * heightVal)).toFixed(1)) : 25.7,
+        bmr: 1870,
+        notes: String(row[hMap['notes'] !== undefined ? hMap['notes'] : 0] || '삼성헬스 연동'),
+        created_at: String(row[hMap['created_at'] !== undefined ? hMap['created_at'] : 0] || '')
       });
     }
   }
@@ -249,6 +552,11 @@ function getAllHealthData(ss = null) {
       const rawDate = row[hMap['date'] !== undefined ? hMap['date'] : 0];
       if (!rawDate) continue;
 
+      const sourceStr = hMap['source(s)'] !== undefined ? String(row[hMap['source(s)']] || '') : '';
+      if (sourceStr.includes('com.android.healthconnect')) {
+        continue;
+      }
+
       // Distance (m) -> km
       let distanceKm = 0;
       if (hMap['distance (m)'] !== undefined && row[hMap['distance (m)']]) {
@@ -261,10 +569,14 @@ function getAllHealthData(ss = null) {
       let activeCal = 0;
       if (hMap['active calories (kcal)'] !== undefined && row[hMap['active calories (kcal)']]) {
         activeCal = Number(row[hMap['active calories (kcal)']]) || 0;
-      } else if (hMap['exercise calories (kcal)'] !== undefined && row[hMap['exercise calories (kcal)']]) {
-        activeCal = Number(row[hMap['exercise calories (kcal)']]) || 0;
       } else if (hMap['activecalories'] !== undefined && row[hMap['activecalories']]) {
         activeCal = Number(row[hMap['activecalories']]) || 0;
+      }
+
+      // Exercise Calories
+      let exCal = 0;
+      if (hMap['exercise calories (kcal)'] !== undefined && row[hMap['exercise calories (kcal)']]) {
+        exCal = Number(row[hMap['exercise calories (kcal)']]) || 0;
       }
 
       // Total Calories
@@ -291,6 +603,7 @@ function getAllHealthData(ss = null) {
         steps: steps,
         distanceKm: distanceKm,
         activeCalories: activeCal,
+        exerciseCalories: exCal,
         activeMinutes: durationMin,
         totalCalories: totalCal,
         source: hMap['source(s)'] !== undefined ? String(row[hMap['source(s)']] || '') : '',
@@ -466,6 +779,15 @@ function doGet(e) {
         success: true,
         last_modified: getLastModified()
       });
+    } else if (action === 'recalculateActivity') {
+      const forceAll = !!(e && e.parameter && (e.parameter.force === 'true' || e.parameter.forceAll === 'true' || e.parameter.force === '1'));
+      const ss = getSpreadsheet();
+      const res = recalculateAndFillActivityCalories(ss, forceAll);
+      return createJsonResponse({
+        status: 'success',
+        success: true,
+        result: res
+      });
     } else if (action === 'setup') {
       initHealthSheetsIfNeeded();
       return createJsonResponse({
@@ -509,6 +831,13 @@ function doPost(e) {
 
     const ss = getSpreadsheet();
     initHealthSheetsIfNeeded(ss);
+
+    // 0. Recalculate Activity Calories
+    if (action === 'recalculateActivity') {
+      const forceAll = !!(data.forceAll || data.force || payload.forceAll || payload.force);
+      const res = recalculateAndFillActivityCalories(ss, forceAll);
+      return createJsonResponse({ status: 'success', success: true, result: res });
+    }
 
     // 1. DB (식단 및 운동 게시글 CRUD: saveDBItem / savePost)
     if (action === 'saveDBItem' || action === 'savePost') {
